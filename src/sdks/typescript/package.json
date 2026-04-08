@@ -1,0 +1,21 @@
+{
+  "name": "@tukifact/sdk",
+  "version": "0.1.0",
+  "description": "TukiFact SDK — Facturación Electrónica para Perú",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist/"],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["tukifact", "facturacion", "sunat", "peru", "electronic-invoicing"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tukituki-solution/tukifact-sdk-js"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

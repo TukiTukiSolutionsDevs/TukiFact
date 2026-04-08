@@ -1,0 +1,37 @@
+# TukiFact API — Multi-stage .NET 10 build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy solution and project files for layer caching
+COPY TukiFact.slnx ./
+COPY src/TukiFact.Domain/TukiFact.Domain.csproj src/TukiFact.Domain/
+COPY src/TukiFact.Application/TukiFact.Application.csproj src/TukiFact.Application/
+COPY src/TukiFact.Infrastructure/TukiFact.Infrastructure.csproj src/TukiFact.Infrastructure/
+COPY src/TukiFact.Api/TukiFact.Api.csproj src/TukiFact.Api/
+COPY Directory.Build.props ./
+
+# Restore
+RUN dotnet restore src/TukiFact.Api/TukiFact.Api.csproj
+
+# Copy source and build
+COPY src/ src/
+RUN dotnet publish src/TukiFact.Api/TukiFact.Api.csproj -c Release -o /app/publish --no-restore
+
+# Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+# Security: non-root user
+RUN addgroup --system tukifact && adduser --system --ingroup tukifact tukifact
+USER tukifact
+
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health/live || exit 1
+
+ENTRYPOINT ["dotnet", "TukiFact.Api.dll"]

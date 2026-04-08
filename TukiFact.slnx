@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TukiFact.Api/TukiFact.Api.csproj" />
+    <Project Path="src/TukiFact.Application/TukiFact.Application.csproj" />
+    <Project Path="src/TukiFact.Domain/TukiFact.Domain.csproj" />
+    <Project Path="src/TukiFact.Infrastructure/TukiFact.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TukiFact.Api.Tests/TukiFact.Api.Tests.csproj" />
+    <Project Path="tests/TukiFact.Application.Tests/TukiFact.Application.Tests.csproj" />
+    <Project Path="tests/TukiFact.Domain.Tests/TukiFact.Domain.Tests.csproj" />
+    <Project Path="tests/TukiFact.Infrastructure.Tests/TukiFact.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

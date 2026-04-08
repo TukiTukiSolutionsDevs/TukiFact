@@ -1,0 +1,18 @@
+{
+  "status": "init",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000/",
+  "executionArgs": {
+    "projectName": "TukiFact",
+    "projectPath": "/Users/soulkin/Documents/TukiFact",
+    "testIds": [],
+    "additionalInstruction": "Frontend E2E tests. App: http://localhost:3000. API proxied via Next.js rewrites on same port.\n\nLogin: Tenant ID 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84, Email admin@tukitest.pe, Password TestSprite2026!, Button \"Iniciar Sesión\".\n\nFor TC003 register: use unique RUC 20444555661 and email frontreg@test.pe.\nFor TC009 series: use code FZ77.\nAll UI in Spanish. Wait 3s for data after navigation.",
+    "serverMode": "production",
+    "envs": {
+      "API_KEY": "sk-user-8ZdWmT8r0LppQc37ufXZ3CGvRDAOXVhYUnP4Vaf0kL6yZNLIHx5B8KEP9Vm7azyeepgsoOyRqYGBAB8svLgHV4Y6QcX2aE5AXvCqvvTwC8Y2_fYL5HwERG1SVgfq0npdyVc"
+    }
+  },
+  "serverPort": 60351,
+  "proxy": "http://4a746a03-d2e4-4b2d-9aee-69c7114cc34c:sxII54XG6ulwYHumpTzxq3mUGSkNC3Aj@tun.testsprite.com:8080"
+}

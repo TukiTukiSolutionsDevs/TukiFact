@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  NODE_VERSION: '22'
+
+jobs:
+  # === Backend ===
+  backend-build:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore TukiFact.slnx
+
+      - name: Build
+        run: dotnet build TukiFact.slnx --no-restore -c Release
+
+      - name: Test
+        run: dotnet test TukiFact.slnx --no-build -c Release --verbosity normal
+
+  # === Frontend ===
+  frontend-build:
+    name: Frontend Build & Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/tukifact-web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: https://tukifact.net.pe
+
+  # === Docker ===
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [backend-build, frontend-build]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        run: docker build -f docker/Dockerfile.api -t tukifact-api:${{ github.sha }} .
+
+      - name: Build Web image
+        run: docker build -f docker/Dockerfile.web -t tukifact-web:${{ github.sha }} .
+
+      # Uncomment when registry is configured:
+      # - name: Login to Container Registry
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
+      #
+      # - name: Push images
+      #   run: |
+      #     docker tag tukifact-api:${{ github.sha }} ghcr.io/${{ github.repository }}/api:latest
+      #     docker tag tukifact-web:${{ github.sha }} ghcr.io/${{ github.repository }}/web:latest
+      #     docker push ghcr.io/${{ github.repository }}/api:latest
+      #     docker push ghcr.io/${{ github.repository }}/web:latest

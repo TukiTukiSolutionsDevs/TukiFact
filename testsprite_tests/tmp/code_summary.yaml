@@ -1,0 +1,48 @@
+version: "2"
+type: backend
+tech_stack: [csharp, dotnet-10, aspnetcore, ef-core, postgresql, nats, minio, jwt]
+base_url: http://localhost:5186
+auth:
+  type: jwt-bearer
+  login_endpoint: POST /v1/auth/login
+  login_body: '{"email":"admin@tukitest.pe","password":"TestSprite2026!","tenantId":"0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"}'
+  token_field: accessToken
+  header: "Authorization: Bearer {token}"
+endpoints:
+  - {method: GET, path: /api/ping, auth: false, status: 200}
+  - {method: GET, path: /health, auth: false, status: 200}
+  - {method: POST, path: /v1/auth/register, auth: false, status: 201}
+  - {method: POST, path: /v1/auth/login, auth: false, status: 200}
+  - {method: POST, path: /v1/auth/refresh, auth: false, status: 200}
+  - {method: GET, path: /v1/auth/me, auth: true, status: 200}
+  - {method: GET, path: /v1/dashboard, auth: true, status: 200}
+  - {method: GET, path: /v1/documents, auth: true, status: 200}
+  - {method: POST, path: /v1/documents, auth: true, roles: "admin,emisor", status: 201}
+  - {method: GET, path: "/v1/documents/{id}", auth: true, status: 200}
+  - {method: GET, path: "/v1/documents/{id}/pdf", auth: true, status: 200}
+  - {method: GET, path: "/v1/documents/{id}/xml", auth: true, status: 200}
+  - {method: POST, path: /v1/documents/credit-note, auth: true, roles: "admin,emisor", status: 201}
+  - {method: GET, path: /v1/series, auth: true, status: 200}
+  - {method: POST, path: /v1/series, auth: true, roles: admin, status: 201}
+  - {method: PUT, path: "/v1/series/{id}", auth: true, roles: admin, status: 204}
+  - {method: GET, path: /v1/voided-documents, auth: true, roles: admin, status: 200}
+  - {method: POST, path: /v1/voided-documents, auth: true, roles: admin, status: 201}
+  - {method: GET, path: /v1/users, auth: true, roles: admin, status: 200}
+  - {method: POST, path: /v1/users, auth: true, roles: admin, status: 201}
+  - {method: PUT, path: "/v1/users/{id}", auth: true, roles: admin, status: 204}
+  - {method: DELETE, path: "/v1/users/{id}", auth: true, roles: admin, status: 204}
+  - {method: GET, path: /v1/api-keys, auth: true, roles: admin, status: 200}
+  - {method: POST, path: /v1/api-keys, auth: true, roles: admin, status: 201}
+  - {method: DELETE, path: "/v1/api-keys/{id}", auth: true, roles: admin, status: 204}
+  - {method: GET, path: /v1/webhooks, auth: true, roles: admin, status: 200}
+  - {method: POST, path: /v1/webhooks, auth: true, roles: admin, status: 201}
+  - {method: PUT, path: "/v1/webhooks/{id}", auth: true, roles: admin, status: 204}
+  - {method: DELETE, path: "/v1/webhooks/{id}", auth: true, roles: admin, status: 204}
+  - {method: GET, path: "/v1/webhooks/{id}/deliveries", auth: true, roles: admin, status: 200}
+  - {method: GET, path: /v1/tenant, auth: true, status: 200}
+  - {method: PUT, path: /v1/tenant, auth: true, roles: admin, status: 204}
+  - {method: POST, path: /v1/tenant/certificate, auth: true, roles: admin, status: 200}
+  - {method: DELETE, path: /v1/tenant/certificate, auth: true, roles: admin, status: 204}
+  - {method: PUT, path: /v1/tenant/environment, auth: true, roles: admin, status: 200}
+  - {method: GET, path: /v1/plans, auth: false, status: 200}
+  - {method: GET, path: /v1/audit-log, auth: true, roles: admin, status: 200}

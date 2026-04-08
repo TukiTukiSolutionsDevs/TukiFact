@@ -1,0 +1,49 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.pdb
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker/postgres_data/
+docker/nats_data/
+docker/minio_data/
+
+# Environment
+.env
+*.env.local
+appsettings.*.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+nohup.out
+
+# Node / Next.js
+node_modules/
+.next/
+.turbo/
+
+# TestSprite temp
+testsprite_tests/tmp/mcp.log
+testsprite_tests/tmp/test_results.json
+testsprite_tests/tmp/raw_report.md
+
+# Python
+__pycache__/
+*.pyc
+.venv/

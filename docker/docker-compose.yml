@@ -1,0 +1,81 @@
+# TukiFact - Docker Compose (Development)
+# PostgreSQL 18 + NATS JetStream + MinIO
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: tukifact-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tukifact
+      POSTGRES_USER: tukifact
+      POSTGRES_PASSWORD: tukifact_dev_2026
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tukifact -d tukifact"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    image: nats:latest
+    container_name: tukifact-nats
+    restart: unless-stopped
+    command: ["-js", "-c", "/etc/nats/nats-server.conf"]
+    ports:
+      - "4222:4222"   # Client connections
+      - "8222:8222"   # HTTP monitoring
+    volumes:
+      - nats_data:/data
+      - ./nats/nats-server.conf:/etc/nats/nats-server.conf
+    healthcheck:
+      test: ["CMD", "nats-server", "--signal", "ldm=http://localhost:8222"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  minio:
+    image: minio/minio:latest
+    container_name: tukifact-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: tukifact_minio
+      MINIO_ROOT_PASSWORD: tukifact_minio_2026
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # MinIO bucket initialization
+  minio-init:
+    image: minio/mc:latest
+    container_name: tukifact-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 tukifact_minio tukifact_minio_2026;
+      mc mb local/tukifact-xml --ignore-existing;
+      mc mb local/tukifact-pdf --ignore-existing;
+      mc mb local/tukifact-cdr --ignore-existing;
+      mc mb local/tukifact-certs --ignore-existing;
+      echo 'Buckets created successfully';
+      "
+
+volumes:
+  postgres_data:
+  nats_data:
+  minio_data:

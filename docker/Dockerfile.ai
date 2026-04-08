@@ -1,0 +1,24 @@
+# TukiFact AI — Python FastAPI
+FROM python:3.12-slim AS base
+
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install deps
+COPY src/tukifact-ai/pyproject.toml ./
+RUN pip install --no-cache-dir . 2>/dev/null || pip install --no-cache-dir fastapi uvicorn nats-py httpx pydantic pydantic-settings
+
+# Copy source
+COPY src/tukifact-ai/ ./
+
+# Non-root user
+RUN addgroup --system tukifact && adduser --system --ingroup tukifact tukifact
+USER tukifact
+
+EXPOSE 8090
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8090/health').raise_for_status()"
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8090"]

@@ -1,0 +1,132 @@
+[
+  {
+    "id": "TC001",
+    "title": "health_ping_returns_service_info",
+    "description": "GET /api/ping without authentication. Expected: 200 OK with JSON body containing 'service', 'version', 'environment', and 'timestamp' fields. Verify 'service' equals 'TukiFact API' (exact string) and 'version' is a non-empty string."
+  },
+  {
+    "id": "TC002",
+    "title": "health_check_all_dependencies",
+    "description": "GET /health without authentication. Expected: 200 OK with JSON body containing 'status' field equal to 'Healthy' and 'checks' array with 3 entries. The check names are lowercase strings: 'postgresql', 'nats', 'minio'. Each check object has 'name' (string), 'status' (string equal to 'Healthy'), 'duration' (number), and 'tags' (array). Verify all 3 checks have status 'Healthy'."
+  },
+  {
+    "id": "TC003",
+    "title": "register_new_tenant_and_admin",
+    "description": "POST /v1/auth/register without authentication. Send JSON body: {\"ruc\":\"20777111881\",\"razonSocial\":\"New Backend Co SAC\",\"adminEmail\":\"newbe@test.pe\",\"adminPassword\":\"BackendTest2026!\",\"adminFullName\":\"Backend Tester\"}. Expected: 201 Created with JSON containing 'accessToken', 'refreshToken', and 'user' object with 'email' matching 'newbe@test.pe' and 'role' equal to 'admin'."
+  },
+  {
+    "id": "TC004",
+    "title": "register_duplicate_ruc_returns_409",
+    "description": "POST /v1/auth/register without authentication. Send JSON body: {\"ruc\":\"20100070970\",\"razonSocial\":\"Duplicate RUC\",\"adminEmail\":\"duptest@test.pe\",\"adminPassword\":\"Dup2026!\",\"adminFullName\":\"Dup\"}. This RUC 20100070970 already exists in the database (it was the original tenant RUC). Expected: 409 Conflict."
+  },
+  {
+    "id": "TC005",
+    "title": "login_valid_credentials",
+    "description": "POST /v1/auth/login without authentication. Send JSON body: {\"email\":\"admin@tukitest.pe\",\"password\":\"TestSprite2026!\",\"tenantId\":\"0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84\"}. Expected: 200 OK with JSON containing 'accessToken' (non-empty string), 'refreshToken' (non-empty string), and 'user' object where 'email' equals 'admin@tukitest.pe' and 'role' equals 'admin'. Save the accessToken and refreshToken for subsequent tests."
+  },
+  {
+    "id": "TC006",
+    "title": "login_wrong_password_returns_401",
+    "description": "POST /v1/auth/login without authentication. Send JSON body: {\"email\":\"admin@tukitest.pe\",\"password\":\"wrongpassword\",\"tenantId\":\"0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84\"}. Expected: 401 Unauthorized."
+  },
+  {
+    "id": "TC007",
+    "title": "refresh_token_returns_new_tokens",
+    "description": "First POST /v1/auth/login with {\"email\":\"admin@tukitest.pe\",\"password\":\"TestSprite2026!\",\"tenantId\":\"0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84\"} to obtain refreshToken. Then POST /v1/auth/refresh with {\"refreshToken\":\"{refreshToken_from_login}\"}. Expected: 200 OK with new 'accessToken' and 'refreshToken'. Use the new accessToken for remaining tests."
+  },
+  {
+    "id": "TC008",
+    "title": "auth_me_returns_user_info",
+    "description": "GET /v1/auth/me with Authorization Bearer token obtained from login. Expected: 200 OK with JSON containing non-null 'userId', 'tenantId' equal to '0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84', 'email' equal to 'admin@tukitest.pe', and 'role' equal to 'admin'."
+  },
+  {
+    "id": "TC009",
+    "title": "auth_me_no_token_returns_401",
+    "description": "GET /v1/auth/me WITHOUT any Authorization header. Expected: 401 Unauthorized."
+  },
+  {
+    "id": "TC010",
+    "title": "emit_factura_with_multiple_items",
+    "description": "POST /v1/documents with Bearer token. Send JSON body: {\"documentType\":\"01\",\"serie\":\"F001\",\"currency\":\"PEN\",\"customerDocType\":\"6\",\"customerDocNumber\":\"20100070970\",\"customerName\":\"Cliente Test SAC\",\"items\":[{\"description\":\"Servicio A\",\"quantity\":2,\"unitPrice\":50.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"},{\"description\":\"Producto B\",\"quantity\":1,\"unitPrice\":100.00,\"unitMeasure\":\"NIU\",\"igvType\":\"10\"}]}. Expected: 201 Created with JSON containing 'id' (UUID), 'fullNumber' starting with 'F001-', 'total' equal to 236.0 (100+100+36 IGV), 'status', and 'items' array with 2 elements. Save the document 'id' for TC013, TC014, TC015, TC016."
+  },
+  {
+    "id": "TC011",
+    "title": "emit_document_missing_fields_returns_400",
+    "description": "POST /v1/documents with Bearer token. Send incomplete JSON body: {\"documentType\":\"01\"}. Expected: 400 Bad Request because required fields serie, customerDocType, customerDocNumber, customerName, and items are missing."
+  },
+  {
+    "id": "TC012",
+    "title": "list_documents_with_pagination_and_filter",
+    "description": "GET /v1/documents?page=1&pageSize=5&documentType=01 with Bearer token. Expected: 200 OK with JSON containing 'data' array (max 5 items, all should have documentType '01') and 'pagination' object with 'page', 'pageSize', 'totalCount', 'totalPages' fields. Then GET /v1/documents?page=999&pageSize=5 and verify 'data' is an empty array."
+  },
+  {
+    "id": "TC013",
+    "title": "get_document_detail_and_downloads",
+    "description": "Using the document ID saved from TC010: GET /v1/documents/{id} with Bearer token. Expected: 200 OK with JSON containing 'fullNumber', 'items' array with 2 elements, 'total', 'status'. Then GET /v1/documents/{id}/pdf with Bearer token, expected: 200 OK with binary content. Then GET /v1/documents/{id}/xml with Bearer token, expected: 200 OK with content."
+  },
+  {
+    "id": "TC014",
+    "title": "emit_credit_note_against_factura",
+    "description": "Using the document ID saved from TC010: POST /v1/documents/credit-note with Bearer token. Send JSON body: {\"serie\":\"FC01\",\"referenceDocumentId\":\"{documentId_from_TC010}\",\"creditNoteReason\":\"01\",\"description\":\"Anulacion de operacion\",\"currency\":\"PEN\",\"items\":[{\"description\":\"Servicio A\",\"quantity\":2,\"unitPrice\":50.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"}]}. Expected: 201 Created with JSON containing 'fullNumber' starting with 'FC01-'."
+  },
+  {
+    "id": "TC015",
+    "title": "get_document_404_for_nonexistent_id",
+    "description": "GET /v1/documents/00000000-0000-0000-0000-000000000000 with Bearer token. Expected: 404 Not Found."
+  },
+  {
+    "id": "TC016",
+    "title": "void_document_and_prevent_double_void",
+    "description": "First emit a new document: POST /v1/documents with Bearer token and body {\"documentType\":\"01\",\"serie\":\"F001\",\"currency\":\"PEN\",\"customerDocType\":\"6\",\"customerDocNumber\":\"20100070970\",\"customerName\":\"Para Anular\",\"items\":[{\"description\":\"Item\",\"quantity\":1,\"unitPrice\":10.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"}]}. Save the new document ID. Then POST /v1/voided-documents with Bearer token and body {\"documentId\":\"{newDocId}\",\"voidReason\":\"Error en emision\"}. Expected: 201 Created with 'ticketNumber'. Then try voiding the SAME document again with same body. Expected: 400 Bad Request (already voided)."
+  },
+  {
+    "id": "TC017",
+    "title": "list_voided_documents",
+    "description": "GET /v1/voided-documents with Bearer token. Expected: 200 OK with JSON array. Each element should have 'ticketNumber', 'status', and 'createdAt' fields."
+  },
+  {
+    "id": "TC018",
+    "title": "series_list_create_deactivate",
+    "description": "GET /v1/series with Bearer token. Expected: 200 OK with JSON array of series. Then POST /v1/series with body {\"documentType\":\"01\",\"serie\":\"FZ99\",\"emissionPoint\":\"0001\"}. Expected: 201 Created with 'id' and 'serie' equal to 'FZ99'. Save the series ID. Then PUT /v1/series/{id} with body {\"isActive\":false}. Expected: 204 No Content. Then POST /v1/series with body {\"documentType\":\"01\",\"serie\":\"F001\",\"emissionPoint\":\"0001\"} to test duplicate (F001 already exists). Expected: 409 Conflict."
+  },
+  {
+    "id": "TC019",
+    "title": "users_crud_and_role_validation",
+    "description": "GET /v1/users with Bearer token. Expected: 200 OK with JSON array. Then POST /v1/users with body {\"email\":\"testcrud@test.pe\",\"password\":\"Crud2026!\",\"fullName\":\"CRUD User\",\"role\":\"emisor\"}. Expected: 201 Created. Save user ID. Then PUT /v1/users/{id} with body {\"role\":\"consulta\"}. Expected: 204. Then DELETE /v1/users/{id}. Expected: 204. Then POST /v1/users with body {\"email\":\"bad@test.pe\",\"password\":\"B2026!\",\"fullName\":\"Bad\",\"role\":\"superadmin\"}. Expected: 400 Bad Request (invalid role)."
+  },
+  {
+    "id": "TC020",
+    "title": "emisor_role_cannot_access_admin_endpoints",
+    "description": "First create an emisor user: POST /v1/users with admin Bearer token and body {\"email\":\"emisortest@test.pe\",\"password\":\"Emisor2026!\",\"fullName\":\"Emisor\",\"role\":\"emisor\"}. Then login as emisor: POST /v1/auth/login with {\"email\":\"emisortest@test.pe\",\"password\":\"Emisor2026!\",\"tenantId\":\"0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84\"}. Using the emisor token: GET /v1/users should return 403 Forbidden. POST /v1/series with body {\"documentType\":\"01\",\"serie\":\"FXXX\",\"emissionPoint\":\"0001\"} should return 403 Forbidden. But POST /v1/documents with valid invoice body should return 201 Created (emisor CAN emit docs)."
+  },
+  {
+    "id": "TC021",
+    "title": "api_keys_create_and_revoke",
+    "description": "GET /v1/api-keys with Bearer token. Expected: 200 OK with JSON array. Then POST /v1/api-keys with body {\"name\":\"TestKey\",\"permissions\":[\"emit\",\"query\"]}. Expected: 201 Created with JSON containing 'id', 'prefix', and 'plainTextKey' (non-empty string, shown only once). Save the key ID. Then DELETE /v1/api-keys/{id}. Expected: 204 No Content."
+  },
+  {
+    "id": "TC022",
+    "title": "webhooks_full_lifecycle",
+    "description": "GET /v1/webhooks with Bearer token. Expected: 200 OK. Then POST /v1/webhooks with body {\"url\":\"https://httpbin.org/post\",\"events\":[\"document.created\",\"document.accepted\"],\"maxRetries\":3}. Expected: 201 Created with 'id' and 'secret' fields. Save webhook ID. Then PUT /v1/webhooks/{id} with body {\"isActive\":false}. Expected: 204. Then GET /v1/webhooks/{id}/deliveries. Expected: 200 OK with JSON array. Then DELETE /v1/webhooks/{id}. Expected: 204."
+  },
+  {
+    "id": "TC023",
+    "title": "tenant_get_update_and_environment",
+    "description": "GET /v1/tenant with Bearer token. Expected: 200 OK with JSON containing 'ruc' equal to '20100070970'. Then PUT /v1/tenant with body {\"nombreComercial\":\"TestSprite Updated\",\"direccion\":\"Av TestSprite 999\"}. Expected: 204. Then PUT /v1/tenant/environment with body {\"environment\":\"beta\"}. Expected: 200 OK with 'environment' equal to 'beta'. Then PUT /v1/tenant/environment with body {\"environment\":\"staging\"}. Expected: 400 Bad Request (invalid environment value)."
+  },
+  {
+    "id": "TC024",
+    "title": "plans_list_public",
+    "description": "GET /v1/plans without authentication. Expected: 200 OK with JSON array of plan objects. Each plan should have 'name' and 'features' fields. Verify at least 1 plan exists."
+  },
+  {
+    "id": "TC025",
+    "title": "audit_log_with_pagination_and_filter",
+    "description": "GET /v1/audit-log?page=1&pageSize=10 with Bearer token. Expected: 200 OK with JSON containing 'data' array and 'pagination' object with 'totalCount' greater than 0. Then GET /v1/audit-log?entityType=Documents&page=1&pageSize=5. Expected: 200 OK with filtered results."
+  },
+  {
+    "id": "TC026",
+    "title": "dashboard_returns_kpis",
+    "description": "GET /v1/dashboard with Bearer token. Expected: 200 OK with JSON containing 'today' object (with 'totalAmount' and 'totalDocuments'), 'thisMonth' object, 'byType' array, 'byStatus' array, and 'monthlySales' array."
+  }
+]
