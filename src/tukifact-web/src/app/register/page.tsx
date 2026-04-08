@@ -59,7 +59,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
-          <Image src="/logo.png" alt="TukiFact" width={48} height={48} className="mx-auto mb-4 rounded-lg" />
+          <Image src="/logo.png" alt="TukiFact" width={200} height={60} className="mx-auto mb-4 object-contain" />
           <CardTitle className="text-2xl">Registrar Empresa</CardTitle>
           <CardDescription>Comienza a emitir comprobantes electrónicos</CardDescription>
         </CardHeader>

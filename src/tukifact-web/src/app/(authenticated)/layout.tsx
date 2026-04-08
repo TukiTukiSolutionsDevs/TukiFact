@@ -115,8 +115,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
       >
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 px-6 border-b">
-          <Image src="/logo.png" alt="TukiFact" width={32} height={32} className="rounded-lg" />
-          <span className="font-semibold text-lg">TukiFact</span>
+          <Image src="/logo.png" alt="TukiFact" width={180} height={40} className="object-contain" />
           <button
             className="ml-auto lg:hidden"
             onClick={() => setSidebarOpen(false)}
@@ -221,8 +220,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
           >
             <Menu className="h-5 w-5" />
           </button>
-          <Image src="/logo.png" alt="TukiFact" width={28} height={28} className="rounded-lg" />
-          <span className="font-semibold">TukiFact</span>
+          <Image src="/logo.png" alt="TukiFact" width={140} height={32} className="object-contain" />
         </header>
 
         {/* Page content */}

@@ -42,9 +42,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <Image src="/logo.png" alt="TukiFact" width={48} height={48} className="mx-auto mb-4 rounded-lg" />
-          <CardTitle className="text-2xl">TukiFact</CardTitle>
-          <CardDescription>Facturación Electrónica para Perú</CardDescription>
+          <Image src="/logo.png" alt="TukiFact" width={200} height={60} className="mx-auto mb-4 object-contain" />
+          <CardTitle className="text-2xl sr-only">TukiFact</CardTitle>
+          <CardDescription>Inicia sesión en tu cuenta</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
