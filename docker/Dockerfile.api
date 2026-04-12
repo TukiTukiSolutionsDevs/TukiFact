@@ -15,14 +15,14 @@ RUN dotnet restore src/TukiFact.Api/TukiFact.Api.csproj
 
 # Copy source and build
 COPY src/ src/
-RUN dotnet publish src/TukiFact.Api/TukiFact.Api.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish src/TukiFact.Api/TukiFact.Api.csproj -c Release -o /app/publish
 
 # Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # Security: non-root user
-RUN addgroup --system tukifact && adduser --system --ingroup tukifact tukifact
+RUN groupadd --system tukifact && useradd --system --gid tukifact --create-home --shell /usr/sbin/nologin tukifact
 USER tukifact
 
 COPY --from=build /app/publish .
@@ -32,6 +32,6 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD curl -f http://localhost:8080/health/live || exit 1
+  CMD bash -lc 'exec 3<>/dev/tcp/127.0.0.1/8080'
 
 ENTRYPOINT ["dotnet", "TukiFact.Api.dll"]

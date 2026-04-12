@@ -21,6 +21,7 @@ docker/minio_data/
 
 # Environment
 .env
+docker/.env
 *.env.local
 appsettings.*.local.json
 

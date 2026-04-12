@@ -73,6 +73,8 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<TukiFact.Infrastructure.Persistence.AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+    await dbContext.Database.ExecuteSqlRawAsync("SELECT apply_rls_to_tenant_tables();");
     await TukiFact.Api.Data.DataSeeder.SeedAsync(dbContext);
 }
 
