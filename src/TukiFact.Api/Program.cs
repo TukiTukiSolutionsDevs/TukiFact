@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
@@ -58,6 +59,14 @@ builder.Services.AddCors(options =>
     });
 });
 
+// DataProtection — persist keys across container restarts
+var keyDir = Environment.GetEnvironmentVariable("ASPNETCORE_DataProtection__KeyDirectory");
+if (!string.IsNullOrEmpty(keyDir))
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(keyDir));
+}
+
 // Health Checks
 builder.Services.AddHealthChecks()
     .AddNpgSql(
@@ -73,9 +82,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<TukiFact.Infrastructure.Persistence.AppDbContext>();
+    var passwordHasher = scope.ServiceProvider.GetRequiredService<TukiFact.Application.Interfaces.IPasswordHasher>();
     await dbContext.Database.MigrateAsync();
     await dbContext.Database.ExecuteSqlRawAsync("SELECT apply_rls_to_tenant_tables();");
-    await TukiFact.Api.Data.DataSeeder.SeedAsync(dbContext);
+    await TukiFact.Api.Data.DataSeeder.SeedAsync(dbContext, passwordHasher);
 }
 
 // === Middleware Pipeline ===
@@ -98,7 +108,11 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// HTTPS redirect handled by nginx, not the API
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("AllowFrontend");
 
 app.UseAuthentication();

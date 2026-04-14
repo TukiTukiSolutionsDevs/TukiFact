@@ -15,8 +15,10 @@ public class SunatClient : ISunatClient
 
     // SUNAT SOAP endpoints
     private const string BetaUrl = "https://e-beta.sunat.gob.pe/ol-ti-itcpe/billService";
+    private const string BetaOtrosCpeUrl = "https://e-beta.sunat.gob.pe/ol-ti-itemision-otroscpe-gem-beta/billService";
     private const string ProdFacturaUrl = "https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService";
     private const string ProdGuiaUrl = "https://e-guiaremision.sunat.gob.pe/ol-ti-itemision-guia-gem/billService";
+    private const string ProdOtrosCpeUrl = "https://e-factura.sunat.gob.pe/ol-ti-itemision-otroscpe-gem/billService";
 
     public SunatClient(IConfiguration configuration, ILogger<SunatClient> logger, IHttpClientFactory httpClientFactory)
     {
@@ -248,10 +250,11 @@ public class SunatClient : ISunatClient
 
     private string GetEndpoint(string documentType) => _environment switch
     {
-        "beta" => BetaUrl,
+        "beta" => documentType is "20" or "40" ? BetaOtrosCpeUrl : BetaUrl,
         "production" => documentType switch
         {
             "09" => ProdGuiaUrl,
+            "20" or "40" => ProdOtrosCpeUrl,
             _ => ProdFacturaUrl
         },
         _ => BetaUrl
@@ -266,6 +269,8 @@ public class SunatClient : ISunatClient
             "03" => "Boleta de Venta Electrónica",
             "07" => "Nota de Crédito Electrónica",
             "08" => "Nota de Débito Electrónica",
+            "20" => "Comprobante de Retención Electrónico",
+            "40" => "Comprobante de Percepción Electrónico",
             _ => "Documento"
         };
         _logger.LogInformation("SUNAT BETA STUB: {FullNumber} accepted", fullNumber);

@@ -27,6 +27,26 @@ public class TenantServiceConfig
     /// <summary>Model to use: "gemini-2.5-flash", "claude-sonnet-4-20250514", "grok-3", "deepseek-chat", etc.</summary>
     public string? AiModel { get; set; }
 
+    // --- Email Config ---
+    /// <summary>Auto-send email when document is emitted</summary>
+    public bool AutoSendEmail { get; set; } = false;
+    /// <summary>Email provider: "log" (stub), "resend", "smtp"</summary>
+    public string EmailProvider { get; set; } = "log";
+    /// <summary>Resend API key (if provider=resend)</summary>
+    public string? ResendApiKey { get; set; }
+    /// <summary>SMTP host (if provider=smtp)</summary>
+    public string? SmtpHost { get; set; }
+    /// <summary>SMTP port (if provider=smtp)</summary>
+    public int? SmtpPort { get; set; }
+    /// <summary>SMTP user (if provider=smtp)</summary>
+    public string? SmtpUser { get; set; }
+    /// <summary>SMTP password (if provider=smtp, encrypted)</summary>
+    public string? SmtpPassword { get; set; }
+    /// <summary>From name: "Mi Empresa SAC"</summary>
+    public string? EmailFromName { get; set; }
+    /// <summary>From address: "facturacion@miempresa.com"</summary>
+    public string? EmailFromAddress { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 

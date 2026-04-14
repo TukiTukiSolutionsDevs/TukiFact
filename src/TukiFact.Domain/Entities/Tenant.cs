@@ -19,6 +19,12 @@ public class Tenant
     public DateTimeOffset? CertificateExpiresAt { get; set; }
     public string? SunatUser { get; set; }
     public string? SunatPasswordEncrypted { get; set; }
+
+    // GRE OAuth2 credentials (generated in SUNAT SOL menu)
+    public string? GreClientId { get; set; }
+    public string? GreClientSecret { get; set; }
+
+    // SUNAT environment: "beta" or "production"
     public string Environment { get; set; } = "beta";
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

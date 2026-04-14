@@ -291,6 +291,23 @@ public class UblBuilder : IUblBuilder
             // Line count
             new XElement(Cbc + "LineCountNumeric", document.Items.Count),
 
+            // Multi-moneda: PaymentExchangeRate (C4 — when currency != PEN)
+            document.Currency != "PEN" && document.ExchangeRate.HasValue
+                ? new XElement(Cac + "PaymentExchangeRate",
+                    new XElement(Cbc + "SourceCurrencyCode", document.Currency),
+                    new XElement(Cbc + "TargetCurrencyCode", "PEN"),
+                    new XElement(Cbc + "CalculationRate", Fmt4(document.ExchangeRate.Value)),
+                    new XElement(Cbc + "Date", document.ExchangeRateDate?.ToString("yyyy-MM-dd")
+                        ?? document.IssueDate.ToString("yyyy-MM-dd")))
+                : null!,
+
+            // Detracción — Leyenda 2006
+            document.HasDetraction
+                ? new XElement(Cbc + "Note",
+                    new XAttribute("languageLocaleID", "2006"),
+                    "Operación sujeta a detracción")
+                : null!,
+
             // Purchase order reference
             document.PurchaseOrder is not null
                 ? new XElement(Cac + "OrderReference",
@@ -305,6 +322,29 @@ public class UblBuilder : IUblBuilder
 
             // Customer (receptor)
             BuildCustomerParty(document),
+
+            // Detracción — PaymentMeans + PaymentTerms (SPOT D.Leg. 940)
+            document.HasDetraction && !string.IsNullOrEmpty(document.DetractionBankAccount)
+                ? new XElement(Cac + "PaymentMeans",
+                    new XElement(Cbc + "ID", "Detraccion"),
+                    new XElement(Cbc + "PaymentMeansCode", "001"),
+                    new XElement(Cac + "PayeeFinancialAccount",
+                        new XElement(Cbc + "ID", document.DetractionBankAccount)))
+                : null!,
+
+            document.HasDetraction && !string.IsNullOrEmpty(document.DetractionCode)
+                ? new XElement(Cac + "PaymentTerms",
+                    new XElement(Cbc + "ID", "Detraccion"),
+                    new XElement(Cbc + "PaymentMeansID",
+                        new XAttribute("schemeURI", "urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo54"),
+                        new XAttribute("schemeName", "SUNAT:Codigo de Detraccion"),
+                        new XAttribute("schemeAgencyName", "PE:SUNAT"),
+                        document.DetractionCode),
+                    new XElement(Cbc + "PaymentPercent", Fmt(document.DetractionPercent ?? 0)),
+                    new XElement(Cbc + "Amount",
+                        new XAttribute("currencyID", document.Currency),
+                        Fmt(document.DetractionAmount ?? 0)))
+                : null!,
 
             // Tax totals
             BuildTaxTotal(document),
@@ -389,11 +429,12 @@ public class UblBuilder : IUblBuilder
 
     private XElement BuildTaxTotal(Document document)
     {
+        var totalTax = document.Igv + document.IcbperTotal;
         var elements = new List<XElement>
         {
             new XElement(Cbc + "TaxAmount",
                 new XAttribute("currencyID", document.Currency),
-                Fmt(document.Igv))
+                Fmt(totalTax))
         };
 
         // IGV subtotal (gravado)
@@ -418,6 +459,27 @@ public class UblBuilder : IUblBuilder
         if (document.OperacionGratuita > 0)
         {
             elements.Add(BuildTaxSubtotal(document.OperacionGratuita, 0, document.Currency, "9996", "GRA", "FRE"));
+        }
+
+        // ICBPER (Impuesto Bolsas Plásticas — código 7152, tipo OTH)
+        if (document.IcbperTotal > 0)
+        {
+            var totalBags = document.Items.Sum(i => i.IcbperBagQuantity);
+            elements.Add(new XElement(Cac + "TaxSubtotal",
+                new XElement(Cbc + "TaxableAmount",
+                    new XAttribute("currencyID", document.Currency), totalBags.ToString()),
+                new XElement(Cbc + "TaxAmount",
+                    new XAttribute("currencyID", document.Currency), Fmt(document.IcbperTotal)),
+                new XElement(Cac + "TaxCategory",
+                    new XElement(Cbc + "ID",
+                        new XAttribute("schemeID", "UN/ECE 5305"), "S"),
+                    new XElement(Cac + "TaxScheme",
+                        new XElement(Cbc + "ID",
+                            new XAttribute("schemeID", "UN/ECE 5153"),
+                            new XAttribute("schemeAgencyID", "6"),
+                            "7152"),
+                        new XElement(Cbc + "Name", "ICBPER"),
+                        new XElement(Cbc + "TaxTypeCode", "OTH")))));
         }
 
         return new XElement(Cac + "TaxTotal", elements);
@@ -447,6 +509,8 @@ public class UblBuilder : IUblBuilder
 
     private XElement BuildLegalMonetaryTotal(Document document)
     {
+        var payableAmount = document.Total + document.IcbperTotal;
+
         return new XElement(Cac + "LegalMonetaryTotal",
             new XElement(Cbc + "LineExtensionAmount",
                 new XAttribute("currencyID", document.Currency),
@@ -459,9 +523,14 @@ public class UblBuilder : IUblBuilder
                     new XAttribute("currencyID", document.Currency),
                     Fmt(document.TotalDescuento))
                 : null!,
+            document.IcbperTotal > 0
+                ? new XElement(Cbc + "ChargeTotalAmount",
+                    new XAttribute("currencyID", document.Currency),
+                    Fmt(document.IcbperTotal))
+                : null!,
             new XElement(Cbc + "PayableAmount",
                 new XAttribute("currencyID", document.Currency),
-                Fmt(document.Total)));
+                Fmt(payableAmount)));
     }
 
     private XElement BuildInvoiceLine(DocumentItem item, string currency)
@@ -469,6 +538,63 @@ public class UblBuilder : IUblBuilder
         var igvCode = IgvType.GetSunatCode(item.IgvType);
         var igvName = IgvType.GetSunatName(item.IgvType);
         var isGravado = item.IgvType == "10";
+
+        var taxTotalElements = new List<object>
+        {
+            new XElement(Cbc + "TaxAmount",
+                new XAttribute("currencyID", currency),
+                Fmt(item.IgvAmount + item.IcbperTotal)),
+            new XElement(Cac + "TaxSubtotal",
+                new XElement(Cbc + "TaxableAmount",
+                    new XAttribute("currencyID", currency),
+                    Fmt(item.Subtotal)),
+                new XElement(Cbc + "TaxAmount",
+                    new XAttribute("currencyID", currency),
+                    Fmt(item.IgvAmount)),
+                new XElement(Cac + "TaxCategory",
+                    new XElement(Cbc + "ID",
+                        new XAttribute("schemeID", "UN/ECE 5305"),
+                        new XAttribute("schemeName", "Tax Category Identifier"),
+                        new XAttribute("schemeAgencyName", "United Nations Economic Commission for Europe"),
+                        isGravado ? "S" : "E"),
+                    new XElement(Cbc + "Percent", isGravado ? "18.00" : "0.00"),
+                    new XElement(Cbc + "TaxExemptionReasonCode",
+                        new XAttribute("listAgencyName", "PE:SUNAT"),
+                        new XAttribute("listName", "Afectacion del IGV"),
+                        new XAttribute("listURI", "urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo07"),
+                        item.IgvType),
+                    new XElement(Cac + "TaxScheme",
+                        new XElement(Cbc + "ID",
+                            new XAttribute("schemeID", "UN/ECE 5153"),
+                            new XAttribute("schemeAgencyID", "6"),
+                            igvCode),
+                        new XElement(Cbc + "Name", igvName),
+                        new XElement(Cbc + "TaxTypeCode", isGravado ? "VAT" : "FRE"))))
+        };
+
+        // ICBPER per item (Ley 30884 — bolsas plásticas)
+        if (item.IcbperBagQuantity > 0)
+        {
+            taxTotalElements.Add(new XElement(Cac + "TaxSubtotal",
+                new XElement(Cbc + "TaxableAmount",
+                    new XAttribute("currencyID", currency), item.IcbperBagQuantity.ToString()),
+                new XElement(Cbc + "TaxAmount",
+                    new XAttribute("currencyID", currency), Fmt(item.IcbperTotal)),
+                new XElement(Cac + "TaxCategory",
+                    new XElement(Cbc + "ID",
+                        new XAttribute("schemeID", "UN/ECE 5305"), "S"),
+                    new XElement(Cbc + "PerUnitAmount",
+                        new XAttribute("currencyID", currency), Fmt(item.IcbperUnitAmount)),
+                    new XElement(Cbc + "BaseUnitMeasure",
+                        new XAttribute("unitCode", "NIU"), item.IcbperBagQuantity.ToString()),
+                    new XElement(Cac + "TaxScheme",
+                        new XElement(Cbc + "ID",
+                            new XAttribute("schemeID", "UN/ECE 5153"),
+                            new XAttribute("schemeAgencyID", "6"),
+                            "7152"),
+                        new XElement(Cbc + "Name", "ICBPER"),
+                        new XElement(Cbc + "TaxTypeCode", "OTH")))));
+        }
 
         return new XElement(Cac + "InvoiceLine",
             new XElement(Cbc + "ID", item.Sequence),
@@ -490,36 +616,7 @@ public class UblBuilder : IUblBuilder
                         new XAttribute("listAgencyName", "PE:SUNAT"),
                         new XAttribute("listURI", "urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo16"),
                         "01"))),
-            new XElement(Cac + "TaxTotal",
-                new XElement(Cbc + "TaxAmount",
-                    new XAttribute("currencyID", currency),
-                    Fmt(item.IgvAmount)),
-                new XElement(Cac + "TaxSubtotal",
-                    new XElement(Cbc + "TaxableAmount",
-                        new XAttribute("currencyID", currency),
-                        Fmt(item.Subtotal)),
-                    new XElement(Cbc + "TaxAmount",
-                        new XAttribute("currencyID", currency),
-                        Fmt(item.IgvAmount)),
-                    new XElement(Cac + "TaxCategory",
-                        new XElement(Cbc + "ID",
-                            new XAttribute("schemeID", "UN/ECE 5305"),
-                            new XAttribute("schemeName", "Tax Category Identifier"),
-                            new XAttribute("schemeAgencyName", "United Nations Economic Commission for Europe"),
-                            isGravado ? "S" : "E"),
-                        new XElement(Cbc + "Percent", isGravado ? "18.00" : "0.00"),
-                        new XElement(Cbc + "TaxExemptionReasonCode",
-                            new XAttribute("listAgencyName", "PE:SUNAT"),
-                            new XAttribute("listName", "Afectacion del IGV"),
-                            new XAttribute("listURI", "urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo07"),
-                            item.IgvType),
-                        new XElement(Cac + "TaxScheme",
-                            new XElement(Cbc + "ID",
-                                new XAttribute("schemeID", "UN/ECE 5153"),
-                                new XAttribute("schemeAgencyID", "6"),
-                                igvCode),
-                            new XElement(Cbc + "Name", igvName),
-                            new XElement(Cbc + "TaxTypeCode", isGravado ? "VAT" : "FRE"))))),
+            new XElement(Cac + "TaxTotal", taxTotalElements),
             new XElement(Cac + "Item",
                 new XElement(Cbc + "Description", new XCData(item.Description)),
                 item.SunatProductCode is not null

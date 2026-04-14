@@ -214,3 +214,188 @@ export interface SeriesResponse {
   isActive: boolean;
   createdAt: string;
 }
+
+// === Batch A: Despatch Advices (GRE) ===
+export interface DespatchAdviceResponse {
+  id: string;
+  documentType: string;
+  serie: string;
+  correlative: number;
+  fullNumber: string;
+  issueDate: string;
+  issueTime: string;
+  recipientDocType: string;
+  recipientDocNumber: string;
+  recipientName: string;
+  transferReasonCode: string;
+  transferReasonDescription: string;
+  transferStartDate: string;
+  transportMode: string;
+  originAddress: string;
+  originUbigeo: string;
+  destinationAddress: string;
+  destinationUbigeo: string;
+  grossWeight: number;
+  weightUnitCode: string;
+  totalPackages: number;
+  vehiclePlate: string | null;
+  driverDocType: string | null;
+  driverDocNumber: string | null;
+  driverName: string | null;
+  driverLicense: string | null;
+  carrierDocType: string | null;
+  carrierDocNumber: string | null;
+  carrierName: string | null;
+  status: string;
+  sunatResponseCode: string | null;
+  sunatResponseMessage: string | null;
+  sunatTicket: string | null;
+  xmlUrl: string | null;
+  pdfUrl: string | null;
+  cdrUrl: string | null;
+  createdAt: string;
+  items: DespatchAdviceItemResponse[];
+}
+
+export interface DespatchAdviceItemResponse {
+  id: string;
+  lineNumber: number;
+  productCode: string | null;
+  description: string;
+  quantity: number;
+  unitCode: string;
+}
+
+// === Batch C: Retentions ===
+export interface RetentionResponse {
+  id: string;
+  serie: string;
+  correlative: number;
+  fullNumber: string;
+  issueDate: string;
+  supplierDocType: string;
+  supplierDocNumber: string;
+  supplierName: string;
+  regimeCode: string;
+  retentionPercent: number;
+  totalInvoiceAmount: number;
+  totalRetained: number;
+  totalPaid: number;
+  currency: string;
+  status: string;
+  sunatResponseCode: string | null;
+  sunatResponseDescription: string | null;
+  xmlUrl: string | null;
+  pdfUrl: string | null;
+  createdAt: string;
+  references: RetentionReferenceResponse[];
+}
+
+export interface RetentionReferenceResponse {
+  id: string;
+  documentType: string;
+  documentNumber: string;
+  documentDate: string;
+  invoiceAmount: number;
+  paymentDate: string;
+  paymentAmount: number;
+  retainedAmount: number;
+  netPaidAmount: number;
+}
+
+// === Batch C: Perceptions ===
+export interface PerceptionResponse {
+  id: string;
+  serie: string;
+  correlative: number;
+  fullNumber: string;
+  issueDate: string;
+  customerDocType: string;
+  customerDocNumber: string;
+  customerName: string;
+  regimeCode: string;
+  perceptionPercent: number;
+  totalInvoiceAmount: number;
+  totalPerceived: number;
+  totalCollected: number;
+  currency: string;
+  status: string;
+  sunatResponseCode: string | null;
+  sunatResponseDescription: string | null;
+  xmlUrl: string | null;
+  pdfUrl: string | null;
+  createdAt: string;
+  references: PerceptionReferenceResponse[];
+}
+
+export interface PerceptionReferenceResponse {
+  id: string;
+  documentType: string;
+  documentNumber: string;
+  documentDate: string;
+  invoiceAmount: number;
+  collectionDate: string;
+  collectionAmount: number;
+  perceivedAmount: number;
+  totalCollectedAmount: number;
+}
+
+// === Batch C: Quotations ===
+export interface QuotationResponse {
+  id: string;
+  quotationNumber: string;
+  correlative: number;
+  issueDate: string;
+  validUntil: string;
+  customerDocType: string;
+  customerDocNumber: string;
+  customerName: string;
+  customerEmail: string | null;
+  currency: string;
+  subtotal: number;
+  igv: number;
+  total: number;
+  status: string;
+  invoiceDocumentId: string | null;
+  invoiceDocumentNumber: string | null;
+  pdfUrl: string | null;
+  notes: string | null;
+  createdAt: string;
+  items: QuotationItemResponse[];
+}
+
+export interface QuotationItemResponse {
+  sequence: number;
+  productCode: string | null;
+  description: string;
+  quantity: number;
+  unitMeasure: string;
+  unitPrice: number;
+  igvType: string;
+  igvAmount: number;
+  subtotal: number;
+  total: number;
+}
+
+// === Batch C: Recurring Invoices ===
+export interface RecurringInvoiceResponse {
+  id: string;
+  documentType: string;
+  serie: string;
+  customerDocType: string;
+  customerDocNumber: string;
+  customerName: string;
+  customerEmail: string | null;
+  currency: string;
+  frequency: string;
+  dayOfMonth: number | null;
+  dayOfWeek: number | null;
+  startDate: string;
+  endDate: string | null;
+  nextEmissionDate: string | null;
+  status: string;
+  emittedCount: number;
+  lastEmittedDate: string | null;
+  notes: string | null;
+  createdAt: string;
+}

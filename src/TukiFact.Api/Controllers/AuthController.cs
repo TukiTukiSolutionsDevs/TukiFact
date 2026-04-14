@@ -60,6 +60,42 @@ public class AuthController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Request password reset email.
+    /// Always returns 200 (even if email not found) to prevent enumeration.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct)
+    {
+        try
+        {
+            await _authService.ForgotPasswordAsync(request, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "ForgotPassword error for {Email}", request.Email);
+        }
+        // Always return OK to prevent email enumeration
+        return Ok(new { message = "Si el email existe, recibirás un enlace para restablecer tu contraseña." });
+    }
+
+    /// <summary>
+    /// Reset password using token from email.
+    /// </summary>
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
+    {
+        try
+        {
+            await _authService.ResetPasswordAsync(request, ct);
+            return Ok(new { message = "Contraseña restablecida exitosamente." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     [HttpGet("me")]
     [Microsoft.AspNetCore.Authorization.Authorize]
     public IActionResult Me()

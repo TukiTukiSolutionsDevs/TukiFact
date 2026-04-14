@@ -25,6 +25,11 @@ public class DocumentItemConfiguration : IEntityTypeConfiguration<DocumentItem>
         builder.Property(i => i.Discount).HasPrecision(14, 2);
         builder.Property(i => i.Total).HasPrecision(14, 2);
 
+        // ICBPER
+        builder.Property(i => i.IcbperBagQuantity).HasDefaultValue(0);
+        builder.Property(i => i.IcbperUnitAmount).HasPrecision(10, 2).HasDefaultValue(0.50m);
+        builder.Ignore(i => i.IcbperTotal); // Computed, not stored
+
         builder.HasIndex(i => new { i.DocumentId, i.Sequence }).IsUnique();
     }
 }

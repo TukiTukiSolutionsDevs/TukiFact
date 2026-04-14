@@ -32,6 +32,14 @@ import {
   Bot,
   Webhook,
   ScrollText,
+  Package,
+  Contact,
+  Shield,
+  Truck,
+  ShieldCheck,
+  ShieldAlert,
+  FileSpreadsheet,
+  Repeat,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -45,6 +53,13 @@ const NAV_ITEMS = [
   { href: '/documents', label: 'Comprobantes', icon: FileText },
   { href: '/documents/new', label: 'Emitir', icon: Plus },
   { href: '/documents/credit-note', label: 'Nota Crédito', icon: ReceiptText },
+  { href: '/quotations', label: 'Cotizaciones', icon: FileSpreadsheet },
+  { href: '/despatch-advices', label: 'Guías Remisión', icon: Truck },
+  { href: '/retentions', label: 'Retenciones', icon: ShieldCheck },
+  { href: '/perceptions', label: 'Percepciones', icon: ShieldAlert },
+  { href: '/recurring-invoices', label: 'Recurrentes', icon: Repeat },
+  { href: '/products', label: 'Productos', icon: Package },
+  { href: '/customers', label: 'Clientes', icon: Contact },
   { href: '/reports', label: 'Reportes', icon: BarChart3 },
   { href: '/series', label: 'Series', icon: ListOrdered },
   { href: '/voided', label: 'Bajas', icon: Ban },
@@ -52,6 +67,7 @@ const NAV_ITEMS = [
 ];
 
 const ADMIN_ITEMS = [
+  { href: '/certificate', label: 'Certificado Digital', icon: Shield },
   { href: '/users', label: 'Usuarios', icon: Users },
   { href: '/api-keys', label: 'API Keys', icon: KeyRound },
   { href: '/webhooks', label: 'Webhooks', icon: Webhook },

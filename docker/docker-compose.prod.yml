@@ -96,6 +96,8 @@ services:
       AllowedHosts: ${ALLOWED_HOSTS:-*}
       Cors__FrontendUrl: ${CORS_FRONTEND_URL:-http://localhost}
       Sunat__Environment: ${SUNAT_ENV:-beta}
+    volumes:
+      - api_keys:/app/keys
     depends_on:
       postgres:
         condition: service_healthy
@@ -179,6 +181,7 @@ volumes:
   postgres_data:
   nats_data:
   minio_data:
+  api_keys:
 
 networks:
   internal:

@@ -28,6 +28,29 @@ public class AppDbContext : DbContext
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<TenantServiceConfig> TenantServiceConfigs => Set<TenantServiceConfig>();
+    public DbSet<PlatformUser> PlatformUsers => Set<PlatformUser>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<DespatchAdvice> DespatchAdvices => Set<DespatchAdvice>();
+    public DbSet<DespatchAdviceItem> DespatchAdviceItems => Set<DespatchAdviceItem>();
+    public DbSet<Ubigeo> Ubigeos => Set<Ubigeo>();
+    public DbSet<EmailLog> EmailLogs => Set<EmailLog>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
+    // Batch B
+    public DbSet<ExchangeRate> ExchangeRates => Set<ExchangeRate>();
+    public DbSet<DetractionCode> DetractionCodes => Set<DetractionCode>();
+    public DbSet<SunatCatalog> SunatCatalogs => Set<SunatCatalog>();
+    public DbSet<SunatCatalogCode> SunatCatalogCodes => Set<SunatCatalogCode>();
+
+    // Batch C
+    public DbSet<RetentionDocument> RetentionDocuments => Set<RetentionDocument>();
+    public DbSet<RetentionDocumentReference> RetentionDocumentReferences => Set<RetentionDocumentReference>();
+    public DbSet<PerceptionDocument> PerceptionDocuments => Set<PerceptionDocument>();
+    public DbSet<PerceptionDocumentReference> PerceptionDocumentReferences => Set<PerceptionDocumentReference>();
+    public DbSet<RecurringInvoice> RecurringInvoices => Set<RecurringInvoice>();
+    public DbSet<Quotation> Quotations => Set<Quotation>();
+    public DbSet<QuotationItem> QuotationItems => Set<QuotationItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

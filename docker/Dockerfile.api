@@ -21,14 +21,25 @@ RUN dotnet publish src/TukiFact.Api/TukiFact.Api.csproj -c Release -o /app/publi
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# Install Kerberos lib (required by Npgsql for GSSAPI support)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Security: non-root user
 RUN groupadd --system tukifact && useradd --system --gid tukifact --create-home --shell /usr/sbin/nologin tukifact
+
+# DataProtection keys directory (mount as volume to persist across restarts)
+RUN mkdir -p /app/keys && chown tukifact:tukifact /app/keys
+VOLUME /app/keys
+
 USER tukifact
 
 COPY --from=build /app/publish .
 
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_DataProtection__KeyDirectory=/app/keys
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \

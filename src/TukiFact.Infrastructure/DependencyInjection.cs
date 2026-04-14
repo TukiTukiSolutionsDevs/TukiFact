@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TukiFact.Application.Interfaces;
@@ -15,13 +16,15 @@ public static class DependencyInjection
     {
         // PostgreSQL + EF Core
         services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(
-                configuration.GetConnectionString("DefaultConnection"),
-                npgsqlOptions =>
-                {
-                    npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
-                    npgsqlOptions.EnableRetryOnFailure(3);
-                }));
+            options
+                .UseNpgsql(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    npgsqlOptions =>
+                    {
+                        npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+                        npgsqlOptions.EnableRetryOnFailure(3);
+                    })
+                .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
         // Tenant Provider (scoped - one per request)
         services.AddScoped<ITenantProvider, TenantProvider>();
@@ -53,6 +56,33 @@ public static class DependencyInjection
         services.AddScoped<IPdfGenerator, PdfGenerator>();
         services.AddScoped<IDashboardService, DashboardService>();
 
+        // GRE (Guía de Remisión Electrónica) services
+        services.AddScoped<IDespatchAdviceRepository, DespatchAdviceRepository>();
+        services.AddScoped<IDespatchAdviceService, DespatchAdviceService>();
+        services.AddScoped<IGreXmlBuilder, GreXmlBuilder>();
+        services.AddScoped<IGreSunatClient, GreSunatClient>();
+
+        // RUC/DNI validation
+        services.AddScoped<IRucValidationService, RucValidationService>();
+
+        // Batch B services
+        services.AddScoped<IExchangeRateService, ExchangeRateService>();
+        services.AddScoped<ICpeValidationService, CpeValidationService>();
+
+        // Batch C services — Retentions & Perceptions
+        services.AddScoped<IRetentionRepository, RetentionRepository>();
+        services.AddScoped<IPerceptionRepository, PerceptionRepository>();
+        services.AddScoped<IRetentionXmlBuilder, RetentionXmlBuilder>();
+        services.AddScoped<IPerceptionXmlBuilder, PerceptionXmlBuilder>();
+
+        // Batch C — SIRE
+        services.AddScoped<ISireClient, SireClient>();
+
+        // Batch C — Recurring Invoices & Quotations
+        services.AddScoped<IRecurringInvoiceRepository, RecurringInvoiceRepository>();
+        services.AddScoped<IQuotationRepository, QuotationRepository>();
+        services.AddHostedService<RecurringInvoiceScheduler>();
+
         // Sprint 7 services
         services.AddScoped<IWebhookRepository, WebhookRepository>();
         services.AddScoped<IWebhookDeliveryRepository, WebhookDeliveryRepository>();
@@ -69,10 +99,36 @@ public static class DependencyInjection
             client.DefaultRequestHeaders.Add("Accept", "text/xml");
         });
 
+        // HttpClient for GRE REST API (OAuth2 + send)
+        services.AddHttpClient("SunatGre", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+
+        // HttpClient for Resend email API
+        services.AddHttpClient("Resend", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+
+        // HttpClient for RUC/DNI validation (apis.net.pe)
+        services.AddHttpClient("ApisNetPe", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+
         // HttpClient for Webhook delivery
         services.AddHttpClient("Webhook", client =>
         {
             client.Timeout = TimeSpan.FromSeconds(10);
+        });
+
+        // HttpClient for SIRE REST API (OAuth2 + RVIE management)
+        services.AddHttpClient("SunatSire", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
         });
 
         return services;

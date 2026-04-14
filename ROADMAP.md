@@ -3,27 +3,42 @@
 > **Plataforma SaaS de Facturación Electrónica para Perú**
 > Empresa: Tukituki Solution SAC | RUC: 20613614509 | Dominio: tukifact.net.pe
 >
-> _Última actualización: 2026-04-07 — FASE 1 COMPLETADA_
+> _Última actualización: 2026-04-14_
 
 ---
 
 ## Estado General
 
 ```
-FASE 1 ████████████████████████ 100%  Fundación (Sprints 1-4) ✅
-FASE 2 ████████████████████████ 100%  Producción (Sprints 5-8) ✅
-FASE 3 ████████████████████████ 100%  Crecimiento (Sprints 9-12) ✅
-TOTAL  ████████████████████████ 100%  12/12 sprints COMPLETADOS 🎉
+FASE 1  ████████████████████████ 100%  Fundación — API + DB + Auth (Sprints 1-4) ✅
+FASE 2  █████████████████░░░░░░  75%   Producción — Frontend + Infra (Sprints 5-8)
+FASE 3  ░░░░░░░░░░░░░░░░░░░░░░░  0%   Crecimiento — IA + SDK + Scale (Sprints 9-12)
+EXTRA   ██████░░░░░░░░░░░░░░░░░  25%   Backoffice + DevOps (Sprint B1-B3)
+MEJORA  ████████████████████████ 100%  Batch A+B+C Backend + Frontend + Migrado ✅
+TOTAL   █████████████████░░░░░░  72%   Backend COMPLETO, Deploy pendiente
+```
+
+## Credenciales Actuales
+
+| Rol | Email | Password |
+|-----|-------|----------|
+| Tenant Admin | admin@tukifact.net.pe | TukiFact2026! |
+| SuperAdmin (Backoffice) | superadmin@tukifact.net.pe | SuperAdmin2026! |
+
+## Docker Prod Stack (7 servicios HEALTHY)
+
+```
+postgres ✅ | nats ✅ | minio ✅ | api ✅ | web (port 3001) ✅ | ai ✅ | nginx (port 80) ✅
 ```
 
 ---
 
-## FASE 1 — Fundación (Semanas 1-8)
+## FASE 1 — Fundación (Sprints 1-4) ✅ COMPLETADA
 
 > Objetivo: API funcional que emite Facturas, Boletas, NC/ND y se integra con SUNAT.
 
 ### Sprint 1: Infraestructura Base ✅ COMPLETADO
-_Semanas 1-2 | Completado 2026-04-07_
+_Completado 2026-04-07_
 
 | # | Tarea | Estado | Notas |
 |---|-------|--------|-------|
@@ -35,15 +50,8 @@ _Semanas 1-2 | Completado 2026-04-07_
 | 1.6 | TenantResolver Middleware | ✅ | Extrae tenant de JWT o X-Tenant-Id header |
 | 1.7 | Health checks (PG, NATS, MinIO) | ✅ | /health, /health/ready, /health/live |
 
-**Gotchas descubiertos:**
-- PG18 cambió mount a `/var/lib/postgresql` (no `/data`)
-- EF Core usa PascalCase → RLS con `"TenantId"` (comillas)
-- .NET 10 usa `.slnx` en vez de `.sln`
-
----
-
 ### Sprint 2: Auth + Tenant Management ✅ COMPLETADO
-_Semanas 3-4 | Completado 2026-04-07_
+_Completado 2026-04-07_
 
 | # | Tarea | Estado | Notas |
 |---|-------|--------|-------|
@@ -56,22 +64,8 @@ _Semanas 3-4 | Completado 2026-04-07_
 | 2.7 | Seed planes pricing | ✅ | 6 planes: Free → Empresa ($0-$299) |
 | 2.8 | CRUD Users | ✅ | Create, Update, soft-delete |
 
-**Hotfix aplicado:** KeyPrefix varchar(8) → varchar(12)
-
-**Endpoints operativos:**
-- `POST /v1/auth/register` — Registro tenant + admin
-- `POST /v1/auth/login` — Login → JWT
-- `POST /v1/auth/refresh` — Refresh token rotation
-- `GET  /v1/auth/me` — Info del usuario autenticado
-- `GET  /v1/plans` — Lista pública de planes
-- `CRUD /v1/users` — Gestión de usuarios (admin only)
-- `CRUD /v1/series` — Gestión de series (admin only)
-- `CRUD /v1/api-keys` — Gestión de API keys (admin only)
-
----
-
 ### Sprint 3: Emisión de Comprobantes ✅ COMPLETADO
-_Semanas 5-6 | Completado 2026-04-07_
+_Completado 2026-04-07_
 
 | # | Tarea | Estado | Notas |
 |---|-------|--------|-------|
@@ -83,25 +77,11 @@ _Semanas 5-6 | Completado 2026-04-07_
 | 3.6 | DocumentService orquestador | ✅ | validate→calc→create→XML→sign→store→send→QR |
 | 3.7 | DocumentsController | ✅ | POST emit, GET /:id, GET list, GET /:id/xml |
 
-**Primera factura emitida:**
-```
-F001-00000001 | SODIMAC PERU S.A. | S/ 12,589.98 | ACEPTADA
-```
-
-**Flujo de emisión:**
-```
-Request → Validar → Calcular IGV → Correlativo atómico → Crear DB
-  → UBL 2.1 XML → Firmar cert → MinIO → SUNAT → CDR → QR → Update
-```
-
----
-
 ### Sprint 4: Integración SUNAT Real + PDF ✅ COMPLETADO
-_Semanas 7-8 | Completado 2026-04-07_
+_Completado 2026-04-07_
 
 | # | Tarea | Estado | Notas |
 |---|-------|--------|-------|
-| 4.0 | Fix correlativo off-by-one | ✅ | RETURNING en SQL atómico |
 | 4.1 | SUNAT SOAP client real (sendBill) | ✅ | SOAP + beta stub mode |
 | 4.2 | CDR parser (ZIP → código + descripción) | ✅ | Extrae ResponseCode/Description/Notes |
 | 4.3 | PDF generation (QuestPDF) | ✅ | A4, 61KB, on-the-fly |
@@ -111,24 +91,14 @@ _Semanas 7-8 | Completado 2026-04-07_
 | 4.7 | Dashboard endpoint + métricas | ✅ | Hoy/Mes/Año + byType + byStatus + monthlySales |
 | 4.8 | E2E test completo | ✅ | 5/5 endpoints verificados |
 
-**Hotfix aplicado:** DashboardService MonthlySales GroupBy → anonymous types (EF Core limitation)
-
-**Endpoints Sprint 4:**
-- `POST /v1/documents/credit-note` — Emitir NC referenciando factura
-- `POST /v1/documents/debit-note` — Emitir ND referenciando factura
-- `GET  /v1/documents/{id}/pdf` — Descargar PDF (61KB, QuestPDF)
-- `POST /v1/voided-documents` — Comunicación de Baja (RA)
-- `GET  /v1/voided-documents` — Listar bajas
-- `GET  /v1/dashboard` — Métricas del tenant
-
 ---
 
-## FASE 2 — Producción (Semanas 9-16)
+## FASE 2 — Producción (Sprints 5-8) — 75% EN PROGRESO
 
 > Objetivo: Frontend, notificaciones, API pública y salida a producción SUNAT.
 
 ### Sprint 5: Frontend — Portal Web ✅ COMPLETADO
-_Semanas 9-10 | Completado 2026-04-07_
+_Completado 2026-04-07_
 
 | # | Tarea | Estado | Notas |
 |---|-------|--------|-------|
@@ -141,16 +111,10 @@ _Semanas 9-10 | Completado 2026-04-07_
 | 5.7 | Gestión de series | ✅ | Lista + dialog crear serie |
 | 5.8 | Configuración + Bajas | ✅ | Settings + voided documents table |
 
-**Stack Frontend:**
-- Next.js 16 (App Router) + TypeScript + Tailwind v4 + shadcn/ui (@base-ui/react)
-- recharts 3.x (charts), sonner (toasts), lucide-react (icons)
-- JWT auto-refresh en API client, AuthProvider con useAuth hook
-
-**12 rutas generadas:**
-`/ → /login → /register → /dashboard → /documents → /documents/new → /documents/[id] → /series → /settings → /voided`
+**17 rutas frontend operativas**
 
 ### Sprint 6: Frontend — Admin + UX ✅ COMPLETADO
-_Semanas 11-12 | Completado 2026-04-07_
+_Completado 2026-04-07_
 
 | # | Tarea | Estado | Notas |
 |---|-------|--------|-------|
@@ -163,44 +127,100 @@ _Semanas 11-12 | Completado 2026-04-07_
 | 6.7 | Dark mode system | ✅ | ThemeToggle Sun/Moon + next-themes |
 | 6.8 | Onboarding wizard | ✅ | 4 pasos con progress bar + checks async |
 
-**17 rutas totales en el frontend**
-| 6.8 | Onboarding wizard (primera empresa) | ⏳ |
-
 ### Sprint 7: Notificaciones + Webhooks ⏳ PENDIENTE
-_Semanas 13-14_
+_Prioridad: MEDIA — después de Backoffice Frontend y Deploy_
 
-| # | Tarea | Estado |
-|---|-------|--------|
-| 7.1 | NATS JetStream consumers | ⏳ |
-| 7.2 | Email transaccional (Resend/SES) | ⏳ |
-| 7.3 | Webhook system (configurable por tenant) | ⏳ |
-| 7.4 | Envío automático de PDF al cliente | ⏳ |
-| 7.5 | Notificaciones in-app (SSE o WebSocket) | ⏳ |
-| 7.6 | Rate limiting + throttling | ⏳ |
-| 7.7 | Audit log | ⏳ |
+| # | Tarea | Estado | Dependencia |
+|---|-------|--------|-------------|
+| 7.1 | NATS JetStream consumers | ⏳ | — |
+| 7.2 | Email transaccional (Resend/SES) | ⏳ | Dominio DNS |
+| 7.3 | Webhook system (configurable por tenant) | ⏳ | — |
+| 7.4 | Envío automático de PDF al cliente | ⏳ | 7.2 |
+| 7.5 | Notificaciones in-app (SSE o WebSocket) | ⏳ | — |
+| 7.6 | Rate limiting + throttling | ⏳ | — |
+| 7.7 | Audit log (backend existe, falta UI) | ⏳ | — |
 
-### Sprint 8: Producción SUNAT ⏳ PENDIENTE
-_Semanas 15-16_
+### Sprint 8: Producción SUNAT + Deploy ⏳ PENDIENTE
+_Prioridad: ALTA — BLOQUEANTE para ir a producción_
 
-| # | Tarea | Estado |
-|---|-------|--------|
-| 8.1 | Integración OSE producción | ⏳ |
-| 8.2 | Homologación SUNAT | ⏳ |
-| 8.3 | CI/CD pipeline (GitHub Actions) | ⏳ |
-| 8.4 | Deploy staging (Docker Compose → VPS/Cloud) | ⏳ |
-| 8.5 | SSL/TLS + DNS tukifact.net.pe | ⏳ |
-| 8.6 | Monitoring (Prometheus + Grafana) | ⏳ |
-| 8.7 | Backup strategy (PG + MinIO) | ⏳ |
-| 8.8 | Security audit + penetration test | ⏳ |
+| # | Tarea | Estado | Dependencia |
+|---|-------|--------|-------------|
+| 8.1 | Integración OSE/SUNAT producción real | ⏳ | Certificado digital real |
+| 8.2 | Homologación SUNAT (set de pruebas) | ⏳ | 8.1 |
+| 8.3 | CI/CD pipeline (GitHub Actions) | ⏳ | — |
+| 8.4 | Deploy VPS (Docker Compose) | ⏳ | 8.3 |
+| 8.5 | SSL/TLS + DNS tukifact.net.pe | ⏳ | VPS |
+| 8.6 | nginx.conf server_name dominio real | ⏳ | 8.5 |
+| 8.7 | Backup strategy (PG + MinIO) | ⏳ | VPS |
+| 8.8 | Monitoring (Prometheus + Grafana) | ⏳ | VPS |
 
 ---
 
-## FASE 3 — Crecimiento (Semanas 17-24)
+## EXTRA — Backoffice + Operaciones (Sprints B1-B3)
+
+> Resultado de la auditoría vs Nubefact/PSE (2026-04-13).
+> Sin backoffice NO se puede operar como SaaS — es BLOQUEANTE.
+
+### Sprint B1: Backoffice Backend ✅ COMPLETADO
+_Completado 2026-04-13_
+
+| # | Tarea | Estado | Notas |
+|---|-------|--------|-------|
+| B1.1 | PlatformUser entity + EF config | ✅ | Tabla platform_users (sin migration formal) |
+| B1.2 | BackofficeAuthController (login separado) | ✅ | JWT sin tenant_id, con platform_user claim |
+| B1.3 | Dashboard global (cross-tenant) | ✅ | SET LOCAL row_security = off |
+| B1.4 | Tenants CRUD (list, detail, suspend, activate, change plan) | ✅ | 5 endpoints |
+| B1.5 | Document search cross-tenant (soporte) | ✅ | Buscar por RUC, serie, correlativo |
+| B1.6 | Platform employees list | ✅ | superadmin only |
+| B1.7 | SuperAdmin seeder automático | ✅ | superadmin@tukifact.net.pe |
+| B1.8 | TenantResolverMiddleware bypass /v1/backoffice | ✅ | — |
+| B1.9 | Docker stack 10 fixes + 7 services healthy | ✅ | kerberos, DataProtection, CSP, etc. |
+
+**9 endpoints backoffice operativos:**
+- `POST /v1/backoffice/auth/login` — Login superadmin/support/ops
+- `GET  /v1/backoffice/dashboard` — Métricas globales plataforma
+- `GET  /v1/backoffice/tenants` — Lista tenants paginada + search
+- `GET  /v1/backoffice/tenants/{id}` — Detalle tenant + users + stats
+- `PUT  /v1/backoffice/tenants/{id}/suspend` — Suspender tenant
+- `PUT  /v1/backoffice/tenants/{id}/activate` — Activar tenant
+- `PUT  /v1/backoffice/tenants/{id}/plan` — Cambiar plan
+- `GET  /v1/backoffice/documents` — Buscar documentos cross-tenant
+- `GET  /v1/backoffice/employees` — Listar empleados plataforma
+
+### Sprint B2: Backoffice Frontend ⏳ PRÓXIMO
+_Prioridad: ALTA — darle cara al backend que ya existe_
+
+| # | Tarea | Estado | Endpoint backend |
+|---|-------|--------|------------------|
+| B2.1 | Layout backoffice (sidebar, header, auth guard) | ⏳ | — |
+| B2.2 | Login backoffice (/backoffice/login) | ⏳ | POST /v1/backoffice/auth/login |
+| B2.3 | Dashboard global (/backoffice/dashboard) | ⏳ | GET /v1/backoffice/dashboard |
+| B2.4 | Lista de tenants (/backoffice/tenants) | ⏳ | GET /v1/backoffice/tenants |
+| B2.5 | Detalle tenant (/backoffice/tenants/[id]) | ⏳ | GET /v1/backoffice/tenants/{id} |
+| B2.6 | Acciones tenant (suspender, activar, cambiar plan) | ⏳ | PUT suspend/activate/plan |
+| B2.7 | Búsqueda documentos soporte (/backoffice/documents) | ⏳ | GET /v1/backoffice/documents |
+| B2.8 | Empleados plataforma (/backoffice/employees) | ⏳ | GET /v1/backoffice/employees |
+
+### Sprint B3: Backoffice Avanzado ⏳ FUTURO
+_Prioridad: MEDIA — después de producción_
+
+| # | Tarea | Estado |
+|---|-------|--------|
+| B3.1 | CRUD empleados plataforma (crear/editar/desactivar) | ⏳ |
+| B3.2 | Logs de actividad backoffice | ⏳ |
+| B3.3 | Gestión de suscripciones + cobros | ⏳ |
+| B3.4 | Reportes plataforma (MRR, churn, growth) | ⏳ |
+| B3.5 | Soporte: impersonar tenant (ver como ellos ven) | ⏳ |
+| B3.6 | Configuración global plataforma | ⏳ |
+
+---
+
+## FASE 3 — Crecimiento (Sprints 9-12)
 
 > Objetivo: IA, API pública documentada, SDK y features avanzados.
+> _DESPUÉS de estar en producción con clientes reales._
 
 ### Sprint 9: API Pública + SDK ⏳ PENDIENTE
-_Semanas 17-18_
 
 | # | Tarea | Estado |
 |---|-------|--------|
@@ -213,7 +233,6 @@ _Semanas 17-18_
 | 9.7 | Sandbox/playground para developers | ⏳ |
 
 ### Sprint 10: Agentes IA — Fase 1 ⏳ PENDIENTE
-_Semanas 19-20_
 
 | # | Tarea | Estado |
 |---|-------|--------|
@@ -225,7 +244,6 @@ _Semanas 19-20_
 | 10.6 | BYOK (Bring Your Own Key) API keys | ⏳ |
 
 ### Sprint 11: Agentes IA — Fase 2 ⏳ PENDIENTE
-_Semanas 21-22_
 
 | # | Tarea | Estado |
 |---|-------|--------|
@@ -236,7 +254,6 @@ _Semanas 21-22_
 | 11.5 | Dashboard IA con insights | ⏳ |
 
 ### Sprint 12: Optimización + Scale ⏳ PENDIENTE
-_Semanas 23-24_
 
 | # | Tarea | Estado |
 |---|-------|--------|
@@ -249,19 +266,54 @@ _Semanas 23-24_
 
 ---
 
+## Orden de Ejecución Recomendado
+
+```
+AHORA        → Batch D: Docker rebuild web + Deploy VPS + SSL + dominio
+DESPUÉS      → Sprint B2: Backoffice Frontend (darle cara al backend)
+DESPUÉS      → Sprint 8.1-8.2: SUNAT Producción + Homologación
+DESPUÉS      → Sprint 7: Notificaciones + Email + Webhooks
+DESPUÉS      → Sprint B3: Backoffice Avanzado
+FUTURO       → Fase 3: API Pública + IA + Scale
+```
+
+### Funcionalidades Pendientes de Auditoría (vs Nubefact/PSE)
+
+| Categoría | Feature | Estado | Batch/Sprint |
+|-----------|---------|--------|-------------|
+| Funcional | Certificado Digital UI (subir .pfx) | ✅ | Existente |
+| Funcional | Catálogo de productos/servicios | ✅ | Existente |
+| Funcional | Directorio de clientes frecuentes | ✅ | Existente |
+| Funcional | Email envío automático al cliente | ✅ | Batch A |
+| Funcional | Guías de Remisión (T09) | ✅ Backend + Frontend | Batch A |
+| Funcional | Retenciones (R20) y Percepciones (R40) | ✅ Backend + Frontend | Batch C |
+| Funcional | SIRE Integración (5 endpoints) | ✅ Backend | Batch C |
+| SUNAT | Cliente SOAP producción real | ⏳ | Sprint 8 |
+| SUNAT | Consulta de validez CPE | ⏳ | Sprint 8 |
+| SUNAT | Tipo de cambio automático (SBS) | ✅ Backend | Batch B |
+| Diferenciación | Facturación recurrente | ✅ Backend + Frontend | Batch C |
+| Diferenciación | Multi-moneda (USD/EUR) | ✅ Backend | Batch C |
+| Diferenciación | Cotizaciones → Factura | ✅ Backend + Frontend | Batch C |
+| Diferenciación | Detracciones SPOT | ✅ Backend | Batch B |
+| Diferenciación | Catálogos SUNAT completos | ✅ Backend | Batch B |
+
+---
+
 ## Stack Tecnológico
 
 | Capa | Tecnología | Versión |
 |------|-----------|---------|
-| **Backend Core** | ASP.NET Core | .NET 10 LTS |
+| **Backend Core** | ASP.NET Core | .NET 10 |
 | **IA Services** | Python FastAPI | 3.12+ |
-| **Frontend** | Next.js + Tailwind | 16 |
+| **Frontend** | Next.js + Tailwind | 16 + v4 |
+| **UI Components** | shadcn/ui | @base-ui/react |
 | **Database** | PostgreSQL + RLS | 18 |
 | **Messaging** | NATS JetStream | Latest |
 | **Storage** | MinIO (S3-compatible) | Latest |
-| **Containers** | Docker Compose | — |
+| **Containers** | Docker Compose (prod) | 7 servicios |
 | **XML** | UBL 2.1 | SUNAT PE |
 | **Firma** | XMLDSig + X509 | RSA-SHA256 |
+| **Reverse Proxy** | Nginx | Latest |
 
 ## Modelo de Pricing
 
@@ -276,20 +328,72 @@ _Semanas 23-24_
 
 ---
 
+## Mejora Producción — Batches A+B+C ✅ COMPLETADO
+
+> Resultado del análisis competitivo vs Nubefact/PSE. 3 batches para pasar de MVP a producto competitivo.
+
+### Batch A — "Sin esto no vendés" ✅ Backend + Migrado + Frontend
+_Completado 2026-04-13 (backend) + 2026-04-14 (frontend)_
+
+| Item | Feature | Archivos |
+|------|---------|----------|
+| A1 | Guías de Remisión (GRE T09) | Entity + UBL + Controller + Service + Frontend |
+| A2 | Email transaccional | EmailLog entity + Service + Templates |
+| A3 | Password Reset | PasswordResetToken + Controller |
+
+### Batch B — "Competitivo con Nubefact" ✅ Backend + Migrado
+_Completado 2026-04-13_
+
+| Item | Feature | Archivos |
+|------|---------|----------|
+| B1 | Tipo de Cambio (SBS automático) | ExchangeRate entity + Service + Controller |
+| B2 | Detracciones SPOT | Document fields + UBL extension |
+| B3 | Catálogos SUNAT | SunatCatalog + SunatCatalogCode + Seed 600+ |
+| B4 | Códigos de Detracción | DetractionCode entity + Seed |
+
+### Batch C — "MEJOR que Nubefact" ✅ Backend + Migrado + Frontend
+_Completado 2026-04-14_
+
+| Item | Feature | Archivos |
+|------|---------|----------|
+| C1 | Retenciones Electrónicas (tipo 20) | Entity + UBL 2.0 + Controller + Frontend |
+| C2 | Percepciones Electrónicas (tipo 40) | Entity + UBL 2.0 + Controller + Frontend |
+| C3 | SIRE Integración | OAuth2 REST Client + 5 endpoints |
+| C4 | Multi-moneda | Document ExchangeRate + UBL PaymentExchangeRate |
+| C5 | Facturación Recurrente | Entity + BackgroundService + Controller + Frontend |
+| C6 | Cotizaciones → Factura | Entity + Controller (convert-to-invoice) + Frontend |
+
+**Totales**: 37+ archivos backend, 14 archivos frontend, 34 tablas DB, 10 migraciones
+
+### Batch D — "Deploy + Infraestructura" 🔲 PENDIENTE
+
+| Item | Feature |
+|------|---------|
+| D1 | Docker rebuild web (incluir nuevas páginas) |
+| D2 | SSL/TLS + dominio tukifact.net.pe |
+| D3 | CI/CD pipeline (GitHub Actions) |
+| D4 | Monitoring (Prometheus + Grafana) |
+| D5 | Backup strategy (PG + MinIO) |
+
+---
+
 ## Métricas del Proyecto
 
 | Métrica | Valor |
 |---------|-------|
-| Entidades de dominio | 8 (Tenant, User, Plan, ApiKey, Series, Document, DocumentItem, DocumentXmlLog, RefreshToken) |
-| Endpoints API | 18 |
-| Tablas PostgreSQL | 9 (+ __EFMigrationsHistory) |
-| Tablas con RLS | 6 (users, api_keys, series, refresh_tokens, documents, document_xml_logs) |
-| Migraciones EF Core | 4 |
-| Docker services | 4 (PG18, NATS, MinIO, MinIO-init) |
+| Entidades de dominio | 22 (Batch A+B+C) |
+| Endpoints API (tenant) | 40+ |
+| Endpoints API (backoffice) | 9 |
+| Tablas PostgreSQL | 34 |
+| Tablas con RLS | 6 |
+| Migraciones EF Core | 10 |
+| Docker services (prod) | 7 |
 | MinIO buckets | 4 (xml, pdf, cdr, certs) |
 | Planes de pricing | 6 |
-| NuGet packages | ~12 |
+| Rutas frontend (tenant) | 31 (17 original + 14 Batch A+B+C) |
+| Rutas frontend (backoffice) | 0 → 8 (Sprint B2) |
+| Archivos frontend nuevos | 14 páginas Batch A+B+C |
 
 ---
 
-_Este roadmap se actualiza al completar cada sprint. Ver `/investigacion/` para documentación detallada de cada decisión._
+_Este roadmap se actualiza al completar cada sprint. Ver `/investigacion/` para documentación detallada._

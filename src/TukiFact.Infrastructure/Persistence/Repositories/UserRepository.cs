@@ -16,6 +16,9 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByEmailAsync(string email, Guid tenantId, CancellationToken ct = default)
         => await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.TenantId == tenantId, ct);
 
+    public async Task<User?> GetByEmailGlobalAsync(string email, CancellationToken ct = default)
+        => await _context.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+
     public async Task<IReadOnlyList<User>> GetByTenantAsync(Guid tenantId, CancellationToken ct = default)
         => await _context.Users.Where(u => u.TenantId == tenantId).OrderBy(u => u.CreatedAt).ToListAsync(ct);
 

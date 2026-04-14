@@ -1,0 +1,204 @@
+-- TukiFact UBIGEO Seed — Distritos del Perú (INEI)
+-- Los códigos UBIGEO son 6 dígitos: DDPPDD (Depto-Prov-Distrito)
+-- Fuente: INEI / SUNAT Catálogo de Ubigeos
+-- Se incluyen las capitales de departamento y principales distritos comerciales
+-- Para el set completo, importar desde CSV: https://github.com/jmcastagnetto/ubigeo-peru-reniec
+
+-- NOTA: Esta tabla NO tiene tenant_id, es catálogo global (sin RLS)
+
+INSERT INTO ubigeo (code, department, province, district, is_active) VALUES
+-- AMAZONAS
+('010101', 'AMAZONAS', 'CHACHAPOYAS', 'CHACHAPOYAS', true),
+('010201', 'AMAZONAS', 'BAGUA', 'BAGUA', true),
+('010301', 'AMAZONAS', 'BONGARA', 'JUMBILLA', true),
+-- ANCASH
+('020101', 'ANCASH', 'HUARAZ', 'HUARAZ', true),
+('020201', 'ANCASH', 'AIJA', 'AIJA', true),
+('021801', 'ANCASH', 'SANTA', 'CHIMBOTE', true),
+('021802', 'ANCASH', 'SANTA', 'NUEVO CHIMBOTE', true),
+-- APURIMAC
+('030101', 'APURIMAC', 'ABANCAY', 'ABANCAY', true),
+('030201', 'APURIMAC', 'ANDAHUAYLAS', 'ANDAHUAYLAS', true),
+-- AREQUIPA
+('040101', 'AREQUIPA', 'AREQUIPA', 'AREQUIPA', true),
+('040102', 'AREQUIPA', 'AREQUIPA', 'ALTO SELVA ALEGRE', true),
+('040103', 'AREQUIPA', 'AREQUIPA', 'CAYMA', true),
+('040104', 'AREQUIPA', 'AREQUIPA', 'CERRO COLORADO', true),
+('040105', 'AREQUIPA', 'AREQUIPA', 'CHARACATO', true),
+('040106', 'AREQUIPA', 'AREQUIPA', 'CHIGUATA', true),
+('040107', 'AREQUIPA', 'AREQUIPA', 'JACOBO HUNTER', true),
+('040108', 'AREQUIPA', 'AREQUIPA', 'LA JOYA', true),
+('040109', 'AREQUIPA', 'AREQUIPA', 'MARIANO MELGAR', true),
+('040110', 'AREQUIPA', 'AREQUIPA', 'MIRAFLORES', true),
+('040111', 'AREQUIPA', 'AREQUIPA', 'MOLLEBAYA', true),
+('040112', 'AREQUIPA', 'AREQUIPA', 'PAUCARPATA', true),
+('040113', 'AREQUIPA', 'AREQUIPA', 'POCSI', true),
+('040114', 'AREQUIPA', 'AREQUIPA', 'POLOBAYA', true),
+('040115', 'AREQUIPA', 'AREQUIPA', 'QUEQUEÑA', true),
+('040116', 'AREQUIPA', 'AREQUIPA', 'SABANDIA', true),
+('040117', 'AREQUIPA', 'AREQUIPA', 'SACHACA', true),
+('040118', 'AREQUIPA', 'AREQUIPA', 'SAN JUAN DE SIGUAS', true),
+('040119', 'AREQUIPA', 'AREQUIPA', 'SAN JUAN DE TARUCANI', true),
+('040120', 'AREQUIPA', 'AREQUIPA', 'SANTA ISABEL DE SIGUAS', true),
+('040121', 'AREQUIPA', 'AREQUIPA', 'SANTA RITA DE SIGUAS', true),
+('040122', 'AREQUIPA', 'AREQUIPA', 'SOCABAYA', true),
+('040123', 'AREQUIPA', 'AREQUIPA', 'TIABAYA', true),
+('040124', 'AREQUIPA', 'AREQUIPA', 'UCHUMAYO', true),
+('040125', 'AREQUIPA', 'AREQUIPA', 'VITOR', true),
+('040126', 'AREQUIPA', 'AREQUIPA', 'YANAHUARA', true),
+('040127', 'AREQUIPA', 'AREQUIPA', 'YARABAMBA', true),
+('040128', 'AREQUIPA', 'AREQUIPA', 'YURA', true),
+('040129', 'AREQUIPA', 'AREQUIPA', 'JOSE LUIS BUSTAMANTE Y RIVERO', true),
+('040201', 'AREQUIPA', 'CAMANA', 'CAMANA', true),
+('040301', 'AREQUIPA', 'CARAVELI', 'CARAVELI', true),
+('040401', 'AREQUIPA', 'CASTILLA', 'APLAO', true),
+('040501', 'AREQUIPA', 'CAYLLOMA', 'CHIVAY', true),
+('040601', 'AREQUIPA', 'CAYLLOMA', 'CAYMA', true),
+('040701', 'AREQUIPA', 'CONDESUYOS', 'CHUQUIBAMBA', true),
+('040801', 'AREQUIPA', 'ISLAY', 'MOLLENDO', true),
+-- AYACUCHO
+('050101', 'AYACUCHO', 'HUAMANGA', 'AYACUCHO', true),
+-- CAJAMARCA
+('060101', 'CAJAMARCA', 'CAJAMARCA', 'CAJAMARCA', true),
+('060601', 'CAJAMARCA', 'JAEN', 'JAEN', true),
+-- CALLAO
+('070101', 'CALLAO', 'CALLAO', 'CALLAO', true),
+('070102', 'CALLAO', 'CALLAO', 'BELLAVISTA', true),
+('070103', 'CALLAO', 'CALLAO', 'CARMEN DE LA LEGUA REYNOSO', true),
+('070104', 'CALLAO', 'CALLAO', 'LA PERLA', true),
+('070105', 'CALLAO', 'CALLAO', 'LA PUNTA', true),
+('070106', 'CALLAO', 'CALLAO', 'VENTANILLA', true),
+('070107', 'CALLAO', 'CALLAO', 'MI PERU', true),
+-- CUSCO
+('080101', 'CUSCO', 'CUSCO', 'CUSCO', true),
+('080102', 'CUSCO', 'CUSCO', 'CCORCA', true),
+('080103', 'CUSCO', 'CUSCO', 'POROY', true),
+('080104', 'CUSCO', 'CUSCO', 'SAN JERONIMO', true),
+('080105', 'CUSCO', 'CUSCO', 'SAN SEBASTIAN', true),
+('080106', 'CUSCO', 'CUSCO', 'SANTIAGO', true),
+('080107', 'CUSCO', 'CUSCO', 'SAYLLA', true),
+('080108', 'CUSCO', 'CUSCO', 'WANCHAQ', true),
+-- HUANCAVELICA
+('090101', 'HUANCAVELICA', 'HUANCAVELICA', 'HUANCAVELICA', true),
+-- HUANUCO
+('100101', 'HUANUCO', 'HUANUCO', 'HUANUCO', true),
+-- ICA
+('110101', 'ICA', 'ICA', 'ICA', true),
+('110201', 'ICA', 'CHINCHA', 'CHINCHA ALTA', true),
+('110501', 'ICA', 'PISCO', 'PISCO', true),
+-- JUNIN
+('120101', 'JUNIN', 'HUANCAYO', 'HUANCAYO', true),
+('120104', 'JUNIN', 'HUANCAYO', 'CHILCA', true),
+('120105', 'JUNIN', 'HUANCAYO', 'EL TAMBO', true),
+-- LA LIBERTAD
+('130101', 'LA LIBERTAD', 'TRUJILLO', 'TRUJILLO', true),
+('130102', 'LA LIBERTAD', 'TRUJILLO', 'EL PORVENIR', true),
+('130103', 'LA LIBERTAD', 'TRUJILLO', 'FLORENCIA DE MORA', true),
+('130104', 'LA LIBERTAD', 'TRUJILLO', 'HUANCHACO', true),
+('130105', 'LA LIBERTAD', 'TRUJILLO', 'LA ESPERANZA', true),
+('130106', 'LA LIBERTAD', 'TRUJILLO', 'LAREDO', true),
+('130107', 'LA LIBERTAD', 'TRUJILLO', 'MOCHE', true),
+('130108', 'LA LIBERTAD', 'TRUJILLO', 'POROTO', true),
+('130109', 'LA LIBERTAD', 'TRUJILLO', 'SALAVERRY', true),
+('130110', 'LA LIBERTAD', 'TRUJILLO', 'SIMBAL', true),
+('130111', 'LA LIBERTAD', 'TRUJILLO', 'VICTOR LARCO HERRERA', true),
+-- LAMBAYEQUE
+('140101', 'LAMBAYEQUE', 'CHICLAYO', 'CHICLAYO', true),
+('140102', 'LAMBAYEQUE', 'CHICLAYO', 'JOSE LEONARDO ORTIZ', true),
+('140103', 'LAMBAYEQUE', 'CHICLAYO', 'LA VICTORIA', true),
+-- LIMA DEPARTAMENTO
+('150101', 'LIMA', 'LIMA', 'LIMA', true),
+('150102', 'LIMA', 'LIMA', 'ANCON', true),
+('150103', 'LIMA', 'LIMA', 'ATE', true),
+('150104', 'LIMA', 'LIMA', 'BARRANCO', true),
+('150105', 'LIMA', 'LIMA', 'BREÑA', true),
+('150106', 'LIMA', 'LIMA', 'CARABAYLLO', true),
+('150107', 'LIMA', 'LIMA', 'CHACLACAYO', true),
+('150108', 'LIMA', 'LIMA', 'CHORRILLOS', true),
+('150109', 'LIMA', 'LIMA', 'CIENEGUILLA', true),
+('150110', 'LIMA', 'LIMA', 'COMAS', true),
+('150111', 'LIMA', 'LIMA', 'EL AGUSTINO', true),
+('150112', 'LIMA', 'LIMA', 'INDEPENDENCIA', true),
+('150113', 'LIMA', 'LIMA', 'JESUS MARIA', true),
+('150114', 'LIMA', 'LIMA', 'LA MOLINA', true),
+('150115', 'LIMA', 'LIMA', 'LA VICTORIA', true),
+('150116', 'LIMA', 'LIMA', 'LINCE', true),
+('150117', 'LIMA', 'LIMA', 'LOS OLIVOS', true),
+('150118', 'LIMA', 'LIMA', 'LURIGANCHO', true),
+('150119', 'LIMA', 'LIMA', 'LURIN', true),
+('150120', 'LIMA', 'LIMA', 'MAGDALENA DEL MAR', true),
+('150121', 'LIMA', 'LIMA', 'PUEBLO LIBRE', true),
+('150122', 'LIMA', 'LIMA', 'MIRAFLORES', true),
+('150123', 'LIMA', 'LIMA', 'PACHACAMAC', true),
+('150124', 'LIMA', 'LIMA', 'PUCUSANA', true),
+('150125', 'LIMA', 'LIMA', 'PUENTE PIEDRA', true),
+('150126', 'LIMA', 'LIMA', 'PUNTA HERMOSA', true),
+('150127', 'LIMA', 'LIMA', 'PUNTA NEGRA', true),
+('150128', 'LIMA', 'LIMA', 'RIMAC', true),
+('150129', 'LIMA', 'LIMA', 'SAN BARTOLO', true),
+('150130', 'LIMA', 'LIMA', 'SAN BORJA', true),
+('150131', 'LIMA', 'LIMA', 'SAN ISIDRO', true),
+('150132', 'LIMA', 'LIMA', 'SAN JUAN DE LURIGANCHO', true),
+('150133', 'LIMA', 'LIMA', 'SAN JUAN DE MIRAFLORES', true),
+('150134', 'LIMA', 'LIMA', 'SAN LUIS', true),
+('150135', 'LIMA', 'LIMA', 'SAN MARTIN DE PORRES', true),
+('150136', 'LIMA', 'LIMA', 'SAN MIGUEL', true),
+('150137', 'LIMA', 'LIMA', 'SANTA ANITA', true),
+('150138', 'LIMA', 'LIMA', 'SANTA MARIA DEL MAR', true),
+('150139', 'LIMA', 'LIMA', 'SANTA ROSA', true),
+('150140', 'LIMA', 'LIMA', 'SANTIAGO DE SURCO', true),
+('150141', 'LIMA', 'LIMA', 'SURQUILLO', true),
+('150142', 'LIMA', 'LIMA', 'VILLA EL SALVADOR', true),
+('150143', 'LIMA', 'LIMA', 'VILLA MARIA DEL TRIUNFO', true),
+-- LIMA PROVINCIAS
+('150201', 'LIMA', 'BARRANCA', 'BARRANCA', true),
+('150301', 'LIMA', 'CAJATAMBO', 'CAJATAMBO', true),
+('150401', 'LIMA', 'CANTA', 'CANTA', true),
+('150501', 'LIMA', 'CANETE', 'SAN VICENTE DE CANETE', true),
+('150601', 'LIMA', 'HUARAL', 'HUARAL', true),
+('150701', 'LIMA', 'HUAROCHIRI', 'MATUCANA', true),
+('150801', 'LIMA', 'HUAURA', 'HUACHO', true),
+('150901', 'LIMA', 'OYON', 'OYON', true),
+('151001', 'LIMA', 'YAUYOS', 'YAUYOS', true),
+-- LORETO
+('160101', 'LORETO', 'MAYNAS', 'IQUITOS', true),
+('160112', 'LORETO', 'MAYNAS', 'SAN JUAN BAUTISTA', true),
+-- MADRE DE DIOS
+('170101', 'MADRE DE DIOS', 'TAMBOPATA', 'TAMBOPATA', true),
+-- MOQUEGUA
+('180101', 'MOQUEGUA', 'MARISCAL NIETO', 'MOQUEGUA', true),
+('180201', 'MOQUEGUA', 'GENERAL SANCHEZ CERRO', 'OMATE', true),
+('180301', 'MOQUEGUA', 'ILO', 'ILO', true),
+-- PASCO
+('190101', 'PASCO', 'PASCO', 'CHAUPIMARCA', true),
+-- PIURA
+('200101', 'PIURA', 'PIURA', 'PIURA', true),
+('200104', 'PIURA', 'PIURA', 'CASTILLA', true),
+('200114', 'PIURA', 'PIURA', 'VEINTISEIS DE OCTUBRE', true),
+('200501', 'PIURA', 'SULLANA', 'SULLANA', true),
+('200601', 'PIURA', 'TALARA', 'PARIÑAS', true),
+-- PUNO
+('210101', 'PUNO', 'PUNO', 'PUNO', true),
+('210401', 'PUNO', 'CHUCUITO', 'JULI', true),
+('211101', 'PUNO', 'SAN ROMAN', 'JULIACA', true),
+-- SAN MARTIN
+('220101', 'SAN MARTIN', 'MOYOBAMBA', 'MOYOBAMBA', true),
+('220901', 'SAN MARTIN', 'SAN MARTIN', 'TARAPOTO', true),
+-- TACNA
+('230101', 'TACNA', 'TACNA', 'TACNA', true),
+('230102', 'TACNA', 'TACNA', 'ALTO DE LA ALIANZA', true),
+('230103', 'TACNA', 'TACNA', 'CALANA', true),
+('230104', 'TACNA', 'TACNA', 'CIUDAD NUEVA', true),
+('230105', 'TACNA', 'TACNA', 'CORONEL GREGORIO ALBARRACIN LANCHIPA', true),
+-- TUMBES
+('240101', 'TUMBES', 'TUMBES', 'TUMBES', true),
+-- UCAYALI
+('250101', 'UCAYALI', 'CORONEL PORTILLO', 'CALLERIA', true),
+('250102', 'UCAYALI', 'CORONEL PORTILLO', 'CAMPOVERDE', true),
+('250105', 'UCAYALI', 'CORONEL PORTILLO', 'MANANTAY', true),
+('250103', 'UCAYALI', 'CORONEL PORTILLO', 'YARINACOCHA', true)
+ON CONFLICT (code) DO NOTHING;
+
+-- Total: ~170 distritos principales (capitales + zonas comerciales)
+-- Para cargar los 1874 distritos completos, usar:
+-- COPY ubigeo (code, department, province, district, is_active) FROM '/path/to/ubigeo_completo.csv' CSV HEADER;

@@ -26,6 +26,11 @@ public class DocumentItem
     public decimal Discount { get; set; }
     public decimal Total { get; set; }        // Subtotal + IgvAmount - Discount
 
+    // ICBPER (Impuesto Bolsas Plásticas — Ley 30884)
+    public int IcbperBagQuantity { get; set; }                    // Cantidad de bolsas
+    public decimal IcbperUnitAmount { get; set; } = 0.50m;        // S/ 0.50 por bolsa (2023+)
+    public decimal IcbperTotal => IcbperBagQuantity * IcbperUnitAmount; // Total ICBPER del item
+
     // Navigation
     public Document Document { get; set; } = null!;
 }

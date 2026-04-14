@@ -19,7 +19,9 @@ public class TenantResolverMiddleware
         "/v1/auth/login",
         "/v1/auth/refresh",
         "/v1/plans",
-        "/api/ping"
+        "/v1/backoffice",
+        "/api/ping",
+        "/metrics"
     ];
 
     public TenantResolverMiddleware(RequestDelegate next, ILogger<TenantResolverMiddleware> logger)

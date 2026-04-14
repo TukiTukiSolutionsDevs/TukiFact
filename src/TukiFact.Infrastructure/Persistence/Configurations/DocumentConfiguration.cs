@@ -34,6 +34,19 @@ public class DocumentConfiguration : IEntityTypeConfiguration<Document>
         builder.Property(d => d.TotalDescuento).HasPrecision(14, 2);
         builder.Property(d => d.Total).HasPrecision(14, 2);
 
+        // ICBPER
+        builder.Property(d => d.IcbperTotal).HasPrecision(14, 2).HasDefaultValue(0m);
+
+        // Multi-moneda (C4)
+        builder.Property(d => d.ExchangeRate).HasPrecision(10, 4);
+
+        // Detracciones
+        builder.Property(d => d.HasDetraction).HasDefaultValue(false);
+        builder.Property(d => d.DetractionCode).HasMaxLength(3);
+        builder.Property(d => d.DetractionPercent).HasPrecision(5, 2);
+        builder.Property(d => d.DetractionAmount).HasPrecision(14, 2);
+        builder.Property(d => d.DetractionBankAccount).HasMaxLength(30);
+
         builder.Property(d => d.Status).HasMaxLength(20).HasDefaultValue("draft");
         builder.Property(d => d.SunatResponseCode).HasMaxLength(10);
         builder.Property(d => d.HashCode).HasMaxLength(100);

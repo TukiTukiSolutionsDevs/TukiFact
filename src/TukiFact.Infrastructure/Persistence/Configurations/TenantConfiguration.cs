@@ -21,6 +21,8 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.Distrito).HasMaxLength(50);
         builder.Property(t => t.PrimaryColor).HasMaxLength(7).HasDefaultValue("#1a73e8");
         builder.Property(t => t.SunatUser).HasMaxLength(20);
+        builder.Property(t => t.GreClientId).HasMaxLength(100);
+        builder.Property(t => t.GreClientSecret).HasMaxLength(200);
         builder.Property(t => t.Environment).HasMaxLength(10).HasDefaultValue("beta");
         builder.Property(t => t.IsActive).HasDefaultValue(true);
         builder.Property(t => t.CreatedAt).HasDefaultValueSql("now()");

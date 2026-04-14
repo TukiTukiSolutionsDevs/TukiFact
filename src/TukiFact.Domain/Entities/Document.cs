@@ -19,6 +19,10 @@ public class Document
     // Currency
     public string Currency { get; set; } = "PEN"; // PEN, USD
 
+    // Multi-moneda (C4): Exchange rate when Currency != PEN
+    public decimal? ExchangeRate { get; set; }         // Tipo de cambio (e.g. 3.527)
+    public DateOnly? ExchangeRateDate { get; set; }    // Fecha del tipo de cambio
+
     // Customer (receptor)
     public string CustomerDocType { get; set; } = "6"; // 6=RUC, 1=DNI, 0=Sin doc
     public string CustomerDocNumber { get; set; } = string.Empty;
@@ -34,6 +38,16 @@ public class Document
     public decimal Igv { get; set; }                  // 18% del gravado
     public decimal TotalDescuento { get; set; }
     public decimal Total { get; set; }
+
+    // ICBPER (Impuesto Bolsas Plásticas)
+    public decimal IcbperTotal { get; set; }  // Sum of all items' ICBPER
+
+    // Detracciones (SPOT — D.Leg. 940)
+    public bool HasDetraction { get; set; }
+    public string? DetractionCode { get; set; }         // Cat. 54: "037"
+    public decimal? DetractionPercent { get; set; }      // 12.00
+    public decimal? DetractionAmount { get; set; }       // Calculated
+    public string? DetractionBankAccount { get; set; }   // Cuenta Banco de la Nación
 
     // SUNAT
     public string Status { get; set; } = "draft"; // draft, signed, sent, accepted, rejected, voided, observed
