@@ -197,6 +197,7 @@ function KPICard({
           )}
         </div>
         <div className="mt-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
           <p className="text-2xl font-bold">{value}</p>
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, startTransition, type ReactNode } from 'react';
 import { api, type UserInfo, type AuthResponse } from './api';
 
 interface AuthState {
@@ -33,13 +33,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('access_token');
     if (stored && token) {
       try {
-        setUser(JSON.parse(stored) as UserInfo);
+        startTransition(() => setUser(JSON.parse(stored) as UserInfo));
         api.setToken(token);
       } catch {
         /* ignore */
       }
     }
-    setIsLoading(false);
+    startTransition(() => setIsLoading(false));
   }, []);
 
   const login = useCallback(async (email: string, password: string, tenantId: string) => {

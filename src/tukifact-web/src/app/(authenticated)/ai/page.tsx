@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Send, Bot, User, Sparkles, Settings, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Settings } from 'lucide-react';
 import Link from 'next/link';
 
 interface AiStatus { configured: boolean; provider: string; model: string | null; }

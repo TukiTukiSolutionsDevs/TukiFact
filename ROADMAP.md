@@ -13,9 +13,9 @@
 FASE 1  ████████████████████████ 100%  Fundación — API + DB + Auth (Sprints 1-4) ✅
 FASE 2  █████████████████░░░░░░  75%   Producción — Frontend + Infra (Sprints 5-8)
 FASE 3  ░░░░░░░░░░░░░░░░░░░░░░░  0%   Crecimiento — IA + SDK + Scale (Sprints 9-12)
-EXTRA   ██████░░░░░░░░░░░░░░░░░  25%   Backoffice + DevOps (Sprint B1-B3)
+EXTRA   ████████████████░░░░░░░  50%   Backoffice + DevOps (B1+B2 ✅, B3 pendiente)
 MEJORA  ████████████████████████ 100%  Batch A+B+C Backend + Frontend + Migrado ✅ (B frontend added)
-TOTAL   █████████████████░░░░░░  74%   Backend COMPLETO, Build limpio (0 warnings), Deploy pendiente
+TOTAL   ██████████████████░░░░░  78%   Backend + Backoffice Frontend COMPLETO, Deploy pendiente
 ```
 
 ## Credenciales Actuales
@@ -187,19 +187,21 @@ _Completado 2026-04-13_
 - `GET  /v1/backoffice/documents` — Buscar documentos cross-tenant
 - `GET  /v1/backoffice/employees` — Listar empleados plataforma
 
-### Sprint B2: Backoffice Frontend ⏳ PRÓXIMO
-_Prioridad: ALTA — darle cara al backend que ya existe_
+### Sprint B2: Backoffice Frontend ✅ COMPLETADO
+_Completado 2026-04-14_
 
 | # | Tarea | Estado | Endpoint backend |
 |---|-------|--------|------------------|
-| B2.1 | Layout backoffice (sidebar, header, auth guard) | ⏳ | — |
-| B2.2 | Login backoffice (/backoffice/login) | ⏳ | POST /v1/backoffice/auth/login |
-| B2.3 | Dashboard global (/backoffice/dashboard) | ⏳ | GET /v1/backoffice/dashboard |
-| B2.4 | Lista de tenants (/backoffice/tenants) | ⏳ | GET /v1/backoffice/tenants |
-| B2.5 | Detalle tenant (/backoffice/tenants/[id]) | ⏳ | GET /v1/backoffice/tenants/{id} |
-| B2.6 | Acciones tenant (suspender, activar, cambiar plan) | ⏳ | PUT suspend/activate/plan |
-| B2.7 | Búsqueda documentos soporte (/backoffice/documents) | ⏳ | GET /v1/backoffice/documents |
-| B2.8 | Empleados plataforma (/backoffice/employees) | ⏳ | GET /v1/backoffice/employees |
+| B2.1 | Layout backoffice (sidebar, header, auth guard) | ✅ | — |
+| B2.2 | Login backoffice (/backoffice/login) | ✅ | POST /v1/backoffice/auth/login |
+| B2.3 | Dashboard global (/backoffice/dashboard) | ✅ | GET /v1/backoffice/dashboard |
+| B2.4 | Lista de tenants (/backoffice/tenants) | ✅ | GET /v1/backoffice/tenants |
+| B2.5 | Detalle tenant (/backoffice/tenants/[id]) | ✅ | GET /v1/backoffice/tenants/{id} |
+| B2.6 | Acciones tenant (suspender, activar, cambiar plan) | ✅ | PUT suspend/activate/plan |
+| B2.7 | Búsqueda documentos soporte (/backoffice/documents) | ✅ | GET /v1/backoffice/documents |
+| B2.8 | Empleados plataforma (/backoffice/employees) | ✅ | GET /v1/backoffice/employees |
+
+**8 páginas backoffice, 1536 líneas, auth context separado, dark theme indigo/slate**
 
 ### Sprint B3: Backoffice Avanzado ⏳ FUTURO
 _Prioridad: MEDIA — después de producción_
@@ -270,7 +272,6 @@ _Prioridad: MEDIA — después de producción_
 
 ```
 AHORA        → Batch D: Docker rebuild web + Deploy VPS + SSL + dominio
-DESPUÉS      → Sprint B2: Backoffice Frontend (darle cara al backend)
 DESPUÉS      → Sprint 8.1-8.2: SUNAT Producción + Homologación
 DESPUÉS      → Sprint 7: Notificaciones + Email + Webhooks
 DESPUÉS      → Sprint B3: Backoffice Avanzado
@@ -391,7 +392,7 @@ _Completado 2026-04-14_
 | MinIO buckets | 4 (xml, pdf, cdr, certs) |
 | Planes de pricing | 6 |
 | Rutas frontend (tenant) | 33 (17 original + 14 Batch A+B+C + 2 Batch B frontend) |
-| Rutas frontend (backoffice) | 0 → 8 (Sprint B2) |
+| Rutas frontend (backoffice) | 8 (login + dashboard + tenants + tenants/[id] + documents + employees) ✅ |
 | Archivos frontend nuevos | 14 páginas Batch A+B+C |
 
 ---

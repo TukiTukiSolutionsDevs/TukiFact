@@ -11,8 +11,7 @@ import {
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Button } from '@/components/ui/button';
-import { BookOpen, Search, ChevronRight, Hash, ListTree, Loader2 } from 'lucide-react';
+import { BookOpen, Search, Hash, ListTree, Loader2 } from 'lucide-react';
 
 interface CatalogSummary {
   catalogNumber: string;

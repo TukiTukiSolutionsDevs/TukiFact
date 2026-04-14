@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, startTransition, type ReactNode } from 'react';
 import { api } from './api';
 
 export interface BackofficeUser {
@@ -40,13 +40,13 @@ export function BackofficeAuthProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem(STORAGE_KEY_TOKEN);
     if (stored && token) {
       try {
-        setUser(JSON.parse(stored) as BackofficeUser);
+        startTransition(() => setUser(JSON.parse(stored) as BackofficeUser));
         api.setToken(token);
       } catch {
         /* ignore */
       }
     }
-    setIsLoading(false);
+    startTransition(() => setIsLoading(false));
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
