@@ -1,48 +1,266 @@
 version: "2"
-type: backend
-tech_stack: [csharp, dotnet-10, aspnetcore, ef-core, postgresql, nats, minio, jwt]
-base_url: http://localhost:5186
+type: fullstack
+tech_stack:
+  backend:
+    - dotnet-10
+    - aspnet-core
+    - entity-framework-core
+    - postgresql-18
+    - nats-jetstream
+    - minio
+    - questpdf
+    - bcrypt
+  frontend:
+    - typescript
+    - next.js-16
+    - react
+    - tailwindcss-v4
+    - shadcn-ui
+    - base-ui-react
+    - recharts
+    - next-themes
+
+api_base_url: http://localhost:5186
+frontend_url: http://localhost:3000
+
 auth:
   type: jwt-bearer
   login_endpoint: POST /v1/auth/login
   login_body: '{"email":"admin@tukitest.pe","password":"TestSprite2026!","tenantId":"0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"}'
   token_field: accessToken
   header: "Authorization: Bearer {token}"
+  backoffice_login_endpoint: POST /v1/backoffice/auth/login
+  backoffice_login_body: '{"email":"superadmin@tukifact.net.pe","password":"SuperAdmin2026!"}'
+
+routes:
+  - {path: /login, auth_required: false, description: "Tenant login (ID Empresa + Email + Contraseña)"}
+  - {path: /register, auth_required: false, description: "Company registration (RUC + admin user)"}
+  - {path: /dashboard, auth_required: true, description: "KPI cards + BarChart + PieChart (recharts)"}
+  - {path: /documents, auth_required: true, description: "Document list with type/status/date filters"}
+  - {path: /documents/new, auth_required: true, description: "Emit Factura/Boleta with dynamic items + IGV calc"}
+  - {path: "/documents/[id]", auth_required: true, description: "Document detail + PDF/XML download"}
+  - {path: /despatch-advices, auth_required: true, description: "Guías de Remisión list"}
+  - {path: /despatch-advices/new, auth_required: true, description: "Create GRE (transport mode, carrier/driver, addresses)"}
+  - {path: /customers, auth_required: true, description: "Customer directory CRUD + search"}
+  - {path: /products, auth_required: true, description: "Product/service catalog CRUD"}
+  - {path: /retentions, auth_required: true, description: "Retenciones electrónicas (tipo 20)"}
+  - {path: /perceptions, auth_required: true, description: "Percepciones electrónicas (tipo 40)"}
+  - {path: /quotations, auth_required: true, description: "Cotizaciones + convert-to-invoice"}
+  - {path: /recurring-invoices, auth_required: true, description: "Facturación recurrente (monthly/weekly)"}
+  - {path: /series, auth_required: true, description: "Series management (F001, B001, etc.)"}
+  - {path: /settings, auth_required: true, description: "Company settings"}
+  - {path: /users, auth_required: true, description: "Tenant users CRUD (admin, emisor, consulta)"}
+  - {path: /api-keys, auth_required: true, description: "API key generation (tk_*) and revocation"}
+  - {path: /webhooks, auth_required: true, description: "Webhook endpoints CRUD"}
+  - {path: /voided, auth_required: true, description: "Comunicaciones de Baja (RA-)"}
+  - {path: /reports, auth_required: true, description: "Sales/tax reports + date filters"}
+  - {path: /audit-log, auth_required: true, description: "Audit trail with pagination"}
+  - {path: /plan, auth_required: true, description: "Current plan + 6 pricing cards"}
+  - {path: /exchange-rates, auth_required: true, description: "SBS exchange rate + converter + 7-day history"}
+  - {path: /catalogs, auth_required: true, description: "SUNAT catalogs browser (600+ codes)"}
+  - {path: /certificate, auth_required: true, description: "Digital certificate upload"}
+  - {path: /ai, auth_required: true, description: "AI Copilot chat"}
+  - {path: /welcome, auth_required: true, description: "Onboarding wizard (4 steps)"}
+  - {path: /backoffice/login, auth_required: false, description: "Superadmin login (separate auth)"}
+  - {path: /backoffice/dashboard, auth_required: true, description: "Global platform metrics"}
+  - {path: /backoffice/tenants, auth_required: true, description: "Tenants list + suspend/activate/plan"}
+  - {path: "/backoffice/tenants/[id]", auth_required: true, description: "Tenant detail + users + stats"}
+  - {path: /backoffice/documents, auth_required: true, description: "Cross-tenant document search"}
+  - {path: /backoffice/employees, auth_required: true, description: "Platform employees CRUD"}
+
 endpoints:
+  # Health
   - {method: GET, path: /api/ping, auth: false, status: 200}
   - {method: GET, path: /health, auth: false, status: 200}
+  # Auth
   - {method: POST, path: /v1/auth/register, auth: false, status: 201}
   - {method: POST, path: /v1/auth/login, auth: false, status: 200}
   - {method: POST, path: /v1/auth/refresh, auth: false, status: 200}
+  - {method: POST, path: /v1/auth/forgot-password, auth: false, status: 200}
+  - {method: POST, path: /v1/auth/reset-password, auth: false, status: 200}
   - {method: GET, path: /v1/auth/me, auth: true, status: 200}
+  # Dashboard
   - {method: GET, path: /v1/dashboard, auth: true, status: 200}
-  - {method: GET, path: /v1/documents, auth: true, status: 200}
+  # Documents
   - {method: POST, path: /v1/documents, auth: true, roles: "admin,emisor", status: 201}
+  - {method: GET, path: /v1/documents, auth: true, status: 200}
   - {method: GET, path: "/v1/documents/{id}", auth: true, status: 200}
   - {method: GET, path: "/v1/documents/{id}/pdf", auth: true, status: 200}
   - {method: GET, path: "/v1/documents/{id}/xml", auth: true, status: 200}
   - {method: POST, path: /v1/documents/credit-note, auth: true, roles: "admin,emisor", status: 201}
+  - {method: POST, path: /v1/documents/debit-note, auth: true, roles: "admin,emisor", status: 201}
+  # Despatch Advices
+  - {method: POST, path: /v1/despatch-advices, auth: true, roles: "admin,emisor", status: 201}
+  - {method: POST, path: "/v1/despatch-advices/{id}/emit", auth: true, roles: "admin,emisor", status: 200}
+  - {method: GET, path: "/v1/despatch-advices/{id}", auth: true, status: 200}
+  - {method: GET, path: /v1/despatch-advices, auth: true, status: 200}
+  # Customers
+  - {method: GET, path: /v1/customers, auth: true, status: 200}
+  - {method: GET, path: "/v1/customers/{id}", auth: true, status: 200}
+  - {method: GET, path: /v1/customers/search, auth: true, status: 200}
+  - {method: POST, path: /v1/customers, auth: true, roles: "admin,emisor", status: 201}
+  - {method: PUT, path: "/v1/customers/{id}", auth: true, roles: "admin,emisor", status: 200}
+  - {method: DELETE, path: "/v1/customers/{id}", auth: true, roles: admin, status: 200}
+  # Products
+  - {method: GET, path: /v1/products, auth: true, status: 200}
+  - {method: GET, path: "/v1/products/{id}", auth: true, status: 200}
+  - {method: POST, path: /v1/products, auth: true, roles: "admin,emisor", status: 201}
+  - {method: PUT, path: "/v1/products/{id}", auth: true, roles: "admin,emisor", status: 200}
+  - {method: DELETE, path: "/v1/products/{id}", auth: true, roles: admin, status: 200}
+  # Series
   - {method: GET, path: /v1/series, auth: true, status: 200}
   - {method: POST, path: /v1/series, auth: true, roles: admin, status: 201}
   - {method: PUT, path: "/v1/series/{id}", auth: true, roles: admin, status: 204}
-  - {method: GET, path: /v1/voided-documents, auth: true, roles: admin, status: 200}
+  # Retentions
+  - {method: POST, path: /v1/retentions, auth: true, status: 201}
+  - {method: GET, path: "/v1/retentions/{id}", auth: true, status: 200}
+  - {method: GET, path: /v1/retentions, auth: true, status: 200}
+  # Perceptions
+  - {method: POST, path: /v1/perceptions, auth: true, status: 201}
+  - {method: GET, path: "/v1/perceptions/{id}", auth: true, status: 200}
+  - {method: GET, path: /v1/perceptions, auth: true, status: 200}
+  # Quotations
+  - {method: POST, path: /v1/quotations, auth: true, status: 201}
+  - {method: GET, path: "/v1/quotations/{id}", auth: true, status: 200}
+  - {method: GET, path: /v1/quotations, auth: true, status: 200}
+  - {method: PUT, path: "/v1/quotations/{id}/status", auth: true, status: 200}
+  - {method: POST, path: "/v1/quotations/{id}/convert-to-invoice", auth: true, status: 200}
+  # Recurring Invoices
+  - {method: POST, path: /v1/recurring-invoices, auth: true, status: 201}
+  - {method: GET, path: "/v1/recurring-invoices/{id}", auth: true, status: 200}
+  - {method: GET, path: /v1/recurring-invoices, auth: true, status: 200}
+  - {method: PUT, path: "/v1/recurring-invoices/{id}", auth: true, status: 200}
+  # Voided Documents
   - {method: POST, path: /v1/voided-documents, auth: true, roles: admin, status: 201}
+  - {method: GET, path: /v1/voided-documents, auth: true, roles: admin, status: 200}
+  # Users
   - {method: GET, path: /v1/users, auth: true, roles: admin, status: 200}
   - {method: POST, path: /v1/users, auth: true, roles: admin, status: 201}
   - {method: PUT, path: "/v1/users/{id}", auth: true, roles: admin, status: 204}
   - {method: DELETE, path: "/v1/users/{id}", auth: true, roles: admin, status: 204}
-  - {method: GET, path: /v1/api-keys, auth: true, roles: admin, status: 200}
-  - {method: POST, path: /v1/api-keys, auth: true, roles: admin, status: 201}
-  - {method: DELETE, path: "/v1/api-keys/{id}", auth: true, roles: admin, status: 204}
-  - {method: GET, path: /v1/webhooks, auth: true, roles: admin, status: 200}
-  - {method: POST, path: /v1/webhooks, auth: true, roles: admin, status: 201}
-  - {method: PUT, path: "/v1/webhooks/{id}", auth: true, roles: admin, status: 204}
-  - {method: DELETE, path: "/v1/webhooks/{id}", auth: true, roles: admin, status: 204}
-  - {method: GET, path: "/v1/webhooks/{id}/deliveries", auth: true, roles: admin, status: 200}
+  # API Keys
+  - {method: GET, path: /v1/api-keys, auth: true, status: 200}
+  - {method: POST, path: /v1/api-keys, auth: true, status: 201}
+  - {method: DELETE, path: "/v1/api-keys/{id}", auth: true, status: 204}
+  # Webhooks
+  - {method: GET, path: /v1/webhooks, auth: true, status: 200}
+  - {method: POST, path: /v1/webhooks, auth: true, status: 201}
+  - {method: PUT, path: "/v1/webhooks/{id}", auth: true, status: 204}
+  - {method: GET, path: "/v1/webhooks/{id}/deliveries", auth: true, status: 200}
+  - {method: DELETE, path: "/v1/webhooks/{id}", auth: true, status: 204}
+  # Tenant
   - {method: GET, path: /v1/tenant, auth: true, status: 200}
   - {method: PUT, path: /v1/tenant, auth: true, roles: admin, status: 204}
   - {method: POST, path: /v1/tenant/certificate, auth: true, roles: admin, status: 200}
   - {method: DELETE, path: /v1/tenant/certificate, auth: true, roles: admin, status: 204}
   - {method: PUT, path: /v1/tenant/environment, auth: true, roles: admin, status: 200}
+  # Plans
   - {method: GET, path: /v1/plans, auth: false, status: 200}
+  # Audit Log
   - {method: GET, path: /v1/audit-log, auth: true, roles: admin, status: 200}
+  # Catalogs
+  - {method: GET, path: /v1/catalogs, auth: true, status: 200}
+  # SIRE
+  - {method: GET, path: "/v1/sire/proposal/{period}", auth: true, status: 200}
+  - {method: POST, path: "/v1/sire/proposal/{period}/accept", auth: true, status: 200}
+  - {method: POST, path: "/v1/sire/proposal/{period}/replace", auth: true, status: 200}
+  - {method: GET, path: "/v1/sire/ticket/{ticket}/status", auth: true, status: 200}
+  - {method: GET, path: "/v1/sire/report/{period}", auth: true, status: 200}
+  # Backoffice
+  - {method: POST, path: /v1/backoffice/auth/login, auth: false, status: 200}
+  - {method: GET, path: /v1/backoffice/dashboard, auth: true, roles: "superadmin,support,ops", status: 200}
+  - {method: GET, path: /v1/backoffice/tenants, auth: true, roles: "superadmin,support,ops", status: 200}
+  - {method: GET, path: "/v1/backoffice/tenants/{id}", auth: true, roles: "superadmin,support,ops", status: 200}
+  - {method: PUT, path: "/v1/backoffice/tenants/{id}/suspend", auth: true, roles: superadmin, status: 200}
+  - {method: PUT, path: "/v1/backoffice/tenants/{id}/activate", auth: true, roles: superadmin, status: 200}
+  - {method: PUT, path: "/v1/backoffice/tenants/{id}/plan", auth: true, roles: superadmin, status: 200}
+  - {method: GET, path: /v1/backoffice/documents, auth: true, roles: "superadmin,support,ops", status: 200}
+  - {method: GET, path: /v1/backoffice/employees, auth: true, roles: superadmin, status: 200}
+  - {method: POST, path: /v1/backoffice/employees, auth: true, roles: superadmin, status: 201}
+  - {method: PUT, path: "/v1/backoffice/employees/{id}", auth: true, roles: superadmin, status: 200}
+  - {method: PUT, path: "/v1/backoffice/employees/{id}/role", auth: true, roles: superadmin, status: 200}
+  - {method: DELETE, path: "/v1/backoffice/employees/{id}", auth: true, roles: superadmin, status: 200}
+  - {method: POST, path: "/v1/backoffice/tenants/{id}/impersonate", auth: true, roles: "superadmin,support", status: 200}
+  - {method: GET, path: /v1/backoffice/reports/mrr, auth: true, roles: "superadmin,support,ops", status: 200}
+  - {method: GET, path: /v1/backoffice/reports/usage, auth: true, roles: "superadmin,support,ops", status: 200}
+  - {method: GET, path: /v1/backoffice/config, auth: true, roles: superadmin, status: 200}
+  - {method: PUT, path: /v1/backoffice/config, auth: true, roles: superadmin, status: 200}
+  - {method: GET, path: /v1/backoffice/activity, auth: true, roles: "superadmin,support,ops", status: 200}
+
+features:
+  - name: Authentication
+    entry_route: /login
+    user_interactions: [login, register, logout, forgot password, reset password]
+    api_calls:
+      - {method: POST, endpoint: /v1/auth/login}
+      - {method: POST, endpoint: /v1/auth/register}
+      - {method: POST, endpoint: /v1/auth/refresh}
+      - {method: GET, endpoint: /v1/auth/me}
+  - name: Document Emission
+    entry_route: /documents/new
+    user_interactions: [select type, fill customer, add items, calculate IGV, emit]
+    api_calls:
+      - {method: POST, endpoint: /v1/documents}
+      - {method: GET, endpoint: /v1/series}
+  - name: Document Management
+    entry_route: /documents
+    user_interactions: [list, filter, paginate, view detail, download PDF/XML]
+    api_calls:
+      - {method: GET, endpoint: /v1/documents}
+      - {method: GET, endpoint: "/v1/documents/{id}"}
+      - {method: GET, endpoint: "/v1/documents/{id}/pdf"}
+  - name: Credit/Debit Notes
+    entry_route: /documents
+    user_interactions: [select reference, select reason, adjust items, emit]
+    api_calls:
+      - {method: POST, endpoint: /v1/documents/credit-note}
+      - {method: POST, endpoint: /v1/documents/debit-note}
+  - name: Despatch Advices (GRE)
+    entry_route: /despatch-advices
+    user_interactions: [create GRE, select transport, fill addresses, emit]
+    api_calls:
+      - {method: POST, endpoint: /v1/despatch-advices}
+      - {method: POST, endpoint: "/v1/despatch-advices/{id}/emit"}
+  - name: Customer Directory
+    entry_route: /customers
+    user_interactions: [list, search, create, update, delete]
+    api_calls:
+      - {method: GET, endpoint: /v1/customers}
+      - {method: POST, endpoint: /v1/customers}
+  - name: Product Catalog
+    entry_route: /products
+    user_interactions: [list, search, create, update, delete]
+    api_calls:
+      - {method: GET, endpoint: /v1/products}
+      - {method: POST, endpoint: /v1/products}
+  - name: Retentions (tipo 20)
+    entry_route: /retentions
+    user_interactions: [create with references, view, list]
+    api_calls:
+      - {method: POST, endpoint: /v1/retentions}
+      - {method: GET, endpoint: /v1/retentions}
+  - name: Perceptions (tipo 40)
+    entry_route: /perceptions
+    user_interactions: [create with references, view, list]
+    api_calls:
+      - {method: POST, endpoint: /v1/perceptions}
+      - {method: GET, endpoint: /v1/perceptions}
+  - name: Quotations
+    entry_route: /quotations
+    user_interactions: [create, update status, convert to invoice]
+    api_calls:
+      - {method: POST, endpoint: /v1/quotations}
+      - {method: POST, endpoint: "/v1/quotations/{id}/convert-to-invoice"}
+  - name: Recurring Invoices
+    entry_route: /recurring-invoices
+    user_interactions: [create, pause, resume, cancel]
+    api_calls:
+      - {method: POST, endpoint: /v1/recurring-invoices}
+      - {method: PUT, endpoint: "/v1/recurring-invoices/{id}"}
+  - name: Backoffice
+    entry_route: /backoffice/login
+    user_interactions: [login superadmin, global dashboard, manage tenants, search docs, manage employees, reports, config]
+    api_calls:
+      - {method: POST, endpoint: /v1/backoffice/auth/login}
+      - {method: GET, endpoint: /v1/backoffice/dashboard}
+      - {method: GET, endpoint: /v1/backoffice/tenants}

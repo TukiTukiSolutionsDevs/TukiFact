@@ -16,6 +16,7 @@ public record DocumentResponse(
     decimal OperacionGravada,
     decimal OperacionExonerada,
     decimal OperacionInafecta,
+    decimal Subtotal,
     decimal Igv,
     decimal Total,
     string Status,

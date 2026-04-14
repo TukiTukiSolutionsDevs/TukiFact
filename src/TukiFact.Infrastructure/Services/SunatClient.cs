@@ -27,25 +27,40 @@ public class SunatClient : ISunatClient
         _httpClient = httpClientFactory.CreateClient("Sunat");
     }
 
-    public async Task<SunatResponse> SendDocumentAsync(
+    public Task<SunatResponse> SendDocumentAsync(
         string ruc, string documentType, string fullNumber,
         byte[] signedXmlZip, CancellationToken ct = default)
-    {
-        _logger.LogInformation("Sending {FullNumber} to SUNAT ({Env})", fullNumber, _environment);
+        => SendDocumentAsync(ruc, documentType, fullNumber, signedXmlZip, null!, ct);
 
-        if (_environment == "beta")
+    public async Task<SunatResponse> SendDocumentAsync(
+        string ruc, string documentType, string fullNumber,
+        byte[] signedXmlZip, SunatCredentials credentials, CancellationToken ct = default)
+    {
+        var env = credentials?.Environment ?? _environment;
+        _logger.LogInformation("Sending {FullNumber} to SUNAT ({Env})", fullNumber, env);
+
+        if (env == "beta")
             return await SendBetaStubAsync(documentType, fullNumber, ct);
 
         var fileName = $"{ruc}-{documentType}-{fullNumber}.zip";
         var base64Zip = Convert.ToBase64String(signedXmlZip);
 
-        var soapBody = BuildSendBillSoapEnvelope(fileName, base64Zip);
-        var endpoint = GetEndpoint(documentType);
+        var soapBody = credentials is not null
+            ? BuildSendBillSoapEnvelopeWithAuth(fileName, base64Zip, credentials.SolUser, credentials.SolPassword)
+            : BuildSendBillSoapEnvelope(fileName, base64Zip);
+        var endpoint = GetEndpointForEnv(documentType, env);
 
         try
         {
             var response = await SendSoapRequestAsync(endpoint, soapBody, ct);
             return ParseSendBillResponse(response, fullNumber);
+        }
+        catch (HttpRequestException ex) when (IsTimeoutOrNetwork(ex))
+        {
+            // Retry with backoff for network/timeout errors (M2.5)
+            return await RetryWithBackoffAsync(
+                () => SendSoapAndParse(endpoint, soapBody, fullNumber, ct),
+                fullNumber, ct);
         }
         catch (Exception ex)
         {
@@ -54,12 +69,17 @@ public class SunatClient : ISunatClient
         }
     }
 
-    public async Task<SunatResponse> SendSummaryAsync(
+    public Task<SunatResponse> SendSummaryAsync(
         string ruc, string ticketNumber, byte[] xmlZip, CancellationToken ct = default)
-    {
-        _logger.LogInformation("Sending summary {Ticket} to SUNAT ({Env})", ticketNumber, _environment);
+        => SendSummaryAsync(ruc, ticketNumber, xmlZip, null!, ct);
 
-        if (_environment == "beta")
+    public async Task<SunatResponse> SendSummaryAsync(
+        string ruc, string ticketNumber, byte[] xmlZip, SunatCredentials credentials, CancellationToken ct = default)
+    {
+        var env = credentials?.Environment ?? _environment;
+        _logger.LogInformation("Sending summary {Ticket} to SUNAT ({Env})", ticketNumber, env);
+
+        if (env == "beta")
         {
             await Task.Delay(200, ct);
             return new SunatResponse(true, "0", $"Resumen {ticketNumber} recibido", null, null);
@@ -69,7 +89,7 @@ public class SunatClient : ISunatClient
         var base64Zip = Convert.ToBase64String(xmlZip);
 
         var soapBody = BuildSendSummarySoapEnvelope(fileName, base64Zip);
-        var endpoint = GetEndpoint("RC");
+        var endpoint = GetEndpointForEnv("RC", env);
 
         try
         {
@@ -83,21 +103,26 @@ public class SunatClient : ISunatClient
         }
     }
 
-    public async Task<SunatResponse> GetStatusAsync(string sunatTicket, CancellationToken ct = default)
-    {
-        _logger.LogInformation("Checking status for ticket {Ticket}", sunatTicket);
+    public Task<SunatResponse> GetStatusAsync(string sunatTicket, CancellationToken ct = default)
+        => GetStatusAsync(sunatTicket, null!, ct);
 
-        if (_environment == "beta")
+    public async Task<SunatResponse> GetStatusAsync(string sunatTicket, SunatCredentials credentials, CancellationToken ct = default)
+    {
+        var env = credentials?.Environment ?? _environment;
+        _logger.LogInformation("Checking status for ticket {Ticket} ({Env})", sunatTicket, env);
+
+        if (env == "beta")
         {
             await Task.Delay(100, ct);
             return new SunatResponse(true, "0", "Proceso completado correctamente", null, null);
         }
 
         var soapBody = BuildGetStatusSoapEnvelope(sunatTicket);
+        var endpoint = GetEndpointForEnv("01", env); // Use factura endpoint for getStatus
 
         try
         {
-            var response = await SendSoapRequestAsync(BetaUrl, soapBody, ct);
+            var response = await SendSoapRequestAsync(endpoint, soapBody, ct);
             return ParseGetStatusResponse(response);
         }
         catch (Exception ex)
@@ -248,7 +273,7 @@ public class SunatClient : ISunatClient
         }
     }
 
-    private string GetEndpoint(string documentType) => _environment switch
+    private string GetEndpointForEnv(string documentType, string env) => env switch
     {
         "beta" => documentType is "20" or "40" ? BetaOtrosCpeUrl : BetaUrl,
         "production" => documentType switch
@@ -259,6 +284,69 @@ public class SunatClient : ISunatClient
         },
         _ => BetaUrl
     };
+
+    // Backwards compat
+    private string GetEndpoint(string documentType) => GetEndpointForEnv(documentType, _environment);
+
+    // === WS-Security SOAP envelope (for production with SOL credentials) ===
+
+    private static string BuildSendBillSoapEnvelopeWithAuth(string fileName, string base64Content, string solUser, string solPassword)
+    {
+        return $"""
+            <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                              xmlns:ser="http://service.sunat.gob.pe"
+                              xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+                <soapenv:Header>
+                    <wsse:Security>
+                        <wsse:UsernameToken>
+                            <wsse:Username>{solUser}</wsse:Username>
+                            <wsse:Password>{solPassword}</wsse:Password>
+                        </wsse:UsernameToken>
+                    </wsse:Security>
+                </soapenv:Header>
+                <soapenv:Body>
+                    <ser:sendBill>
+                        <fileName>{fileName}</fileName>
+                        <contentFile>{base64Content}</contentFile>
+                    </ser:sendBill>
+                </soapenv:Body>
+            </soapenv:Envelope>
+            """;
+    }
+
+    // === Retry logic for SUNAT timeouts (M2.5) ===
+
+    private static bool IsTimeoutOrNetwork(Exception ex)
+    {
+        return ex is HttpRequestException or TaskCanceledException
+            || ex.InnerException is System.Net.Sockets.SocketException;
+    }
+
+    private async Task<SunatResponse> RetryWithBackoffAsync(
+        Func<Task<SunatResponse>> action, string context, CancellationToken ct)
+    {
+        int[] delays = [5, 15, 45]; // seconds
+        foreach (var delay in delays)
+        {
+            _logger.LogWarning("SUNAT retry for {Context} in {Delay}s", context, delay);
+            await Task.Delay(TimeSpan.FromSeconds(delay), ct);
+            try
+            {
+                return await action();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "SUNAT retry failed for {Context}", context);
+            }
+        }
+        return new SunatResponse(false, null, null, null, $"SUNAT unreachable after 3 retries for {context}");
+    }
+
+    private async Task<SunatResponse> SendSoapAndParse(string endpoint, string soapBody, string fullNumber, CancellationToken ct)
+    {
+        var response = await SendSoapRequestAsync(endpoint, soapBody, ct);
+        return ParseSendBillResponse(response, fullNumber);
+    }
 
     private async Task<SunatResponse> SendBetaStubAsync(string documentType, string fullNumber, CancellationToken ct)
     {

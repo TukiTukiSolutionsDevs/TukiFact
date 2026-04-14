@@ -49,6 +49,10 @@ public class DocumentService : IDocumentService
         var tenant = await _tenantRepo.GetByIdAsync(tenantId, ct)
             ?? throw new InvalidOperationException("Tenant no encontrado");
 
+        // Validate items
+        if (request.Items is null || request.Items.Count == 0)
+            throw new ArgumentException("El documento debe contener al menos un item en la lista 'items'");
+
         // 2. Get series and next correlative
         var series = await _seriesRepo.GetByTypeAndSerieAsync(tenantId, request.DocumentType, request.Serie, ct)
             ?? throw new InvalidOperationException($"Serie {request.Serie} no encontrada para tipo {request.DocumentType}");
@@ -405,6 +409,7 @@ public class DocumentService : IDocumentService
             doc.IssueDate, doc.DueDate, doc.Currency,
             doc.CustomerDocType, doc.CustomerDocNumber, doc.CustomerName,
             doc.OperacionGravada, doc.OperacionExonerada, doc.OperacionInafecta,
+            doc.OperacionGravada + doc.OperacionExonerada + doc.OperacionInafecta,
             doc.Igv, doc.Total, doc.Status,
             doc.SunatResponseCode, doc.SunatResponseDescription,
             doc.HashCode, doc.XmlUrl, doc.PdfUrl, doc.Notes, doc.CreatedAt,

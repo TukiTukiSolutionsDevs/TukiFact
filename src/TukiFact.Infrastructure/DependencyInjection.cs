@@ -7,6 +7,7 @@ using TukiFact.Domain.Interfaces;
 using TukiFact.Infrastructure.Persistence;
 using TukiFact.Infrastructure.Persistence.Repositories;
 using TukiFact.Infrastructure.Services;
+using TukiFact.Infrastructure.Services.EventHandlers;
 
 namespace TukiFact.Infrastructure;
 
@@ -91,6 +92,23 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IRateLimiter, InMemoryRateLimiter>();
         services.AddScoped<WebhookDeliveryService>();
+
+        // Notifications (M1.3)
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<NotificationService>();
+
+        // Homologacion (M2.3)
+        services.AddScoped<HomologacionService>();
+
+        // NATS JetStream Consumer (BackgroundService)
+        services.AddHostedService<NatsConsumerHostedService>();
+
+        // Event Handlers (resolved via IEventHandler for NATS consumer dispatch)
+        services.AddScoped<IEventHandler, DocumentCreatedHandler>();
+        services.AddScoped<IEventHandler, DocumentSentHandler>();
+        services.AddScoped<IEventHandler, DocumentFailedHandler>();
+        services.AddScoped<IEventHandler, GenericWebhookHandler>();
+        services.AddScoped<IEventHandler, NotificationEventHandler>();
 
         // HttpClient for SUNAT SOAP calls
         services.AddHttpClient("Sunat", client =>

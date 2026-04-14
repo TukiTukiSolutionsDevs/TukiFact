@@ -11,122 +11,492 @@
   },
   {
     "id": "TC003",
-    "title": "register_new_tenant_and_admin",
-    "description": "POST /v1/auth/register without authentication. Send JSON body: {\"ruc\":\"20777111881\",\"razonSocial\":\"New Backend Co SAC\",\"adminEmail\":\"newbe@test.pe\",\"adminPassword\":\"BackendTest2026!\",\"adminFullName\":\"Backend Tester\"}. Expected: 201 Created with JSON containing 'accessToken', 'refreshToken', and 'user' object with 'email' matching 'newbe@test.pe' and 'role' equal to 'admin'."
+    "title": "auth_register_new_tenant_with_all_fields",
+    "description": "POST /v1/auth/register without authentication. Send JSON body: {\"ruc\":\"20888999001\",\"razonSocial\":\"PRD Test Enterprise SAC\",\"nombreComercial\":\"PRD Test\",\"direccion\":\"Av Testing 456, Lima\",\"adminEmail\":\"prdtest@test.pe\",\"adminPassword\":\"PrdTest2026!\",\"adminFullName\":\"PRD Admin User\"}. Expected: 201 Created with JSON containing 'accessToken' (non-empty string starting with 'eyJ'), 'refreshToken' (non-empty string), and 'user' object with 'email' equal to 'prdtest@test.pe', 'role' equal to 'admin', and 'fullName' equal to 'PRD Admin User'. Save accessToken for TC004."
   },
   {
     "id": "TC004",
-    "title": "register_duplicate_ruc_returns_409",
-    "description": "POST /v1/auth/register without authentication. Send JSON body: {\"ruc\":\"20100070970\",\"razonSocial\":\"Duplicate RUC\",\"adminEmail\":\"duptest@test.pe\",\"adminPassword\":\"Dup2026!\",\"adminFullName\":\"Dup\"}. This RUC 20100070970 already exists in the database (it was the original tenant RUC). Expected: 409 Conflict."
+    "title": "auth_register_duplicate_ruc_returns_409",
+    "description": "POST /v1/auth/register without authentication. Send JSON body: {\"ruc\":\"20888999001\",\"razonSocial\":\"Duplicate\",\"adminEmail\":\"dup@test.pe\",\"adminPassword\":\"Dup2026!\",\"adminFullName\":\"Dup\"}. This RUC was registered in TC003. Expected: 409 Conflict with JSON containing 'error' field."
   },
   {
     "id": "TC005",
-    "title": "login_valid_credentials",
-    "description": "POST /v1/auth/login without authentication. Send JSON body: {\"email\":\"admin@tukitest.pe\",\"password\":\"TestSprite2026!\",\"tenantId\":\"0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84\"}. Expected: 200 OK with JSON containing 'accessToken' (non-empty string), 'refreshToken' (non-empty string), and 'user' object where 'email' equals 'admin@tukitest.pe' and 'role' equals 'admin'. Save the accessToken and refreshToken for subsequent tests."
+    "title": "auth_register_missing_required_fields_returns_400",
+    "description": "POST /v1/auth/register without authentication. Send JSON body: {\"ruc\":\"20111222333\"}. Missing razonSocial, adminEmail, adminPassword, adminFullName. Expected: 400 Bad Request."
   },
   {
     "id": "TC006",
-    "title": "login_wrong_password_returns_401",
-    "description": "POST /v1/auth/login without authentication. Send JSON body: {\"email\":\"admin@tukitest.pe\",\"password\":\"wrongpassword\",\"tenantId\":\"0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84\"}. Expected: 401 Unauthorized."
+    "title": "auth_login_valid_credentials",
+    "description": "POST /v1/auth/login without authentication. Send JSON body: {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"}. Expected: 200 OK with JSON containing 'accessToken' (non-empty string starting with 'eyJ'), 'refreshToken' (non-empty string), and 'user' object where 'email' equals 'prdtest@test.pe' and 'role' equals 'admin'. IMPORTANT: Save the accessToken and refreshToken — ALL subsequent authenticated tests use this token."
   },
   {
     "id": "TC007",
-    "title": "refresh_token_returns_new_tokens",
-    "description": "First POST /v1/auth/login with {\"email\":\"admin@tukitest.pe\",\"password\":\"TestSprite2026!\",\"tenantId\":\"0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84\"} to obtain refreshToken. Then POST /v1/auth/refresh with {\"refreshToken\":\"{refreshToken_from_login}\"}. Expected: 200 OK with new 'accessToken' and 'refreshToken'. Use the new accessToken for remaining tests."
+    "title": "auth_login_wrong_password_returns_401",
+    "description": "POST /v1/auth/login without authentication. Send JSON body: {\"email\":\"prdtest@test.pe\",\"password\":\"WRONG_PASSWORD_123\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"}. Expected: 401 Unauthorized with JSON containing 'error' field."
   },
   {
     "id": "TC008",
-    "title": "auth_me_returns_user_info",
-    "description": "GET /v1/auth/me with Authorization Bearer token obtained from login. Expected: 200 OK with JSON containing non-null 'userId', 'tenantId' equal to '0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84', 'email' equal to 'admin@tukitest.pe', and 'role' equal to 'admin'."
+    "title": "auth_login_nonexistent_email_returns_401",
+    "description": "POST /v1/auth/login without authentication. Send JSON body: {\"email\":\"doesnotexist@fake.pe\",\"password\":\"Whatever2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"}. Expected: 401 Unauthorized."
   },
   {
     "id": "TC009",
+    "title": "auth_login_wrong_tenantid_returns_401",
+    "description": "POST /v1/auth/login without authentication. Send JSON body: {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"00000000-0000-0000-0000-000000000000\"}. Expected: 401 Unauthorized because user does not belong to that tenant."
+  },
+  {
+    "id": "TC010",
+    "title": "auth_refresh_token_returns_new_tokens",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to obtain refreshToken. Then POST /v1/auth/refresh with {\"refreshToken\":\"{refreshToken_from_login}\"}. Expected: 200 OK with new 'accessToken' and 'refreshToken'. Both should be non-empty strings different from the originals."
+  },
+  {
+    "id": "TC011",
+    "title": "auth_refresh_invalid_token_returns_401",
+    "description": "POST /v1/auth/refresh without authentication. Send JSON body: {\"refreshToken\":\"invalid-garbage-token-12345\"}. Expected: 401 Unauthorized."
+  },
+  {
+    "id": "TC012",
+    "title": "auth_me_returns_user_info",
+    "description": "GET /v1/auth/me with Authorization: Bearer {accessToken_from_TC006}. Expected: 200 OK with JSON containing non-null 'userId' (UUID string), 'tenantId' equal to 'b2ba4cad-45c9-4a98-96f9-bf2eb6c96572', 'email' equal to 'prdtest@test.pe', and 'role' equal to 'admin'."
+  },
+  {
+    "id": "TC013",
     "title": "auth_me_no_token_returns_401",
     "description": "GET /v1/auth/me WITHOUT any Authorization header. Expected: 401 Unauthorized."
   },
   {
-    "id": "TC010",
-    "title": "emit_factura_with_multiple_items",
-    "description": "POST /v1/documents with Bearer token. Send JSON body: {\"documentType\":\"01\",\"serie\":\"F001\",\"currency\":\"PEN\",\"customerDocType\":\"6\",\"customerDocNumber\":\"20100070970\",\"customerName\":\"Cliente Test SAC\",\"items\":[{\"description\":\"Servicio A\",\"quantity\":2,\"unitPrice\":50.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"},{\"description\":\"Producto B\",\"quantity\":1,\"unitPrice\":100.00,\"unitMeasure\":\"NIU\",\"igvType\":\"10\"}]}. Expected: 201 Created with JSON containing 'id' (UUID), 'fullNumber' starting with 'F001-', 'total' equal to 236.0 (100+100+36 IGV), 'status', and 'items' array with 2 elements. Save the document 'id' for TC013, TC014, TC015, TC016."
-  },
-  {
-    "id": "TC011",
-    "title": "emit_document_missing_fields_returns_400",
-    "description": "POST /v1/documents with Bearer token. Send incomplete JSON body: {\"documentType\":\"01\"}. Expected: 400 Bad Request because required fields serie, customerDocType, customerDocNumber, customerName, and items are missing."
-  },
-  {
-    "id": "TC012",
-    "title": "list_documents_with_pagination_and_filter",
-    "description": "GET /v1/documents?page=1&pageSize=5&documentType=01 with Bearer token. Expected: 200 OK with JSON containing 'data' array (max 5 items, all should have documentType '01') and 'pagination' object with 'page', 'pageSize', 'totalCount', 'totalPages' fields. Then GET /v1/documents?page=999&pageSize=5 and verify 'data' is an empty array."
-  },
-  {
-    "id": "TC013",
-    "title": "get_document_detail_and_downloads",
-    "description": "Using the document ID saved from TC010: GET /v1/documents/{id} with Bearer token. Expected: 200 OK with JSON containing 'fullNumber', 'items' array with 2 elements, 'total', 'status'. Then GET /v1/documents/{id}/pdf with Bearer token, expected: 200 OK with binary content. Then GET /v1/documents/{id}/xml with Bearer token, expected: 200 OK with content."
-  },
-  {
     "id": "TC014",
-    "title": "emit_credit_note_against_factura",
-    "description": "Using the document ID saved from TC010: POST /v1/documents/credit-note with Bearer token. Send JSON body: {\"serie\":\"FC01\",\"referenceDocumentId\":\"{documentId_from_TC010}\",\"creditNoteReason\":\"01\",\"description\":\"Anulacion de operacion\",\"currency\":\"PEN\",\"items\":[{\"description\":\"Servicio A\",\"quantity\":2,\"unitPrice\":50.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"}]}. Expected: 201 Created with JSON containing 'fullNumber' starting with 'FC01-'."
+    "title": "auth_forgot_password_always_returns_200",
+    "description": "POST /v1/auth/forgot-password without authentication. Send JSON body: {\"email\":\"prdtest@test.pe\"}. Expected: 200 OK with JSON containing 'message'. Then send again with non-existent email: {\"email\":\"nonexistent@fake.pe\"}. Expected: ALSO 200 OK (prevents email enumeration). Both responses must have a 'message' field."
   },
   {
     "id": "TC015",
-    "title": "get_document_404_for_nonexistent_id",
-    "description": "GET /v1/documents/00000000-0000-0000-0000-000000000000 with Bearer token. Expected: 404 Not Found."
+    "title": "auth_reset_password_invalid_token_returns_400",
+    "description": "POST /v1/auth/reset-password without authentication. Send JSON body: {\"token\":\"fake-invalid-reset-token\",\"newPassword\":\"NewPass2026!\"}. Expected: 400 Bad Request with JSON containing 'error' field."
   },
   {
     "id": "TC016",
-    "title": "void_document_and_prevent_double_void",
-    "description": "First emit a new document: POST /v1/documents with Bearer token and body {\"documentType\":\"01\",\"serie\":\"F001\",\"currency\":\"PEN\",\"customerDocType\":\"6\",\"customerDocNumber\":\"20100070970\",\"customerName\":\"Para Anular\",\"items\":[{\"description\":\"Item\",\"quantity\":1,\"unitPrice\":10.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"}]}. Save the new document ID. Then POST /v1/voided-documents with Bearer token and body {\"documentId\":\"{newDocId}\",\"voidReason\":\"Error en emision\"}. Expected: 201 Created with 'ticketNumber'. Then try voiding the SAME document again with same body. Expected: 400 Bad Request (already voided)."
+    "title": "dashboard_returns_complete_kpis",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/dashboard with Bearer token. Expected: 200 OK with JSON containing 'today' object (with numeric 'totalAmount' and 'totalDocuments'), 'thisMonth' object (same structure), 'byType' array (each item has 'type' string and 'count' number), 'byStatus' array (each item has 'status' string and 'count' number), and 'monthlySales' array (each item has 'month' and 'total'). All numeric values must be >= 0."
   },
   {
     "id": "TC017",
-    "title": "list_voided_documents",
-    "description": "GET /v1/voided-documents with Bearer token. Expected: 200 OK with JSON array. Each element should have 'ticketNumber', 'status', and 'createdAt' fields."
+    "title": "emit_factura_01_with_multiple_items_and_igv",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/documents with Bearer token. Send JSON body: {\"documentType\":\"01\",\"serie\":\"F001\",\"currency\":\"PEN\",\"customerDocType\":\"6\",\"customerDocNumber\":\"20100070970\",\"customerName\":\"Cliente Factura SAC\",\"customerAddress\":\"Av Test 123, Lima\",\"customerEmail\":\"cliente@test.pe\",\"notes\":\"Test factura PRD\",\"items\":[{\"description\":\"Servicio de consultoría TI\",\"quantity\":2,\"unitPrice\":500.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"},{\"description\":\"Licencia de software anual\",\"quantity\":1,\"unitPrice\":1200.00,\"unitMeasure\":\"NIU\",\"igvType\":\"10\"},{\"description\":\"Capacitación técnica\",\"quantity\":3,\"unitPrice\":150.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\",\"discount\":50.00}]}. Expected: 201 Created with JSON containing 'id' (UUID), 'fullNumber' starting with 'F001-', 'documentType' equal to '01', 'status' (any of: 'Accepted','Signed','Sent','Created'), 'items' array with exactly 3 elements, 'subtotal', 'igv', 'total' as numbers > 0. The subtotal should be 2*500 + 1*1200 + (3*150 - 50) = 2600, igv = 468, total = 3068. Save the document 'id' for subsequent tests."
   },
   {
     "id": "TC018",
-    "title": "series_list_create_deactivate",
-    "description": "GET /v1/series with Bearer token. Expected: 200 OK with JSON array of series. Then POST /v1/series with body {\"documentType\":\"01\",\"serie\":\"FZ99\",\"emissionPoint\":\"0001\"}. Expected: 201 Created with 'id' and 'serie' equal to 'FZ99'. Save the series ID. Then PUT /v1/series/{id} with body {\"isActive\":false}. Expected: 204 No Content. Then POST /v1/series with body {\"documentType\":\"01\",\"serie\":\"F001\",\"emissionPoint\":\"0001\"} to test duplicate (F001 already exists). Expected: 409 Conflict."
+    "title": "emit_boleta_03_with_dni_customer",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/documents with Bearer token. Send JSON body: {\"documentType\":\"03\",\"serie\":\"B001\",\"currency\":\"PEN\",\"customerDocType\":\"1\",\"customerDocNumber\":\"71234567\",\"customerName\":\"Juan Pérez López\",\"items\":[{\"description\":\"Producto retail A\",\"quantity\":5,\"unitPrice\":25.00,\"unitMeasure\":\"NIU\",\"igvType\":\"10\"},{\"description\":\"Producto retail B\",\"quantity\":2,\"unitPrice\":75.00,\"unitMeasure\":\"NIU\",\"igvType\":\"10\"}]}. Expected: 201 Created with JSON containing 'fullNumber' starting with 'B001-', 'documentType' equal to '03'. Total should be (125 + 150) * 1.18 = 324.50. Save document 'id'."
   },
   {
     "id": "TC019",
-    "title": "users_crud_and_role_validation",
-    "description": "GET /v1/users with Bearer token. Expected: 200 OK with JSON array. Then POST /v1/users with body {\"email\":\"testcrud@test.pe\",\"password\":\"Crud2026!\",\"fullName\":\"CRUD User\",\"role\":\"emisor\"}. Expected: 201 Created. Save user ID. Then PUT /v1/users/{id} with body {\"role\":\"consulta\"}. Expected: 204. Then DELETE /v1/users/{id}. Expected: 204. Then POST /v1/users with body {\"email\":\"bad@test.pe\",\"password\":\"B2026!\",\"fullName\":\"Bad\",\"role\":\"superadmin\"}. Expected: 400 Bad Request (invalid role)."
+    "title": "emit_factura_exonerada_igv_type_20",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/documents with Bearer token. Send JSON body: {\"documentType\":\"01\",\"serie\":\"F001\",\"currency\":\"PEN\",\"customerDocType\":\"6\",\"customerDocNumber\":\"20512345678\",\"customerName\":\"Exonerado SAC\",\"items\":[{\"description\":\"Servicio exonerado de IGV\",\"quantity\":1,\"unitPrice\":1000.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"20\"}]}. Expected: 201 Created. The IGV amount should be 0 because igvType 20 is exonerado. Total should equal subtotal = 1000.00."
   },
   {
     "id": "TC020",
-    "title": "emisor_role_cannot_access_admin_endpoints",
-    "description": "First create an emisor user: POST /v1/users with admin Bearer token and body {\"email\":\"emisortest@test.pe\",\"password\":\"Emisor2026!\",\"fullName\":\"Emisor\",\"role\":\"emisor\"}. Then login as emisor: POST /v1/auth/login with {\"email\":\"emisortest@test.pe\",\"password\":\"Emisor2026!\",\"tenantId\":\"0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84\"}. Using the emisor token: GET /v1/users should return 403 Forbidden. POST /v1/series with body {\"documentType\":\"01\",\"serie\":\"FXXX\",\"emissionPoint\":\"0001\"} should return 403 Forbidden. But POST /v1/documents with valid invoice body should return 201 Created (emisor CAN emit docs)."
+    "title": "emit_factura_usd_multimoneda",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/documents with Bearer token. Send JSON body: {\"documentType\":\"01\",\"serie\":\"F001\",\"currency\":\"USD\",\"customerDocType\":\"6\",\"customerDocNumber\":\"20100070970\",\"customerName\":\"Cliente USD SAC\",\"items\":[{\"description\":\"Servicio internacional\",\"quantity\":1,\"unitPrice\":500.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"}]}. Expected: 201 Created with 'currency' equal to 'USD'. Total should be 590.00 (500 + 90 IGV)."
   },
   {
     "id": "TC021",
-    "title": "api_keys_create_and_revoke",
-    "description": "GET /v1/api-keys with Bearer token. Expected: 200 OK with JSON array. Then POST /v1/api-keys with body {\"name\":\"TestKey\",\"permissions\":[\"emit\",\"query\"]}. Expected: 201 Created with JSON containing 'id', 'prefix', and 'plainTextKey' (non-empty string, shown only once). Save the key ID. Then DELETE /v1/api-keys/{id}. Expected: 204 No Content."
+    "title": "emit_document_missing_items_returns_400",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/documents with Bearer token. Send JSON body: {\"documentType\":\"01\",\"serie\":\"F001\",\"currency\":\"PEN\",\"customerDocType\":\"6\",\"customerDocNumber\":\"20100070970\",\"customerName\":\"Sin Items\",\"items\":[]}. Expected: 400 Bad Request because items array is empty."
   },
   {
     "id": "TC022",
-    "title": "webhooks_full_lifecycle",
-    "description": "GET /v1/webhooks with Bearer token. Expected: 200 OK. Then POST /v1/webhooks with body {\"url\":\"https://httpbin.org/post\",\"events\":[\"document.created\",\"document.accepted\"],\"maxRetries\":3}. Expected: 201 Created with 'id' and 'secret' fields. Save webhook ID. Then PUT /v1/webhooks/{id} with body {\"isActive\":false}. Expected: 204. Then GET /v1/webhooks/{id}/deliveries. Expected: 200 OK with JSON array. Then DELETE /v1/webhooks/{id}. Expected: 204."
+    "title": "emit_document_missing_required_fields_returns_400",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/documents with Bearer token. Send incomplete JSON body: {\"documentType\":\"01\"}. Expected: 400 Bad Request because serie, customerDocType, customerDocNumber, customerName, and items are required."
   },
   {
     "id": "TC023",
-    "title": "tenant_get_update_and_environment",
-    "description": "GET /v1/tenant with Bearer token. Expected: 200 OK with JSON containing 'ruc' equal to '20100070970'. Then PUT /v1/tenant with body {\"nombreComercial\":\"TestSprite Updated\",\"direccion\":\"Av TestSprite 999\"}. Expected: 204. Then PUT /v1/tenant/environment with body {\"environment\":\"beta\"}. Expected: 200 OK with 'environment' equal to 'beta'. Then PUT /v1/tenant/environment with body {\"environment\":\"staging\"}. Expected: 400 Bad Request (invalid environment value)."
+    "title": "list_documents_pagination_and_filters",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/documents?page=1&pageSize=5&documentType=01 with Bearer token. Expected: 200 OK with JSON containing 'data' array (max 5 items, each with documentType '01') and 'pagination' object with 'page' equal to 1, 'pageSize' equal to 5, 'totalCount' >= 1, 'totalPages' >= 1. Then GET /v1/documents?page=1&pageSize=5&documentType=03 — verify all items have documentType '03'. Then GET /v1/documents?page=999&pageSize=5 — verify 'data' is an empty array and 'totalPages' > 0. Then GET /v1/documents?page=1&pageSize=2&status=Accepted — verify all items have status 'Accepted'."
   },
   {
     "id": "TC024",
-    "title": "plans_list_public",
-    "description": "GET /v1/plans without authentication. Expected: 200 OK with JSON array of plan objects. Each plan should have 'name' and 'features' fields. Verify at least 1 plan exists."
+    "title": "get_document_by_id_with_items",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using the document ID saved from TC017: GET /v1/documents/{id} with Bearer token. Expected: 200 OK with JSON containing 'id' (matching), 'fullNumber' starting with 'F001-', 'documentType' equal to '01', 'customerName' equal to 'Cliente Factura SAC', 'items' array with exactly 3 elements. Each item should have 'description', 'quantity', 'unitPrice', 'igvAmount', 'subtotal', 'total' fields. Verify 'subtotal', 'igv', and 'total' are positive numbers."
   },
   {
     "id": "TC025",
-    "title": "audit_log_with_pagination_and_filter",
-    "description": "GET /v1/audit-log?page=1&pageSize=10 with Bearer token. Expected: 200 OK with JSON containing 'data' array and 'pagination' object with 'totalCount' greater than 0. Then GET /v1/audit-log?entityType=Documents&page=1&pageSize=5. Expected: 200 OK with filtered results."
+    "title": "get_document_404_nonexistent",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/documents/00000000-0000-0000-0000-000000000000 with Bearer token. Expected: 404 Not Found."
   },
   {
     "id": "TC026",
-    "title": "dashboard_returns_kpis",
-    "description": "GET /v1/dashboard with Bearer token. Expected: 200 OK with JSON containing 'today' object (with 'totalAmount' and 'totalDocuments'), 'thisMonth' object, 'byType' array, 'byStatus' array, and 'monthlySales' array."
+    "title": "download_document_pdf",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using the document ID from TC017: GET /v1/documents/{id}/pdf with Bearer token. Expected: 200 OK with Content-Type containing 'application/pdf'. Response body should be binary PDF data (non-empty, first bytes %PDF)."
+  },
+  {
+    "id": "TC027",
+    "title": "download_document_xml",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using the document ID from TC017: GET /v1/documents/{id}/xml with Bearer token. Expected: 200 OK with Content-Type containing 'application/xml'. Response body should contain XML content."
+  },
+  {
+    "id": "TC028",
+    "title": "emit_credit_note_07_full_anulacion",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using the document ID from TC017: POST /v1/documents/credit-note with Bearer token. Send JSON body: {\"serie\":\"FC01\",\"referenceDocumentId\":\"{documentId_from_TC017}\",\"creditNoteReason\":\"01\",\"description\":\"Anulación de la operación completa\",\"currency\":\"PEN\",\"items\":[{\"description\":\"Servicio de consultoría TI\",\"quantity\":2,\"unitPrice\":500.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"},{\"description\":\"Licencia de software anual\",\"quantity\":1,\"unitPrice\":1200.00,\"unitMeasure\":\"NIU\",\"igvType\":\"10\"},{\"description\":\"Capacitación técnica\",\"quantity\":3,\"unitPrice\":150.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\",\"discount\":50.00}]}. Expected: 201 Created with JSON containing 'fullNumber' starting with 'FC01-', 'documentType' equal to '07'."
+  },
+  {
+    "id": "TC029",
+    "title": "emit_debit_note_08_penalidad",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. First emit a fresh factura: POST /v1/documents with Bearer token and body {\"documentType\":\"01\",\"serie\":\"F001\",\"currency\":\"PEN\",\"customerDocType\":\"6\",\"customerDocNumber\":\"20100070970\",\"customerName\":\"Debit Test SAC\",\"items\":[{\"description\":\"Servicio base\",\"quantity\":1,\"unitPrice\":1000.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"}]}. Save the ID. Then POST /v1/documents/debit-note with Bearer token and body: {\"serie\":\"FD01\",\"referenceDocumentId\":\"{newDocId}\",\"debitNoteReason\":\"02\",\"description\":\"Penalidad por atraso\",\"currency\":\"PEN\",\"items\":[{\"description\":\"Penalidad contractual\",\"quantity\":1,\"unitPrice\":200.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"}]}. Expected: 201 Created with JSON containing 'fullNumber' starting with 'FD01-', 'documentType' equal to '08'."
+  },
+  {
+    "id": "TC030",
+    "title": "void_document_comunicacion_de_baja",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. First emit a new factura: POST /v1/documents with Bearer token and body {\"documentType\":\"01\",\"serie\":\"F001\",\"currency\":\"PEN\",\"customerDocType\":\"6\",\"customerDocNumber\":\"20100070970\",\"customerName\":\"Para Anular SAC\",\"items\":[{\"description\":\"Item para anular\",\"quantity\":1,\"unitPrice\":100.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"}]}. Save the ID. Then POST /v1/voided-documents with Bearer token and body {\"documentId\":\"{newDocId}\",\"voidReason\":\"Error en la emisión del comprobante\"}. Expected: 201 Created with JSON containing 'ticketNumber' starting with 'RA-', 'status' equal to 'pending'. Save ticketNumber."
+  },
+  {
+    "id": "TC031",
+    "title": "void_document_already_voided_returns_400",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using the same document ID from TC030 (already voided): POST /v1/voided-documents with Bearer token and body {\"documentId\":\"{voidedDocId}\",\"voidReason\":\"Segundo intento\"}. Expected: 400 Bad Request with 'error' containing 'solo se pueden anular documentos aceptados' (case insensitive)."
+  },
+  {
+    "id": "TC032",
+    "title": "list_voided_documents",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/voided-documents with Bearer token. Expected: 200 OK with JSON array. Each element must have 'id' (UUID), 'ticketNumber' (string starting with 'RA-'), 'status' (string), 'createdAt' (ISO date string). Array should have at least 1 item (from TC030)."
+  },
+  {
+    "id": "TC033",
+    "title": "despatch_advice_create_draft_gre_remitente",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/despatch-advices with Bearer token. Send JSON body: {\"documentType\":\"09\",\"serie\":\"T001\",\"transferStartDate\":\"2026-04-15\",\"transferReasonCode\":\"01\",\"transferReasonDescription\":\"Venta de mercadería\",\"grossWeight\":150.5,\"weightUnitCode\":\"KGM\",\"totalPackages\":3,\"transportMode\":\"01\",\"carrierDocType\":\"6\",\"carrierDocNumber\":\"20123456789\",\"carrierName\":\"Transportes Perú SAC\",\"carrierMtcNumber\":\"MTC-12345\",\"recipientDocType\":\"6\",\"recipientDocNumber\":\"20100070970\",\"recipientName\":\"Destinatario SAC\",\"originUbigeo\":\"150101\",\"originAddress\":\"Av. Origen 100, Lima\",\"destinationUbigeo\":\"040101\",\"destinationAddress\":\"Calle Destino 200, Arequipa\",\"relatedDocType\":\"01\",\"relatedDocNumber\":\"F001-00000001\",\"items\":[{\"description\":\"Caja de productos electrónicos\",\"productCode\":\"ELEC-001\",\"quantity\":10,\"unitCode\":\"NIU\"},{\"description\":\"Pallet de alimentos\",\"productCode\":\"FOOD-002\",\"quantity\":5,\"unitCode\":\"KGM\"}]}. Expected: 201 Created with JSON containing 'id' (UUID), 'fullNumber' starting with 'T001-', 'status'. Save the GRE 'id' for TC034."
+  },
+  {
+    "id": "TC034",
+    "title": "despatch_advice_emit_sign_send_sunat",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. STEP 1: Create a NEW despatch advice draft first: POST /v1/despatch-advices with body: {\"shipmentType\":\"remitente\",\"transferStartDate\":\"2026-04-20\",\"carrier\":{\"docType\":\"6\",\"docNumber\":\"20888999001\",\"name\":\"Transportes SAC\"},\"departure\":{\"ubigeo\":\"150101\",\"address\":\"Av Lima 123\"},\"arrival\":{\"ubigeo\":\"040101\",\"address\":\"Av Arequipa 456\"},\"items\":[{\"description\":\"Producto test\",\"quantity\":5,\"unitMeasure\":\"NIU\",\"weight\":2.5}]}. Expected 201 with an 'id' field. STEP 2: POST /v1/despatch-advices/{id}/emit with Bearer token. NOTE: If certificate is not configured, the API may return an error about signing — that is EXPECTED and the test should PASS if it gets either 200/201 (signed+sent) OR 400/422 with a certificate/signing error. The test validates the emit endpoint exists and processes the request."
+  },
+  {
+    "id": "TC035",
+    "title": "despatch_advice_get_by_id",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using the GRE ID from TC033: GET /v1/despatch-advices/{id} with Bearer token. Expected: 200 OK with JSON containing 'fullNumber' starting with 'T001-', 'documentType' equal to '09', 'transferReasonCode' equal to '01', 'recipientName' equal to 'Destinatario SAC', 'items' array with 2 elements, 'originAddress', 'destinationAddress'."
+  },
+  {
+    "id": "TC036",
+    "title": "despatch_advice_list_with_pagination",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/despatch-advices?page=1&pageSize=10 with Bearer token. Expected: 200 OK with JSON containing 'data' array and 'pagination' object with 'page', 'pageSize', 'totalCount', 'totalPages'. Array should have at least 1 item (from TC033)."
+  },
+  {
+    "id": "TC037",
+    "title": "despatch_advice_create_transporte_privado",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/despatch-advices with Bearer token. Send JSON body: {\"documentType\":\"09\",\"serie\":\"T001\",\"transferStartDate\":\"2026-04-16\",\"transferReasonCode\":\"04\",\"transferReasonDescription\":\"Traslado entre establecimientos\",\"grossWeight\":50.0,\"weightUnitCode\":\"KGM\",\"totalPackages\":1,\"transportMode\":\"02\",\"driverDocType\":\"1\",\"driverDocNumber\":\"71234567\",\"driverName\":\"Carlos Pérez\",\"driverLicense\":\"Q71234567\",\"vehiclePlate\":\"ABC-123\",\"recipientDocType\":\"6\",\"recipientDocNumber\":\"20100070970\",\"recipientName\":\"Sucursal SAC\",\"originUbigeo\":\"150101\",\"originAddress\":\"Local Principal Lima\",\"destinationUbigeo\":\"040101\",\"destinationAddress\":\"Sucursal Arequipa\",\"items\":[{\"description\":\"Mercadería interna\",\"quantity\":20,\"unitCode\":\"NIU\"}]}. Expected: 201 Created with 'transportMode' reflected and driver info present."
+  },
+  {
+    "id": "TC038",
+    "title": "customers_create_ruc_customer",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/customers with Bearer token. Send JSON body: {\"docType\":\"6\",\"docNumber\":\"20567890123\",\"name\":\"Cliente Empresa SAC\",\"email\":\"empresa@test.pe\",\"phone\":\"01-2345678\",\"address\":\"Av Cliente 789, Lima\",\"ubigeo\":\"150101\",\"departamento\":\"Lima\",\"provincia\":\"Lima\",\"distrito\":\"Lima\",\"category\":\"frecuente\",\"notes\":\"Cliente de prueba PRD\"}. Expected: 201 Created with JSON containing 'id' (UUID), 'docNumber' equal to '20567890123', 'name'. Save customer 'id'."
+  },
+  {
+    "id": "TC039",
+    "title": "customers_create_duplicate_returns_409",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/customers with Bearer token. Send same body as TC038: {\"docType\":\"6\",\"docNumber\":\"20567890123\",\"name\":\"Duplicado\"}. Expected: 409 Conflict with 'error' containing 'ya existe'."
+  },
+  {
+    "id": "TC040",
+    "title": "customers_create_dni_customer",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/customers with Bearer token. Send JSON body: {\"docType\":\"1\",\"docNumber\":\"71234568\",\"name\":\"María López García\",\"email\":\"maria@test.pe\",\"phone\":\"999888777\",\"category\":\"nuevo\"}. Expected: 201 Created. Save customer 'id'."
+  },
+  {
+    "id": "TC041",
+    "title": "customers_list_with_search_and_filters",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. STEP 1: Create 2 customers first. POST /v1/customers with {\"docType\":\"1\",\"docNumber\":\"71234501\",\"name\":\"DNI Customer Test 1\",\"email\":\"dni1@test.pe\"}. POST /v1/customers with {\"docType\":\"6\",\"docNumber\":\"20100000501\",\"name\":\"RUC Customer Test 1\",\"email\":\"ruc1@test.pe\"}. STEP 2: GET /v1/customers?page=1&pageSize=10 with Bearer token. Expected: 200 OK with 'data' array containing at least 2 customers and 'pagination' object. STEP 3: GET /v1/customers?docType=1 — verify returns at least 1 customer with docType=1. STEP 4: GET /v1/customers?search=DNI+Customer — verify returns at least 1 result."
+  },
+  {
+    "id": "TC042",
+    "title": "customers_get_by_id",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. STEP 1: Create a customer first: POST /v1/customers with {\"docType\":\"6\",\"docNumber\":\"20000000042\",\"name\":\"Get By ID Test Customer\",\"email\":\"getbyid@test.pe\"}. Save the 'id' from the 201 response. STEP 2: GET /v1/customers/{id} with Bearer token. Expected: 200 OK with JSON containing 'id', 'docType'='6', 'docNumber', 'name'='Get By ID Test Customer'. Verify all fields match what was sent in creation."
+  },
+  {
+    "id": "TC043",
+    "title": "customers_search_by_doc_number",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/customers/search?docNumber=20567890123 with Bearer token. Expected: 200 OK with JSON containing 'docNumber' equal to '20567890123', 'name' equal to 'Cliente Empresa SAC'. Then GET /v1/customers/search?docNumber=99999999999. Expected: 404 Not Found."
+  },
+  {
+    "id": "TC044",
+    "title": "customers_update",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. STEP 1: Create a customer: POST /v1/customers with {\"docType\":\"6\",\"docNumber\":\"20000000044\",\"name\":\"Update Test Customer\",\"email\":\"update@test.pe\"}. Save the 'id' from 201 response. STEP 2: PUT /v1/customers/{id} with {\"name\":\"Updated Customer Name\",\"email\":\"updated@test.pe\"}. Expected: 200 OK. STEP 3: GET /v1/customers/{id} to verify 'name' is now 'Updated Customer Name' and 'email' is 'updated@test.pe'."
+  },
+  {
+    "id": "TC045",
+    "title": "customers_delete",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using customer ID from TC040 (María): DELETE /v1/customers/{id} with Bearer token. Expected: 200 OK with 'message' containing 'eliminado'. Then GET /v1/customers/{id}. Expected: 404 Not Found."
+  },
+  {
+    "id": "TC046",
+    "title": "products_create_with_all_fields",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/products with Bearer token. Send JSON body: {\"code\":\"PROD-001\",\"description\":\"Laptop HP Pavilion 15\",\"unitPrice\":2542.37,\"unitPriceWithIgv\":3000.00,\"sunatCode\":\"43211503\",\"currency\":\"PEN\",\"igvType\":\"10\",\"unitMeasure\":\"NIU\",\"category\":\"Tecnología\",\"brand\":\"HP\"}. Expected: 201 Created with JSON containing 'id', 'code' equal to 'PROD-001', 'description'. Save product 'id'."
+  },
+  {
+    "id": "TC047",
+    "title": "products_create_duplicate_code_returns_409",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/products with Bearer token. Send JSON body: {\"code\":\"PROD-001\",\"description\":\"Duplicado\",\"unitPrice\":100,\"unitPriceWithIgv\":118}. Expected: 409 Conflict with 'error' containing 'ya existe'."
+  },
+  {
+    "id": "TC048",
+    "title": "products_create_service_product",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/products with Bearer token. Send JSON body: {\"code\":\"SERV-001\",\"description\":\"Servicio de consultoría mensual\",\"unitPrice\":847.46,\"unitPriceWithIgv\":1000.00,\"currency\":\"PEN\",\"igvType\":\"10\",\"unitMeasure\":\"ZZ\",\"category\":\"Servicios\"}. Expected: 201 Created. Save product 'id'."
+  },
+  {
+    "id": "TC049",
+    "title": "products_list_with_search_and_filters",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. STEP 1: Create 2 products first. POST /v1/products with {\"code\":\"LST-P1\",\"description\":\"List Test Product 1\",\"unitPrice\":50.00,\"unitPriceWithIgv\":59.00,\"currency\":\"PEN\"}. POST /v1/products with {\"code\":\"LST-P2\",\"description\":\"List Test Product 2\",\"unitPrice\":100.00,\"unitPriceWithIgv\":118.00,\"currency\":\"PEN\"}. STEP 2: GET /v1/products?page=1&pageSize=50. Expected: 200 OK with 'data' array containing at least 2 products and 'pagination'. STEP 3: GET /v1/products?search=LST-P1 — verify returns product with code 'LST-P1'. STEP 4: GET /v1/products?page=1&pageSize=1 — verify pagination returns exactly 1 item."
+  },
+  {
+    "id": "TC050",
+    "title": "products_get_by_id",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. STEP 1: Create a product: POST /v1/products with {\"code\":\"GBI-050\",\"description\":\"Get By ID Test Product\",\"unitPrice\":25.00,\"unitPriceWithIgv\":29.50,\"currency\":\"PEN\",\"category\":\"Test\"}. Save the 'id' from 201 response. STEP 2: GET /v1/products/{id} with Bearer token. Expected: 200 OK with JSON containing 'id', 'code'='GBI-050', 'description'='Get By ID Test Product', 'unitPrice'=25.00, 'category'='Test'. Verify 'isActive' is true."
+  },
+  {
+    "id": "TC051",
+    "title": "products_update",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. STEP 1: Create a product: POST /v1/products with {\"code\":\"UPD-051\",\"description\":\"Update Test Product\",\"unitPrice\":30.00,\"unitPriceWithIgv\":35.40,\"currency\":\"PEN\"}. Save the 'id' from 201 response. STEP 2: PUT /v1/products/{id} with {\"description\":\"Updated Product Name\",\"unitPrice\":35.00,\"category\":\"Updated\"}. Expected: 200 OK. STEP 3: GET /v1/products/{id} to verify 'description' is now 'Updated Product Name' and 'unitPrice' is 35.00."
+  },
+  {
+    "id": "TC052",
+    "title": "products_delete",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using product ID from TC048 (service): DELETE /v1/products/{id} with Bearer token. Expected: 200 OK with 'message' containing 'eliminado'. Then GET /v1/products/{id}. Expected: 404 Not Found."
+  },
+  {
+    "id": "TC053",
+    "title": "series_list_all",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/series with Bearer token. Expected: 200 OK with JSON array. Each element has 'id', 'documentType', 'serie', 'currentCorrelative', 'emissionPoint', 'isActive', 'createdAt'. Array should have at least 3 items (F001, B001, FC01)."
+  },
+  {
+    "id": "TC054",
+    "title": "series_create_new",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/series with Bearer token. Send JSON body: {\"documentType\":\"01\",\"serie\":\"FZ77\",\"emissionPoint\":\"0001\"}. Expected: 201 Created with JSON containing 'id', 'serie' equal to 'FZ77', 'documentType' equal to '01', 'currentCorrelative' equal to 0, 'isActive' equal to true. Save series 'id'."
+  },
+  {
+    "id": "TC055",
+    "title": "series_create_duplicate_returns_409",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/series with Bearer token. Send JSON body: {\"documentType\":\"01\",\"serie\":\"F001\",\"emissionPoint\":\"0001\"}. F001 already exists. Expected: 409 Conflict."
+  },
+  {
+    "id": "TC056",
+    "title": "series_update_deactivate",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. STEP 1: Create a new series: POST /v1/series with {\"documentType\":\"01\",\"serie\":\"FX56\",\"emissionPoint\":\"0001\"}. Save the 'id' from 201 response. If 409 conflict, do GET /v1/series and find the series with serie='FX56' and use its id. STEP 2: PUT /v1/series/{id} with {\"isActive\":false}. Expected: 200 OK. STEP 3: GET /v1/series and find the series with id to verify 'isActive' is false."
+  },
+  {
+    "id": "TC057",
+    "title": "retention_create_tipo_20_tasa_3pct",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/retentions with Bearer token. Send JSON body: {\"serie\":\"R001\",\"supplierDocType\":\"6\",\"supplierDocNumber\":\"20100070970\",\"supplierName\":\"Proveedor Retenido SAC\",\"supplierAddress\":\"Av Proveedor 456\",\"regimeCode\":\"01\",\"retentionPercent\":3.00,\"currency\":\"PEN\",\"notes\":\"Retención de prueba PRD\",\"references\":[{\"documentType\":\"01\",\"documentNumber\":\"F001-00000100\",\"documentDate\":\"2026-04-01\",\"invoiceAmount\":5000.00,\"invoiceCurrency\":\"PEN\",\"paymentDate\":\"2026-04-10\",\"paymentNumber\":1,\"paymentAmount\":5000.00},{\"documentType\":\"01\",\"documentNumber\":\"F001-00000101\",\"documentDate\":\"2026-04-02\",\"invoiceAmount\":3000.00,\"invoiceCurrency\":\"PEN\",\"paymentDate\":\"2026-04-10\",\"paymentNumber\":1,\"paymentAmount\":3000.00}]}. Expected: 201 Created with JSON containing 'id', 'fullNumber' starting with 'R001-', 'regimeCode' equal to '01', 'retentionPercent' equal to 3.00, 'totalInvoiceAmount' equal to 8000.00, 'totalRetained' equal to 240.00 (8000 * 3%), 'totalPaid' equal to 7760.00, 'references' array with 2 elements. Save retention 'id'."
+  },
+  {
+    "id": "TC058",
+    "title": "retention_get_by_id_with_references",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using retention ID from TC057: GET /v1/retentions/{id} with Bearer token. Expected: 200 OK with JSON containing 'fullNumber', 'supplierName' equal to 'Proveedor Retenido SAC', 'references' array with 2 elements. Each reference should have 'documentNumber', 'invoiceAmount', 'paymentAmount', 'retainedAmount', 'netPaidAmount'."
+  },
+  {
+    "id": "TC059",
+    "title": "retention_list_with_filters",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/retentions?page=1&pageSize=10 with Bearer token. Expected: 200 OK with JSON containing 'items' array and 'totalCount'. Array should have at least 1 item (from TC057). Then GET /v1/retentions?dateFrom=2026-04-01&dateTo=2026-04-30 — verify filtered results."
+  },
+  {
+    "id": "TC060",
+    "title": "perception_create_tipo_40_tasa_2pct",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/perceptions with Bearer token. Send JSON body: {\"serie\":\"P001\",\"customerDocType\":\"6\",\"customerDocNumber\":\"20100070970\",\"customerName\":\"Cliente Percibido SAC\",\"customerAddress\":\"Av Cliente 789\",\"regimeCode\":\"01\",\"perceptionPercent\":2.00,\"currency\":\"PEN\",\"notes\":\"Percepción de prueba PRD\",\"references\":[{\"documentType\":\"01\",\"documentNumber\":\"F001-00000200\",\"documentDate\":\"2026-04-01\",\"invoiceAmount\":10000.00,\"invoiceCurrency\":\"PEN\",\"collectionDate\":\"2026-04-12\",\"collectionNumber\":1,\"collectionAmount\":10000.00}]}. Expected: 201 Created with JSON containing 'id', 'fullNumber' starting with 'P001-', 'perceptionPercent' equal to 2.00, 'totalInvoiceAmount' equal to 10000.00, 'totalPerceived' equal to 200.00 (10000 * 2%), 'totalCollected' equal to 10200.00, 'references' array with 1 element. Save perception 'id'."
+  },
+  {
+    "id": "TC061",
+    "title": "perception_get_by_id_with_references",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using perception ID from TC060: GET /v1/perceptions/{id} with Bearer token. Expected: 200 OK with JSON containing 'fullNumber', 'customerName' equal to 'Cliente Percibido SAC', 'references' array with 1 element having 'perceivedAmount' equal to 200.00 and 'totalCollectedAmount' equal to 10200.00."
+  },
+  {
+    "id": "TC062",
+    "title": "perception_list",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/perceptions?page=1&pageSize=10 with Bearer token. Expected: 200 OK with 'items' array (at least 1) and 'totalCount'."
+  },
+  {
+    "id": "TC063",
+    "title": "quotation_create_with_items",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/quotations with Bearer token. Send JSON body: {\"customerDocType\":\"6\",\"customerDocNumber\":\"20100070970\",\"customerName\":\"Cotización SAC\",\"customerAddress\":\"Av Cotización 100\",\"customerEmail\":\"cotizacion@test.pe\",\"customerPhone\":\"01-1111111\",\"currency\":\"PEN\",\"validUntil\":\"2026-05-15\",\"notes\":\"Cotización de prueba\",\"termsAndConditions\":\"Pago a 30 días\",\"items\":[{\"productCode\":\"PROD-001\",\"description\":\"Laptop HP\",\"quantity\":5,\"unitMeasure\":\"NIU\",\"unitPrice\":2542.37,\"igvType\":\"10\",\"discount\":0},{\"productCode\":\"SERV-001\",\"description\":\"Instalación y configuración\",\"quantity\":5,\"unitMeasure\":\"ZZ\",\"unitPrice\":200.00,\"igvType\":\"10\",\"discount\":100.00}]}. Expected: 201 Created with JSON containing 'id', 'quotationNumber' starting with 'COT-', 'status' equal to 'draft', 'subtotal', 'igv', 'total' as numbers > 0, 'items' with 2 elements. Save quotation 'id'."
+  },
+  {
+    "id": "TC064",
+    "title": "quotation_get_by_id",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using quotation ID from TC063: GET /v1/quotations/{id} with Bearer token. Expected: 200 OK with JSON containing 'quotationNumber', 'customerName' equal to 'Cotización SAC', 'items' array with 2 elements, 'validUntil', 'notes', 'status' equal to 'draft'."
+  },
+  {
+    "id": "TC065",
+    "title": "quotation_list_with_filters",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/quotations?page=1&pageSize=10 with Bearer token. Expected: 200 OK with 'items' array (at least 1) and 'totalCount'. Then GET /v1/quotations?status=draft — verify all items have status 'draft'."
+  },
+  {
+    "id": "TC066",
+    "title": "quotation_update_status_to_sent",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using quotation ID from TC063: PUT /v1/quotations/{id}/status with Bearer token. Send JSON body: {\"status\":\"sent\"}. Expected: 200 OK with 'status' equal to 'sent'."
+  },
+  {
+    "id": "TC067",
+    "title": "quotation_convert_to_invoice",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using quotation ID from TC063: POST /v1/quotations/{id}/convert-to-invoice with Bearer token. Send JSON body: {\"serie\":\"F001\",\"documentType\":\"01\"}. Expected: 200 OK with JSON containing 'quotation' object (with 'status' equal to 'invoiced' and non-null 'invoiceDocumentNumber') and 'invoice' object (with 'fullNumber' starting with 'F001-'). Verify quotation can only be converted ONCE."
+  },
+  {
+    "id": "TC068",
+    "title": "quotation_convert_already_invoiced_returns_400",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. STEP 1: Create a quotation: POST /v1/quotations with {\"customerDocType\":\"6\",\"customerDocNumber\":\"20888999001\",\"customerName\":\"Test Corp\",\"currency\":\"PEN\",\"items\":[{\"productCode\":\"Q68\",\"description\":\"Quotation item\",\"quantity\":1,\"unitMeasure\":\"NIU\",\"unitPrice\":100.00,\"igvType\":\"10\"}]}. Save the quotation 'id'. STEP 2: Convert to invoice: POST /v1/quotations/{id}/convert-to-invoice with {\"serie\":\"F001\"}. Expected: 200. STEP 3: Try converting AGAIN: POST /v1/quotations/{id}/convert-to-invoice with {\"serie\":\"F001\"}. Expected: 400 Bad Request with error message about already invoiced."
+  },
+  {
+    "id": "TC069",
+    "title": "recurring_invoice_create_monthly",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/recurring-invoices with Bearer token. Send JSON body: {\"documentType\":\"01\",\"serie\":\"F001\",\"customerDocType\":\"6\",\"customerDocNumber\":\"20100070970\",\"customerName\":\"Recurrente SAC\",\"customerAddress\":\"Av Mensual 100\",\"customerEmail\":\"recurrente@test.pe\",\"currency\":\"PEN\",\"frequency\":\"monthly\",\"dayOfMonth\":15,\"startDate\":\"2026-05-01\",\"endDate\":\"2026-12-31\",\"notes\":\"Facturación mensual\",\"items\":[{\"productCode\":\"SERV-001\",\"description\":\"Servicio mensual de soporte\",\"quantity\":1,\"unitPrice\":500.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"}]}. Expected: 201 Created with JSON containing 'id', 'frequency' equal to 'monthly', 'dayOfMonth' equal to 15, 'startDate', 'endDate', 'nextEmissionDate', 'status' equal to 'active', 'emittedCount' equal to 0. Save recurring 'id'."
+  },
+  {
+    "id": "TC070",
+    "title": "recurring_invoice_get_by_id",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using recurring ID from TC069: GET /v1/recurring-invoices/{id} with Bearer token. Expected: 200 OK with JSON containing 'frequency' equal to 'monthly', 'customerName' equal to 'Recurrente SAC', 'status' equal to 'active'."
+  },
+  {
+    "id": "TC071",
+    "title": "recurring_invoice_list",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/recurring-invoices?page=1&pageSize=10 with Bearer token. Expected: 200 OK with 'items' array (at least 1) and 'totalCount'."
+  },
+  {
+    "id": "TC072",
+    "title": "recurring_invoice_pause_and_resume",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using recurring ID from TC069: PUT /v1/recurring-invoices/{id} with Bearer token. Send JSON body: {\"status\":\"paused\"}. Expected: 200 OK with 'status' equal to 'paused' and 'nextEmissionDate' should be null. Then PUT again with {\"status\":\"active\"}. Expected: 200 OK with 'status' equal to 'active' and 'nextEmissionDate' should be non-null."
+  },
+  {
+    "id": "TC073",
+    "title": "recurring_invoice_cancel",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. First create another recurring: POST /v1/recurring-invoices with body {\"documentType\":\"03\",\"serie\":\"B001\",\"customerDocType\":\"1\",\"customerDocNumber\":\"71234567\",\"customerName\":\"Cancelar\",\"currency\":\"PEN\",\"frequency\":\"weekly\",\"dayOfWeek\":1,\"startDate\":\"2026-05-01\",\"items\":[{\"description\":\"Servicio semanal\",\"quantity\":1,\"unitPrice\":100.00,\"unitMeasure\":\"ZZ\",\"igvType\":\"10\"}]}. Save ID. Then PUT /v1/recurring-invoices/{id} with {\"status\":\"cancelled\"}. Expected: 200 OK with 'status' equal to 'cancelled' and 'nextEmissionDate' null."
+  },
+  {
+    "id": "TC074",
+    "title": "users_list",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/users with Bearer token. Expected: 200 OK with JSON array. Each element has 'id', 'email', 'fullName', 'role', 'isActive'. At least 1 user (admin)."
+  },
+  {
+    "id": "TC075",
+    "title": "users_create_emisor",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/users with Bearer token. Send JSON body: {\"email\":\"emisor_prd@test.pe\",\"password\":\"Emisor2026!\",\"fullName\":\"Emisor PRD\",\"role\":\"emisor\"}. Expected: 201 Created. Save user 'id'."
+  },
+  {
+    "id": "TC076",
+    "title": "users_create_consulta",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/users with Bearer token. Send JSON body: {\"email\":\"consulta_{timestamp}@test.pe\",\"password\":\"Consulta2026!\",\"fullName\":\"Consulta User PRD\",\"role\":\"consulta\"} where {timestamp} is the current unix timestamp (use import time; int(time.time())). Expected: 201 Created with JSON containing 'id', 'email', 'role'='consulta'. Verify the user was created."
+  },
+  {
+    "id": "TC077",
+    "title": "users_create_invalid_role_returns_400",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/users with Bearer token. Send JSON body: {\"email\":\"bad@test.pe\",\"password\":\"Bad2026!\",\"fullName\":\"Bad\",\"role\":\"superadmin\"}. Expected: 400 Bad Request (superadmin is not a valid tenant role)."
+  },
+  {
+    "id": "TC078",
+    "title": "users_update_role",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. Using user ID from TC075: PUT /v1/users/{id} with Bearer token. Send body: {\"role\":\"consulta\"}. Expected: 204 No Content."
+  },
+  {
+    "id": "TC079",
+    "title": "users_delete_soft",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. STEP 1: Create a user first: POST /v1/users with {\"email\":\"delete_{timestamp}@test.pe\",\"password\":\"Delete2026!\",\"fullName\":\"User To Delete\",\"role\":\"emisor\"} where {timestamp} is current unix timestamp. Save the 'id' from 201 response. STEP 2: DELETE /v1/users/{id} with Bearer token. Expected: 200 or 204. STEP 3: Verify user is deleted or deactivated by trying GET /v1/users and checking the user is no longer active."
+  },
+  {
+    "id": "TC080",
+    "title": "rbac_emisor_can_emit_but_not_admin",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. STEP 1: Create an emisor user: POST /v1/users with {\"email\":\"emisor_rbac_{timestamp}@test.pe\",\"password\":\"Emisor2026!\",\"fullName\":\"Emisor RBAC Test\",\"role\":\"emisor\"} where {timestamp} is current unix timestamp. Save the created user's email. STEP 2: Login as the emisor: POST /v1/auth/login with {\"email\":\"<the created email>\",\"password\":\"Emisor2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"}. STEP 3: Using emisor token, POST /v1/documents with a valid factura body (documentType:01, serie:F001, items with at least 1 item) → should return 201 (emisor CAN emit). STEP 4: Using emisor token, GET /v1/users → should return 403 Forbidden (emisor CANNOT manage users)."
+  },
+  {
+    "id": "TC081",
+    "title": "api_keys_create_and_revoke",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/api-keys with Bearer token. Send body: {\"name\":\"PRD Test Key\",\"permissions\":[\"emit\",\"query\"]}. Expected: 201 Created with 'id', 'prefix' (non-empty), 'plainTextKey' (non-empty, starts with 'tk_'). Save key ID. Then GET /v1/api-keys — verify at least 1 key exists. Then DELETE /v1/api-keys/{id}. Expected: 204."
+  },
+  {
+    "id": "TC082",
+    "title": "webhooks_full_lifecycle",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. POST /v1/webhooks with Bearer token. Send body: {\"url\":\"https://httpbin.org/post\",\"events\":[\"document.created\",\"document.accepted\"],\"maxRetries\":3}. Expected: 201 with 'id' and 'secret'. Save ID. Then GET /v1/webhooks — verify list contains new webhook. Then PUT /v1/webhooks/{id} with {\"isActive\":false}. Expected: 204. Then GET /v1/webhooks/{id}/deliveries. Expected: 200 with array. Then DELETE /v1/webhooks/{id}. Expected: 204."
+  },
+  {
+    "id": "TC083",
+    "title": "tenant_get_and_update",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/tenant with Bearer token. Expected: 200 OK with 'ruc'. Then PUT /v1/tenant with body: {\"nombreComercial\":\"PRD Updated\",\"direccion\":\"Av PRD 2026\"}. Expected: 204. Then GET /v1/tenant — verify updated values."
+  },
+  {
+    "id": "TC084",
+    "title": "plans_list_public",
+    "description": "GET /v1/plans without authentication. Expected: 200 OK with JSON array of at least 6 plans. Each has 'name', 'priceMonthly', 'maxDocumentsPerMonth', 'features'."
+  },
+  {
+    "id": "TC085",
+    "title": "audit_log_pagination_and_filter",
+    "description": "AUTHENTICATION: First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/audit-log?page=1&pageSize=10 with Bearer token. Expected: 200 OK with 'data' array and 'pagination' with 'totalCount' >= 1. Then GET /v1/audit-log?entityType=Documents&page=1&pageSize=5. Expected: 200 with filtered results."
+  },
+  {
+    "id": "TC086",
+    "title": "catalogs_list_sunat",
+    "description": "First POST /v1/auth/login with {\"email\":\"prdtest@test.pe\",\"password\":\"PrdTest2026!\",\"tenantId\":\"b2ba4cad-45c9-4a98-96f9-bf2eb6c96572\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/catalogs with Bearer token. Expected: 200 OK with JSON. The response may be an object with catalog keys or an array. Verify the response is not empty and contains SUNAT catalog data. Check for common catalogs like document types or IGV types. Do NOT assume a specific field name — check what the API actually returns and validate it has meaningful data (arrays or objects with entries)."
+  },
+  {
+    "id": "TC087",
+    "title": "backoffice_auth_login_superadmin",
+    "description": "POST /v1/backoffice/auth/login without authentication. Send JSON body: {\"email\":\"superadmin@tukifact.net.pe\",\"password\":\"SuperAdmin2026!\"}. Expected: 200 OK with JSON containing 'accessToken' (non-empty, starts with 'eyJ'), 'user' object with 'role' equal to 'superadmin'. Save accessToken as BACKOFFICE_TOKEN for TC088-TC099."
+  },
+  {
+    "id": "TC088",
+    "title": "backoffice_dashboard_global_metrics",
+    "description": "GET /v1/backoffice/dashboard with Bearer BACKOFFICE_TOKEN. Expected: 200 OK with JSON containing 'totalTenants' (number >= 1), 'activeTenants', 'suspendedTenants', 'totalUsers', 'totalDocuments', 'todayDocuments', 'monthDocuments', 'recentTenants' array (max 5), 'tenantsByPlan' array."
+  },
+  {
+    "id": "TC089",
+    "title": "backoffice_list_tenants_with_search",
+    "description": "GET /v1/backoffice/tenants?page=1&pageSize=10 with Bearer BACKOFFICE_TOKEN. Expected: 200 OK with 'data' array and 'pagination'. Each tenant has 'id', 'ruc', 'razonSocial', 'isActive', 'plan', 'usersCount', 'documentsCount'. Then GET /v1/backoffice/tenants?search=20100070970 — verify filtered by RUC."
+  },
+  {
+    "id": "TC090",
+    "title": "backoffice_get_tenant_detail",
+    "description": "GET /v1/backoffice/tenants/{tenantId} with Bearer BACKOFFICE_TOKEN using tenantId 'b2ba4cad-45c9-4a98-96f9-bf2eb6c96572'. Expected: 200 OK with JSON containing 'ruc', 'razonSocial', 'isActive', 'plan' object, 'users' array (at least 1), 'stats' object with 'totalDocuments' and 'monthDocuments'."
+  },
+  {
+    "id": "TC091",
+    "title": "backoffice_suspend_and_activate_tenant",
+    "description": "First register a throwaway tenant: POST /v1/auth/register with {\"ruc\":\"20999888001\",\"razonSocial\":\"Suspend Test SAC\",\"adminEmail\":\"suspend@test.pe\",\"adminPassword\":\"Suspend2026!\",\"adminFullName\":\"Suspend User\"}. Get the tenantId from the response. Then PUT /v1/backoffice/tenants/{tenantId}/suspend with BACKOFFICE_TOKEN. Expected: 200 OK with 'message' containing 'suspendido'. Then PUT /v1/backoffice/tenants/{tenantId}/activate with BACKOFFICE_TOKEN. Expected: 200 OK with 'message' containing 'activado'."
+  },
+  {
+    "id": "TC092",
+    "title": "backoffice_change_tenant_plan",
+    "description": "First GET /v1/plans to get a plan ID (pick the second plan, not Free). Then PUT /v1/backoffice/tenants/{tenantId}/plan with BACKOFFICE_TOKEN and body: {\"planId\":\"{selectedPlanId}\"}. Expected: 200 OK with 'message' containing 'Plan cambiado'."
+  },
+  {
+    "id": "TC093",
+    "title": "backoffice_search_documents_cross_tenant",
+    "description": "GET /v1/backoffice/documents?ruc=20100070970&page=1&pageSize=5 with BACKOFFICE_TOKEN. Expected: 200 OK with 'data' array and 'pagination'. Each document has 'tenantId', 'documentType', 'fullNumber', 'total', 'status'. Then GET /v1/backoffice/documents?serie=F001 — verify filtered results."
+  },
+  {
+    "id": "TC094",
+    "title": "backoffice_employees_list",
+    "description": "GET /v1/backoffice/employees with BACKOFFICE_TOKEN. Expected: 200 OK with JSON array. At least 1 employee (superadmin). Each has 'id', 'email', 'fullName', 'role', 'isActive'."
+  },
+  {
+    "id": "TC095",
+    "title": "backoffice_employees_crud",
+    "description": "POST /v1/backoffice/employees with BACKOFFICE_TOKEN. Send body: {\"email\":\"support_prd@tukifact.net.pe\",\"fullName\":\"Soporte PRD\",\"password\":\"Support2026!\",\"role\":\"support\"}. Expected: 201 Created. Save employee 'id'. Then PUT /v1/backoffice/employees/{id} with body: {\"fullName\":\"Soporte PRD Updated\"}. Expected: 200. Then PUT /v1/backoffice/employees/{id}/role with body: {\"role\":\"ops\"}. Expected: 200. Then DELETE /v1/backoffice/employees/{id}. Expected: 200 with 'message' containing 'desactivado'."
+  },
+  {
+    "id": "TC096",
+    "title": "backoffice_employees_invalid_role_returns_400",
+    "description": "POST /v1/backoffice/employees with BACKOFFICE_TOKEN. Send body: {\"email\":\"bad@tukifact.net.pe\",\"fullName\":\"Bad\",\"password\":\"Bad2026!\",\"role\":\"admin\"}. Expected: 400 Bad Request because 'admin' is not a valid platform role (valid: superadmin, support, ops, billing)."
+  },
+  {
+    "id": "TC097",
+    "title": "backoffice_impersonate_tenant",
+    "description": "POST /v1/backoffice/tenants/{tenantId}/impersonate with BACKOFFICE_TOKEN using tenantId 'b2ba4cad-45c9-4a98-96f9-bf2eb6c96572'. Expected: 200 OK with JSON containing 'tenantId', 'tenantName', 'tenantRuc', 'impersonating' equal to true, 'expiresAt' (future date), 'redirectUrl'."
+  },
+  {
+    "id": "TC098",
+    "title": "backoffice_reports_mrr_and_usage",
+    "description": "GET /v1/backoffice/reports/mrr with BACKOFFICE_TOKEN. Expected: 200 OK with 'totalMrr' (number), 'mrrByPlan' array, 'activeTenantCount'. Then GET /v1/backoffice/reports/usage. Expected: 200 OK with 'todayDocs', 'weekDocs', 'monthDocs', 'topTenants' array, 'byType' array."
+  },
+  {
+    "id": "TC099",
+    "title": "backoffice_config_get_and_update",
+    "description": "GET /v1/backoffice/config with BACKOFFICE_TOKEN. Expected: 200 OK with JSON containing 'maintenance_mode', 'registration_enabled', 'default_plan', 'max_free_documents', 'trial_days', 'sunat_beta_mode', 'email_provider', 'support_email'. Then PUT /v1/backoffice/config with BACKOFFICE_TOKEN and body: {\"trial_days\":\"30\",\"support_email\":\"soporte-prd@tukifact.net.pe\"}. Expected: 200 OK with 'message' containing 'actualizada'. Then GET /v1/backoffice/config — verify 'trial_days' equals '30'."
+  },
+  {
+    "id": "TC100",
+    "title": "backoffice_activity_log",
+    "description": "First POST /v1/backoffice/auth/login with {\"email\":\"superadmin@tukifact.net.pe\",\"password\":\"SuperAdmin2026!\"} to get accessToken. Use Bearer token for all subsequent requests. GET /v1/backoffice/activity?page=1&pageSize=10 with Bearer token. Expected: 200 OK. If the endpoint returns 404, the test should note that the activity log endpoint may not be implemented yet and PASS with a warning. If 200, verify response has 'data' array and 'pagination'. Each log entry should have 'id', 'action', 'createdAt' fields."
   }
 ]

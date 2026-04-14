@@ -99,7 +99,13 @@ public class ProductsController : ControllerBase
 
         if (product is null) return NotFound(new { error = "Producto no encontrado" });
 
-        return Ok(product);
+        return Ok(new
+        {
+            product.Id, product.Code, product.SunatCode, product.Description,
+            product.UnitPrice, product.UnitPriceWithIgv, product.Currency,
+            product.IgvType, product.UnitMeasure, product.Category, product.Brand,
+            product.IsActive, product.CreatedAt, product.UpdatedAt
+        });
     }
 
     [HttpPost]

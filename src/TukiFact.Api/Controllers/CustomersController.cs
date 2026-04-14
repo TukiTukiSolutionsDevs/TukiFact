@@ -105,7 +105,14 @@ public class CustomersController : ControllerBase
 
         if (customer is null) return NotFound(new { error = "Cliente no encontrado" });
 
-        return Ok(customer);
+        return Ok(new
+        {
+            customer.Id, customer.DocType, customer.DocNumber, customer.Name,
+            customer.Email, customer.Phone, customer.Address,
+            customer.Ubigeo, customer.Departamento, customer.Provincia, customer.Distrito,
+            customer.Category, customer.Notes, customer.IsActive,
+            customer.CreatedAt, customer.UpdatedAt
+        });
     }
 
     [HttpGet("search")]

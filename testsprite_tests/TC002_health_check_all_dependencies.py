@@ -1,14 +1,12 @@
 import requests
 
-BASE_URL = "http://localhost:5186"
-TIMEOUT = 30
-
 def test_health_check_all_dependencies():
-    url = f"{BASE_URL}/health"
+    url = "http://localhost:80/health"
+    timeout = 30
     try:
-        response = requests.get(url, timeout=TIMEOUT)
+        response = requests.get(url, timeout=timeout)
     except requests.RequestException as e:
-        assert False, f"Request to {url} failed with exception: {e}"
+        assert False, f"HTTP request failed: {e}"
 
     assert response.status_code == 200, f"Expected status code 200, got {response.status_code}"
 
@@ -17,44 +15,34 @@ def test_health_check_all_dependencies():
     except ValueError:
         assert False, "Response is not valid JSON"
 
-    assert 'status' in data, "'status' field missing from response JSON"
-    assert data['status'] == 'Healthy', f"Expected 'status'='Healthy', got '{data['status']}'"
+    assert 'status' in data, "'status' field not in response JSON"
+    assert data['status'] == 'Healthy', f"Expected status 'Healthy', got '{data['status']}'"
 
-    assert 'checks' in data, "'checks' field missing from response JSON"
+    assert 'checks' in data, "'checks' field not in response JSON"
     checks = data['checks']
-    assert isinstance(checks, list), "'checks' field is not a list"
+    assert isinstance(checks, list), "'checks' should be a list"
     assert len(checks) == 3, f"Expected 3 checks, got {len(checks)}"
 
-    required_check_names = {'postgresql', 'nats', 'minio'}
-    found_check_names = set()
-
+    expected_names = {'postgresql', 'nats', 'minio'}
+    found_names = set()
     for check in checks:
-        assert isinstance(check, dict), f"Each check should be a dict, got {type(check)}"
-        # Validate presence and types of fields
-        for field in ['name', 'status', 'duration', 'tags']:
-            assert field in check, f"Field '{field}' missing in a check"
+        assert isinstance(check, dict), "Each check should be a dict"
+        assert 'name' in check and isinstance(check['name'], str), "Check missing 'name' or 'name' not string"
+        check_name = check['name'].lower()
+        assert check_name in expected_names, f"Unexpected check name '{check_name}'"
+        found_names.add(check_name)
 
-        # Validate name is lowercase string and one of expected
-        name = check['name']
-        assert isinstance(name, str), f"Check 'name' is not a string: {type(name)}"
-        name_lower = name.lower()
-        assert name_lower in required_check_names, f"Unexpected check name '{name}'"
-        found_check_names.add(name_lower)
+        assert 'status' in check and isinstance(check['status'], str), "Check missing 'status' or 'status' not string"
+        assert check['status'] == 'Healthy', f"Check '{check_name}' has status '{check['status']}', expected 'Healthy'"
 
-        # Validate status is 'Healthy'
-        status = check['status']
-        assert isinstance(status, str), f"Check 'status' is not a string: {type(status)}"
-        assert status == 'Healthy', f"Check '{name}' status expected 'Healthy', got '{status}'"
-
-        # Validate duration is number (int or float)
+        assert 'duration' in check, "Check missing 'duration'"
         duration = check['duration']
-        assert isinstance(duration, (int, float)), f"Check 'duration' is not a number: {type(duration)}"
+        assert isinstance(duration, (int, float)), f"Check '{check_name}' duration is not a number"
 
-        # Validate tags is a list
+        assert 'tags' in check, "Check missing 'tags'"
         tags = check['tags']
-        assert isinstance(tags, list), f"Check 'tags' is not a list: {type(tags)}"
+        assert isinstance(tags, list), f"Check '{check_name}' tags is not a list"
 
-    missing_checks = required_check_names - found_check_names
-    assert not missing_checks, f"Missing expected checks: {missing_checks}"
+    assert found_names == expected_names, f"Checks names found {found_names} don't match expected {expected_names}"
 
 test_health_check_all_dependencies()

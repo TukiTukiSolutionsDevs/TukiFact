@@ -20,4 +20,4 @@ public record DashboardSummary(
 
 public record DocumentsByType(string DocumentType, string Name, int Count, decimal Total);
 public record DocumentsByStatus(string Status, int Count);
-public record MonthlySales(int Year, int Month, int Count, decimal Total);
+public record MonthlySales(string Month, int Year, int Count, decimal Total);

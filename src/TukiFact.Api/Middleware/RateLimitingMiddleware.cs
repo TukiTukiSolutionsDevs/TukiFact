@@ -37,15 +37,45 @@ public class RateLimitingMiddleware
         var rateLimiter = context.RequestServices.GetRequiredService<IRateLimiter>();
         var (allowed, remaining, limit) = await rateLimiter.CheckAsync(tenantId, path);
 
+        var resetTime = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds();
         context.Response.Headers["X-RateLimit-Limit"] = limit.ToString();
         context.Response.Headers["X-RateLimit-Remaining"] = remaining.ToString();
+        context.Response.Headers["X-RateLimit-Reset"] = resetTime.ToString();
 
         if (!allowed)
         {
             context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-            context.Response.Headers["Retry-After"] = "60";
-            await context.Response.WriteAsJsonAsync(new { error = "Rate limit exceeded. Try again later." });
+            context.Response.Headers["Retry-After"] = "3600";
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "Rate limit exceeded",
+                message = "Has excedido el limite de solicitudes por hora de tu plan. Intenta mas tarde o actualiza tu plan.",
+                limit,
+                reset = resetTime
+            });
             return;
+        }
+
+        // Monthly document limit check (only for document creation)
+        if (context.Request.Method == "POST" && path.Contains("/documents") && !path.Contains("/void"))
+        {
+            var (monthAllowed, used, monthLimit) = await rateLimiter.CheckMonthlyDocumentsAsync(tenantId, context.RequestAborted);
+            context.Response.Headers["X-Monthly-Limit"] = monthLimit.ToString();
+            context.Response.Headers["X-Monthly-Used"] = used.ToString();
+            context.Response.Headers["X-Monthly-Remaining"] = Math.Max(0, monthLimit - used).ToString();
+
+            if (!monthAllowed)
+            {
+                context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    error = "Monthly document limit exceeded",
+                    message = "Has alcanzado el limite mensual de documentos de tu plan. Actualiza tu plan para emitir mas comprobantes.",
+                    used,
+                    limit = monthLimit
+                });
+                return;
+            }
         }
 
         await _next(context);

@@ -43,6 +43,14 @@ public class AppDbContext : DbContext
     public DbSet<SunatCatalog> SunatCatalogs => Set<SunatCatalog>();
     public DbSet<SunatCatalogCode> SunatCatalogCodes => Set<SunatCatalogCode>();
 
+    // Notifications (M1.3 — SSE real-time)
+    public DbSet<Notification> Notifications => Set<Notification>();
+
+    // Platform (M3 — Backoffice Pro)
+    public DbSet<PlatformConfig> PlatformConfigs => Set<PlatformConfig>();
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<PlatformAuditLog> PlatformAuditLogs => Set<PlatformAuditLog>();
+
     // Batch C
     public DbSet<RetentionDocument> RetentionDocuments => Set<RetentionDocument>();
     public DbSet<RetentionDocumentReference> RetentionDocumentReferences => Set<RetentionDocumentReference>();

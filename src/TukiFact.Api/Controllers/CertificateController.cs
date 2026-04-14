@@ -68,19 +68,47 @@ public class CertificateController : ControllerBase
 
         // Validate certificate
         DateTimeOffset expiresAt;
+        DateTimeOffset issuedAt;
         string subject;
+        string serialNumber;
+        string thumbprint;
+        string issuer;
+        bool hasPrivateKey;
         try
         {
             using var cert = X509CertificateLoader.LoadPkcs12(certBytes, password);
             expiresAt = new DateTimeOffset(cert.NotAfter, TimeSpan.Zero);
+            issuedAt = new DateTimeOffset(cert.NotBefore, TimeSpan.Zero);
             subject = cert.Subject;
+            serialNumber = cert.SerialNumber;
+            thumbprint = cert.Thumbprint;
+            issuer = cert.Issuer;
+            hasPrivateKey = cert.HasPrivateKey;
+
+            if (!hasPrivateKey)
+                return BadRequest(new { error = "El certificado no contiene clave privada. Se requiere un .pfx con clave privada." });
 
             if (expiresAt < DateTimeOffset.UtcNow)
                 return BadRequest(new { error = "El certificado ya expiró", expiresAt });
 
-            _logger.LogInformation("Certificate validated: {Subject}, expires {ExpiresAt}", subject, expiresAt);
+            // Verify RUC is in the subject (M2.2 validation)
+            var tenantId2 = _tenantProvider.GetCurrentTenantId();
+            var tenant2 = await _db.Tenants.FindAsync([tenantId2], ct);
+            if (tenant2 is not null && !string.IsNullOrEmpty(tenant2.Ruc))
+            {
+                if (!subject.Contains(tenant2.Ruc))
+                {
+                    _logger.LogWarning("Certificate subject '{Subject}' does not contain RUC {Ruc}",
+                        subject, tenant2.Ruc);
+                    // Warning, not error — some certificates use different subject formats
+                }
+            }
+
+            _logger.LogInformation(
+                "Certificate validated: {Subject}, serial: {Serial}, expires {ExpiresAt}",
+                subject, serialNumber, expiresAt);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not BadHttpRequestException)
         {
             _logger.LogWarning("Certificate validation failed: {Error}", ex.Message);
             return BadRequest(new { error = "No se pudo leer el certificado. Verificá la contraseña.", detail = ex.Message });
@@ -98,12 +126,22 @@ public class CertificateController : ControllerBase
 
         await _db.SaveChangesAsync(ct);
 
+        var daysUntilExpiry = (int)(expiresAt - DateTimeOffset.UtcNow).TotalDays;
         return Ok(new
         {
             message = "Certificado subido correctamente",
             subject,
+            issuer,
+            serialNumber,
+            thumbprint,
+            issuedAt,
             expiresAt,
-            daysUntilExpiry = (int)(expiresAt - DateTimeOffset.UtcNow).TotalDays,
+            daysUntilExpiry,
+            warning = daysUntilExpiry < 30
+                ? $"ATENCION: El certificado expira en {daysUntilExpiry} dias"
+                : null,
+            hasPrivateKey,
+            rucMatch = subject.Contains(tenant.Ruc)
         });
     }
 

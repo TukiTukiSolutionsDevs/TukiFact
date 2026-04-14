@@ -42,6 +42,10 @@ public class DocumentsController : ControllerBase
 
             return Created($"/v1/documents/{result.Id}", result);
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { error = ex.Message });

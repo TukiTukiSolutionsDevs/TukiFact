@@ -47,6 +47,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { FloatingChat } from '@/components/floating-chat';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import Image from 'next/image';
 
 const NAV_ITEMS = [
@@ -200,6 +201,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
 
         {/* User footer */}
         <div className="border-t p-3 flex items-center gap-2">
+          <NotificationBell />
           <ThemeToggle />
           <div className="flex-1 min-w-0">
           <DropdownMenu>
@@ -241,6 +243,9 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
             <Menu className="h-5 w-5" />
           </button>
           <Image src="/logo.png" alt="TukiFact" width={140} height={32} className="object-contain" />
+          <div className="ml-auto">
+            <NotificationBell />
+          </div>
         </header>
 
         {/* Page content */}

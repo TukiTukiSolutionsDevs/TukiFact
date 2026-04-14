@@ -45,7 +45,7 @@ public class DashboardService : IDashboardService
             .ToListAsync(ct);
 
         var monthlySales = monthlySalesRaw
-            .Select(m => new MonthlySales(m.Year, m.Month, m.Count, m.Total))
+            .Select(m => new MonthlySales($"{m.Year}-{m.Month:D2}", m.Year, m.Count, m.Total))
             .ToList();
 
         return new DashboardResponse(todaySummary, monthSummary, yearSummary, byType, byStatus, monthlySales);

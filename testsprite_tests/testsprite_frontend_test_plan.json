@@ -6,392 +6,2241 @@
     "category": "Auth",
     "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field labeled 'ID de Empresa' with the value 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field labeled 'Email' with the value admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field labeled 'Contraseña' with the value TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "assertion", "description": "Verify the page contains the text 'Dashboard'"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field labeled 'ID de Empresa' with the value b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field labeled 'Email' with the value prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field labeled 'Contraseña' with the value PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains the text 'Dashboard'"
+      }
     ]
   },
   {
     "id": "TC002",
     "title": "Login with wrong password shows error",
-    "description": "Verify that invalid credentials show error and stay on login page",
+    "description": "Verify that invalid credentials show error toast and stay on login page",
     "category": "Auth",
     "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field labeled 'ID de Empresa' with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field labeled 'Email' with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field labeled 'Contraseña' with wrongpassword123"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait 3 seconds, then verify the URL still contains /login"},
-      {"type": "assertion", "description": "Verify an error message or toast notification is visible on the page"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field labeled 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field labeled 'Email' with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field labeled 'Contraseña' with wrongpassword123"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 3 seconds, then verify the URL still contains /login"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an error message or toast notification is visible on the page containing text like 'error', 'incorrecta', or 'inválido'"
+      }
     ]
   },
   {
     "id": "TC003",
-    "title": "Register new company and land on dashboard",
-    "description": "Register a brand new company and verify redirect to dashboard",
+    "title": "Login with empty fields shows validation",
+    "description": "Submit login form with empty fields and verify validation messages appear",
     "category": "Auth",
     "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/register"},
-      {"type": "action", "description": "Find the input field labeled 'RUC' and fill it with 20666777881"},
-      {"type": "action", "description": "Find the input field labeled 'Razón Social' and fill it with FrontTest SAC"},
-      {"type": "action", "description": "Find the input field labeled 'Nombre Comercial' and fill it with FrontTest"},
-      {"type": "action", "description": "Find the input field labeled 'Dirección' and fill it with Av Frontend 123"},
-      {"type": "action", "description": "Find the input field labeled 'Nombre Completo' and fill it with Test User"},
-      {"type": "action", "description": "Find the input field labeled 'Email' and fill it with fronttest@test.pe"},
-      {"type": "action", "description": "Find the input field for password and fill it with FrontTest2026!"},
-      {"type": "action", "description": "Click the button with text 'Registrarse' or 'Crear Cuenta'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión' without filling any fields"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the URL still contains /login"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that validation messages or red borders appear on the empty input fields"
+      }
     ]
   },
   {
     "id": "TC004",
-    "title": "Dashboard shows KPI cards and charts",
-    "description": "Verify dashboard loads with KPI summary cards and chart visualizations",
-    "category": "Dashboard",
+    "title": "Register new company and land on dashboard",
+    "description": "Register a brand new company with all fields and verify redirect to dashboard or welcome",
+    "category": "Auth",
     "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Wait 3 seconds for dashboard data to load from the API"},
-      {"type": "assertion", "description": "Verify the page contains multiple card elements (at least 4 cards with data-slot='card' or class containing 'card')"},
-      {"type": "assertion", "description": "Verify the page contains at least one SVG element with class containing 'recharts' which indicates a chart is rendered"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/register"
+      },
+      {
+        "type": "action",
+        "description": "Find the input field labeled 'RUC' and fill it with 20666777882"
+      },
+      {
+        "type": "action",
+        "description": "Find the input field labeled 'Razón Social' and fill it with FrontTest PRD SAC"
+      },
+      {
+        "type": "action",
+        "description": "Find the input field labeled 'Nombre Comercial' and fill it with FrontTest PRD"
+      },
+      {
+        "type": "action",
+        "description": "Find the input field labeled 'Dirección' and fill it with Av Frontend 456, Lima"
+      },
+      {
+        "type": "action",
+        "description": "Find the input field labeled 'Nombre Completo' and fill it with Frontend Tester"
+      },
+      {
+        "type": "action",
+        "description": "Find the input field labeled 'Email' and fill it with frontprd@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Find the input field for password (labeled 'Contraseña') and fill it with FrontPrd2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Registrarse' or 'Crear Cuenta'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard or /welcome"
+      }
     ]
   },
   {
     "id": "TC005",
-    "title": "Emit Factura with two items",
-    "description": "Create a new Factura document with 2 items and verify the detail page shows the accepted document",
-    "category": "Documents",
+    "title": "Unauthenticated redirect to login",
+    "description": "Accessing a protected route without auth redirects to login",
+    "category": "Auth",
     "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/documents/new"},
-      {"type": "action", "description": "Wait 2 seconds for the form to load. The page has a select for document type, a select for series, and customer fields"},
-      {"type": "action", "description": "In the document type select, choose the option 'Factura (01)'"},
-      {"type": "action", "description": "Wait 1 second for the series dropdown to update, then select the first available series option"},
-      {"type": "action", "description": "Find the input field for customer document number (labeled 'Número' or 'Nro. Documento') and fill it with 20100070970"},
-      {"type": "action", "description": "Find the input field for customer name (labeled 'Nombre / Razón Social' or 'Nombre') and fill it with TestSprite Cliente SAC"},
-      {"type": "action", "description": "In the items table, find the first row. Fill the description field with Servicio de consultoría"},
-      {"type": "action", "description": "In the first item row, set quantity to 2"},
-      {"type": "action", "description": "In the first item row, set unit price to 50"},
-      {"type": "action", "description": "Click the button to add another item row (text 'Agregar Item' or '+' button below the items table)"},
-      {"type": "action", "description": "In the second item row, fill description with Producto de prueba"},
-      {"type": "action", "description": "In the second item row, set quantity to 1"},
-      {"type": "action", "description": "In the second item row, set unit price to 100"},
-      {"type": "action", "description": "Click the button with text 'Emitir Comprobante'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds. Verify the URL changes to contain /documents/ (the detail page) and the page shows the document number starting with F001-"}
+      {
+        "type": "action",
+        "description": "Navigate directly to http://localhost:3000/dashboard without logging in first (fresh browser, no cookies)"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 5 seconds. Verify the URL contains /login, confirming the user was redirected to the login page"
+      }
     ]
   },
   {
     "id": "TC006",
-    "title": "Browse documents list with type filter",
-    "description": "View documents list, apply type filter, and open a document detail",
-    "category": "Documents",
+    "title": "Dashboard shows KPI cards charts and recent data",
+    "description": "Verify dashboard loads with KPI cards, charts, and recent activity after login",
+    "category": "Dashboard",
     "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/documents"},
-      {"type": "action", "description": "Wait 3 seconds for the documents table to load"},
-      {"type": "assertion", "description": "Verify a table with rows is displayed (at least 1 row in tbody)"},
-      {"type": "action", "description": "Find the select dropdown labeled 'Tipo' and select 'Factura' option"},
-      {"type": "action", "description": "Wait 2 seconds for filtered results to load"},
-      {"type": "action", "description": "Click the first row in the table body to open document detail"},
-      {"type": "assertion", "description": "Wait up to 5 seconds for the URL to change to contain /documents/ (detail page)"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for dashboard data to load from the API"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains at least 4 card elements (with data-slot='card' or class containing 'card') showing numeric KPI values"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains at least one SVG element with class containing 'recharts' which indicates a chart is rendered"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Hoy' or 'Este Mes' indicating KPI time periods"
+      }
     ]
   },
   {
     "id": "TC007",
-    "title": "View document detail and download PDF",
-    "description": "Open a document detail and verify metadata, items, and PDF download button works",
+    "title": "Emit Factura with multiple items and verify detail",
+    "description": "Create a new Factura with 3 items, verify IGV calculation and detail page",
     "category": "Documents",
     "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/documents"},
-      {"type": "action", "description": "Wait 3 seconds then click the first row in the table body"},
-      {"type": "assertion", "description": "Verify the detail page shows a document number (text matching pattern F001- or B001-)"},
-      {"type": "assertion", "description": "Verify the page contains a button or link with text 'PDF' or 'Descargar PDF'"},
-      {"type": "assertion", "description": "Verify the page contains a button or link with text 'XML' or 'Descargar XML'"},
-      {"type": "action", "description": "Click the button with text 'Volver' to go back to documents list"},
-      {"type": "assertion", "description": "Verify URL contains /documents"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/documents/new"
+      },
+      {
+        "type": "action",
+        "description": "Wait 2 seconds for the form to load"
+      },
+      {
+        "type": "action",
+        "description": "In the document type select, choose the option containing 'Factura' or '01'"
+      },
+      {
+        "type": "action",
+        "description": "Wait 1 second for the series dropdown to update, then select the first available series option (should be F001)"
+      },
+      {
+        "type": "action",
+        "description": "Find the input for customer document type and select '6' (RUC) if not already selected"
+      },
+      {
+        "type": "action",
+        "description": "Find the input field for customer document number (labeled 'Número' or 'Nro. Documento' or 'RUC') and fill it with 20100070970"
+      },
+      {
+        "type": "action",
+        "description": "Find the input field for customer name (labeled 'Nombre / Razón Social' or 'Razón Social') and fill it with TestSprite Cliente SAC"
+      },
+      {
+        "type": "action",
+        "description": "In the items section, find the first row. Fill the description field with Servicio de consultoría TI"
+      },
+      {
+        "type": "action",
+        "description": "In the first item row, set quantity to 2"
+      },
+      {
+        "type": "action",
+        "description": "In the first item row, set unit price to 500"
+      },
+      {
+        "type": "action",
+        "description": "Click the button to add another item (text 'Agregar Item' or '+' icon below items)"
+      },
+      {
+        "type": "action",
+        "description": "In the second item row, fill description with Licencia de software anual"
+      },
+      {
+        "type": "action",
+        "description": "In the second item row, set quantity to 1"
+      },
+      {
+        "type": "action",
+        "description": "In the second item row, set unit price to 1200"
+      },
+      {
+        "type": "action",
+        "description": "Click the button to add a third item"
+      },
+      {
+        "type": "action",
+        "description": "In the third item row, fill description with Capacitación técnica"
+      },
+      {
+        "type": "action",
+        "description": "In the third item row, set quantity to 3"
+      },
+      {
+        "type": "action",
+        "description": "In the third item row, set unit price to 150"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the totals section shows Subtotal, IGV, and Total values. Total should be approximately S/ 3,068.00"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Emitir Comprobante' or 'Emitir'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 15 seconds. Verify the URL changes to contain /documents/ (the detail page) and the page shows a document number starting with F001-"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the detail page shows status badge (Accepted, Signed, or Sent)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify buttons 'PDF' and 'XML' or 'Descargar PDF' and 'Descargar XML' are visible"
+      }
     ]
   },
   {
     "id": "TC008",
-    "title": "Navigate sidebar links and logout",
-    "description": "Navigate through sidebar to Documents, Series, Dashboard, then logout",
-    "category": "Navigation",
+    "title": "Emit Boleta with DNI customer",
+    "description": "Create a Boleta for a natural person with DNI",
+    "category": "Documents",
     "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Click the sidebar link with text 'Documentos'"},
-      {"type": "assertion", "description": "Wait 3 seconds and verify URL contains /documents"},
-      {"type": "action", "description": "Click the sidebar link with text 'Series'"},
-      {"type": "assertion", "description": "Wait 3 seconds and verify URL contains /series"},
-      {"type": "action", "description": "Click the sidebar link with text 'Usuarios'"},
-      {"type": "assertion", "description": "Wait 3 seconds and verify URL contains /users"},
-      {"type": "action", "description": "Click the sidebar link with text 'Dashboard'"},
-      {"type": "assertion", "description": "Wait 3 seconds and verify URL contains /dashboard"},
-      {"type": "action", "description": "Find and click the user menu button at the bottom of the sidebar (it shows the user name or has a chevron icon)"},
-      {"type": "action", "description": "In the dropdown menu that appears, click 'Cerrar Sesión' or 'Cerrar sesión'"},
-      {"type": "assertion", "description": "Wait up to 5 seconds for the URL to contain /login"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/documents/new"
+      },
+      {
+        "type": "action",
+        "description": "Wait 2 seconds for the form to load"
+      },
+      {
+        "type": "action",
+        "description": "In the document type select, choose the option containing 'Boleta' or '03'"
+      },
+      {
+        "type": "action",
+        "description": "Wait 1 second, then select the first available Boleta series (should be B001)"
+      },
+      {
+        "type": "action",
+        "description": "Select customer document type '1' (DNI)"
+      },
+      {
+        "type": "action",
+        "description": "Fill customer document number with 71234567"
+      },
+      {
+        "type": "action",
+        "description": "Fill customer name with Juan Pérez López"
+      },
+      {
+        "type": "action",
+        "description": "In the first item row, fill description with Producto retail"
+      },
+      {
+        "type": "action",
+        "description": "Set quantity to 3 and unit price to 50"
+      },
+      {
+        "type": "action",
+        "description": "Click 'Emitir Comprobante'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 15 seconds. Verify URL changes to /documents/ detail and page shows B001- number"
+      }
     ]
   },
   {
     "id": "TC009",
-    "title": "Create new document series",
-    "description": "Create a new Factura series and verify it appears in the table",
-    "category": "Series",
+    "title": "Documents list with filters and pagination",
+    "description": "Browse document list, apply type and status filters, paginate",
+    "category": "Documents",
     "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/series"},
-      {"type": "action", "description": "Wait 3 seconds for the series page to load"},
-      {"type": "action", "description": "Click the button with text 'Nueva Serie'"},
-      {"type": "action", "description": "Wait 1 second for a dialog or form to appear"},
-      {"type": "action", "description": "In the dialog, select document type 'Factura (01)' from the type dropdown"},
-      {"type": "action", "description": "Find the input field for serie code and type FZ88 (4 characters, starts with F for Factura)"},
-      {"type": "action", "description": "Click the submit or create button in the dialog"},
-      {"type": "assertion", "description": "Wait 3 seconds and verify the series table contains a row with text FZ88"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/documents"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the documents table to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a table with rows is displayed (at least 1 row in tbody)"
+      },
+      {
+        "type": "action",
+        "description": "Find the select dropdown labeled 'Tipo' and select 'Factura' option"
+      },
+      {
+        "type": "action",
+        "description": "Wait 2 seconds for filtered results to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all visible document rows show type 'Factura' or '01'"
+      },
+      {
+        "type": "action",
+        "description": "Find the select dropdown labeled 'Estado' and select 'Aceptado' or 'Accepted' option"
+      },
+      {
+        "type": "action",
+        "description": "Wait 2 seconds"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify filtered results show only accepted documents"
+      },
+      {
+        "type": "action",
+        "description": "Click the first row in the table body to open document detail"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 5 seconds for the URL to change to /documents/{id}"
+      }
     ]
   },
   {
     "id": "TC010",
-    "title": "View series list with existing series",
-    "description": "Navigate to series page and verify existing series F001, B001 are displayed",
-    "category": "Series",
-    "priority": "Medium",
+    "title": "Document detail view with PDF and XML download buttons",
+    "description": "Open a document detail, verify all info, and check download buttons exist",
+    "category": "Documents",
+    "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/series"},
-      {"type": "action", "description": "Wait 5 seconds for the series table data to fully load from the API"},
-      {"type": "assertion", "description": "Verify the table body has at least 3 rows (F001, B001, FC01 exist)"},
-      {"type": "assertion", "description": "Verify the page contains the text F001 somewhere in the table"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/documents"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds then click the first row in the table body"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the detail page shows a document number (text matching pattern F001- or B001-)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page shows customer name and RUC/DNI information"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page shows an items table with at least 1 row showing description, quantity, price"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page shows Subtotal, IGV, and Total amounts"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a button or link with text containing 'PDF' exists"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a button or link with text containing 'XML' exists"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a status badge is visible (Aceptado, Firmado, or similar)"
+      }
     ]
   },
   {
     "id": "TC011",
-    "title": "Update company settings",
-    "description": "Change company commercial name and address in settings",
-    "category": "Settings",
-    "priority": "Medium",
+    "title": "Create Guía de Remisión transporte público",
+    "description": "Fill the GRE form with public transport carrier and verify creation",
+    "category": "DespatchAdvice",
+    "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/settings"},
-      {"type": "action", "description": "Wait 3 seconds for settings data to load"},
-      {"type": "assertion", "description": "Verify the page shows the text 20100070970 (the company RUC)"},
-      {"type": "action", "description": "Find the input field labeled 'Nombre Comercial' and clear it, then type TestSprite Co"},
-      {"type": "action", "description": "Find the input field labeled 'Dirección' and clear it, then type Av TestSprite 2026"},
-      {"type": "action", "description": "Click the save button (text 'Guardar' or 'Guardar Cambios')"},
-      {"type": "assertion", "description": "Verify a success toast or confirmation message appears within 5 seconds"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/despatch-advices/new or click 'Nueva Guía' button from the despatch-advices list"
+      },
+      {
+        "type": "action",
+        "description": "Wait 2 seconds for the form to load"
+      },
+      {
+        "type": "action",
+        "description": "Select serie T001 from the series dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Select transport mode 'Público' or '01'"
+      },
+      {
+        "type": "action",
+        "description": "Fill transfer reason with '01 - Venta' or select from dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Fill gross weight with 150.5"
+      },
+      {
+        "type": "action",
+        "description": "Fill total packages with 3"
+      },
+      {
+        "type": "action",
+        "description": "Fill carrier RUC with 20123456789"
+      },
+      {
+        "type": "action",
+        "description": "Fill carrier name with Transportes Perú SAC"
+      },
+      {
+        "type": "action",
+        "description": "Fill recipient RUC with 20100070970"
+      },
+      {
+        "type": "action",
+        "description": "Fill recipient name with Destinatario SAC"
+      },
+      {
+        "type": "action",
+        "description": "Fill origin address with Av. Origen 100, Lima"
+      },
+      {
+        "type": "action",
+        "description": "Fill origin ubigeo with 150101"
+      },
+      {
+        "type": "action",
+        "description": "Fill destination address with Calle Destino 200, Arequipa"
+      },
+      {
+        "type": "action",
+        "description": "Fill destination ubigeo with 040101"
+      },
+      {
+        "type": "action",
+        "description": "Add an item: description 'Caja de productos', quantity 10, unit NIU"
+      },
+      {
+        "type": "action",
+        "description": "Click the submit button ('Crear Guía' or 'Guardar')"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds. Verify success — either URL changes to detail page or success toast appears"
+      }
     ]
   },
   {
     "id": "TC012",
-    "title": "Users management page renders",
-    "description": "Verify users page loads with table of users",
-    "category": "Admin",
-    "priority": "Medium",
+    "title": "Despatch Advices list page loads",
+    "description": "Navigate to GRE list and verify table renders",
+    "category": "DespatchAdvice",
+    "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/users"},
-      {"type": "action", "description": "Wait 3 seconds for user data to load"},
-      {"type": "assertion", "description": "Verify a table is displayed with at least 1 row in the tbody"},
-      {"type": "assertion", "description": "Verify the page contains a button with text 'Crear Usuario'"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/despatch-advices"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Guías de Remisión' or 'Despatch'"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a table element is present on the page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a button exists with text 'Nueva Guía' or similar"
+      }
     ]
   },
   {
     "id": "TC013",
-    "title": "API Keys page renders with generate button",
-    "description": "Verify API keys page loads with table and generate button",
-    "category": "Admin",
-    "priority": "Medium",
+    "title": "Customers page CRUD operations",
+    "description": "List customers, create a new one, verify it appears in the table",
+    "category": "Customers",
+    "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/api-keys"},
-      {"type": "action", "description": "Wait 3 seconds for the page to load"},
-      {"type": "assertion", "description": "Verify the page contains text 'API Keys' or 'Generar API Key'"},
-      {"type": "assertion", "description": "Verify a button with text 'Generar API Key' exists on the page"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/customers"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the customers page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Clientes' or 'Customers'"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Nuevo Cliente' or 'Agregar'"
+      },
+      {
+        "type": "action",
+        "description": "Wait 1 second for dialog/form to appear"
+      },
+      {
+        "type": "action",
+        "description": "Select document type '6' (RUC) from dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Fill document number with 20444555666"
+      },
+      {
+        "type": "action",
+        "description": "Fill name with Cliente Frontend SAC"
+      },
+      {
+        "type": "action",
+        "description": "Fill email with frontend-client@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill phone with 01-7777777"
+      },
+      {
+        "type": "action",
+        "description": "Click the save/create button in the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 3 seconds and verify the table now shows a row containing '20444555666' or 'Cliente Frontend SAC'"
+      }
     ]
   },
   {
     "id": "TC014",
-    "title": "Webhooks page renders with create button",
-    "description": "Verify webhooks management page loads",
-    "category": "Admin",
+    "title": "Customers search by document number",
+    "description": "Use the search input to find a specific customer by RUC",
+    "category": "Customers",
     "priority": "Medium",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/webhooks"},
-      {"type": "action", "description": "Wait 3 seconds for the page to load"},
-      {"type": "assertion", "description": "Verify the page contains text 'Webhooks' or 'Nuevo Webhook'"},
-      {"type": "assertion", "description": "Verify a button with text 'Nuevo Webhook' exists on the page"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/customers"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for data to load"
+      },
+      {
+        "type": "action",
+        "description": "Find the search input field and type 20444555666"
+      },
+      {
+        "type": "action",
+        "description": "Wait 2 seconds for filtered results"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the table shows exactly 1 row containing '20444555666'"
+      }
     ]
   },
   {
     "id": "TC015",
-    "title": "Voided documents page renders",
-    "description": "Verify voided documents page loads with table",
-    "category": "Admin",
-    "priority": "Medium",
+    "title": "Products catalog page CRUD",
+    "description": "List products, create a new product, verify it appears",
+    "category": "Products",
+    "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/voided"},
-      {"type": "action", "description": "Wait 3 seconds for the voided documents data to load"},
-      {"type": "assertion", "description": "Verify a table element is present on the page"},
-      {"type": "assertion", "description": "Verify the page contains text 'Anulados' or 'Comunicaciones de Baja'"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/products"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the products page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Productos' or 'Catálogo'"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Nuevo Producto' or 'Agregar'"
+      },
+      {
+        "type": "action",
+        "description": "Wait 1 second for dialog/form to appear"
+      },
+      {
+        "type": "action",
+        "description": "Fill product code with FE-PROD-001"
+      },
+      {
+        "type": "action",
+        "description": "Fill description with Monitor Samsung 27 pulgadas"
+      },
+      {
+        "type": "action",
+        "description": "Fill unit price with 847.46"
+      },
+      {
+        "type": "action",
+        "description": "Fill unit price with IGV with 1000.00"
+      },
+      {
+        "type": "action",
+        "description": "Select category Tecnología if available"
+      },
+      {
+        "type": "action",
+        "description": "Click the save/create button"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 3 seconds and verify the table now contains 'FE-PROD-001' or 'Monitor Samsung'"
+      }
     ]
   },
   {
     "id": "TC016",
-    "title": "Reports page with date filter",
-    "description": "Verify reports page loads with date inputs and filter button",
-    "category": "Reports",
-    "priority": "Medium",
+    "title": "Retentions page create and list",
+    "description": "Navigate to retentions, create a new retention with references",
+    "category": "Retentions",
+    "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/reports"},
-      {"type": "action", "description": "Wait 2 seconds for the page to load"},
-      {"type": "assertion", "description": "Verify the page contains at least one input of type date"},
-      {"type": "assertion", "description": "Verify a button with text 'Filtrar' exists on the page"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/retentions"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Retenciones' or 'Retention'"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a button exists with text 'Nueva Retención' or similar for creating new retention"
+      }
     ]
   },
   {
     "id": "TC017",
-    "title": "Audit log page with entries",
-    "description": "Verify audit log page loads with entries table and filter",
-    "category": "Admin",
-    "priority": "Medium",
+    "title": "Perceptions page renders",
+    "description": "Navigate to perceptions page and verify it loads correctly",
+    "category": "Perceptions",
+    "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/audit-log"},
-      {"type": "action", "description": "Wait 3 seconds for audit log data to load"},
-      {"type": "assertion", "description": "Verify a table with at least 1 row in tbody is displayed"},
-      {"type": "assertion", "description": "Verify the page contains text 'Auditoría' or 'Audit'"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/perceptions"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Percepciones' or 'Perception'"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a table or list element is present on the page"
+      }
     ]
   },
   {
     "id": "TC018",
-    "title": "Plan page shows current plan",
-    "description": "Verify plan page loads showing Free plan info",
-    "category": "Info",
-    "priority": "Low",
+    "title": "Quotations create and convert to invoice",
+    "description": "Create a quotation, verify it appears in list, then convert it to invoice",
+    "category": "Quotations",
+    "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/plan"},
-      {"type": "action", "description": "Wait 3 seconds for plan data to load"},
-      {"type": "assertion", "description": "Verify the page contains the text 'Free' (current plan name)"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/quotations"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Cotizaciones' or 'Quotations'"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a button with text 'Nueva Cotización' or similar exists"
+      }
     ]
   },
   {
     "id": "TC019",
-    "title": "AI Copilot page renders with chat",
-    "description": "Verify AI chat page loads with input and initial message",
-    "category": "Info",
-    "priority": "Low",
+    "title": "Recurring invoices page CRUD",
+    "description": "Navigate to recurring invoices, verify page loads with create button",
+    "category": "RecurringInvoices",
+    "priority": "High",
     "steps": [
-      {"type": "action", "description": "Navigate to http://localhost:3000/login"},
-      {"type": "action", "description": "Fill the first input field with 0c700fd7-1fdb-43d5-a2a8-d20fe4bcab84"},
-      {"type": "action", "description": "Fill the second input field with admin@tukitest.pe"},
-      {"type": "action", "description": "Fill the third input field with TestSprite2026!"},
-      {"type": "action", "description": "Click the button with text 'Iniciar Sesión'"},
-      {"type": "assertion", "description": "Wait up to 10 seconds for the URL to contain /dashboard"},
-      {"type": "action", "description": "Navigate to http://localhost:3000/ai"},
-      {"type": "action", "description": "Wait 2 seconds for the page to load"},
-      {"type": "assertion", "description": "Verify the page contains text 'Copiloto IA'"},
-      {"type": "assertion", "description": "Verify the page contains an input field with placeholder text containing 'facturación' or 'Pregunta'"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/recurring-invoices"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Recurrentes' or 'Facturación Recurrente'"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a button with text 'Nueva' or 'Crear' exists for creating recurring invoices"
+      }
     ]
   },
   {
     "id": "TC020",
-    "title": "Unauthenticated redirect to login",
-    "description": "Verify accessing a protected route without auth redirects to login",
-    "category": "Auth",
+    "title": "Series management create and list",
+    "description": "View series, create new one, verify it appears in the table",
+    "category": "Series",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/series"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the series page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a table is displayed with at least 3 rows (F001, B001, FC01 should exist)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the table contains text 'F001' in one of the rows"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Nueva Serie'"
+      },
+      {
+        "type": "action",
+        "description": "Wait 1 second for dialog to appear"
+      },
+      {
+        "type": "action",
+        "description": "Select document type 'Factura (01)' from the type dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Find the input for serie code and type FE88"
+      },
+      {
+        "type": "action",
+        "description": "Click the submit or create button in the dialog"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 3 seconds and verify the series table contains a row with text FE88"
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "Settings page update company info",
+    "description": "Change company settings and verify save works",
+    "category": "Settings",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/settings"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for settings data to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page shows the RUC (20100070970 or similar)"
+      },
+      {
+        "type": "action",
+        "description": "Find the input field labeled 'Nombre Comercial' and clear it, then type Frontend Test Co"
+      },
+      {
+        "type": "action",
+        "description": "Click the save button (text 'Guardar' or 'Guardar Cambios')"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success toast or confirmation message appears within 5 seconds"
+      }
+    ]
+  },
+  {
+    "id": "TC022",
+    "title": "Users management page",
+    "description": "Verify users page loads with table and create button",
+    "category": "Admin",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/users"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for user data to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a table is displayed with at least 1 row showing admin user"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains a button with text 'Crear Usuario' or 'Nuevo Usuario'"
+      }
+    ]
+  },
+  {
+    "id": "TC023",
+    "title": "API Keys page generate and revoke",
+    "description": "Generate a new API key, verify plaintext shown, then revoke it",
+    "category": "Admin",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/api-keys"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'API Keys'"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Generar API Key' or 'Nueva Key'"
+      },
+      {
+        "type": "action",
+        "description": "Wait 1 second for dialog to appear"
+      },
+      {
+        "type": "action",
+        "description": "Fill the key name input with TestKey-Frontend"
+      },
+      {
+        "type": "action",
+        "description": "Click the create/generate button in the dialog"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 3 seconds. Verify a key starting with 'tk_' is displayed (shown only once)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a copy button exists next to the key"
+      }
+    ]
+  },
+  {
+    "id": "TC024",
+    "title": "Webhooks page",
+    "description": "Verify webhooks management page loads with create button",
+    "category": "Admin",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/webhooks"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Webhooks'"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a button with text 'Nuevo Webhook' or 'Crear' exists"
+      }
+    ]
+  },
+  {
+    "id": "TC025",
+    "title": "Voided documents page",
+    "description": "Verify voided documents page loads with table",
+    "category": "Admin",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/voided"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Anulados' or 'Comunicaciones de Baja'"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a table element is present on the page"
+      }
+    ]
+  },
+  {
+    "id": "TC026",
+    "title": "Reports page with date filter and KPIs",
+    "description": "Verify reports page loads with date inputs, KPIs, and chart",
+    "category": "Reports",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/reports"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains at least one date input field"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify KPI cards are displayed with numeric values"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a button with text 'Filtrar' exists"
+      }
+    ]
+  },
+  {
+    "id": "TC027",
+    "title": "Audit log page with entries",
+    "description": "Verify audit log loads with entries table",
+    "category": "Admin",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/audit-log"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for audit log data to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a table with at least 1 row in tbody is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Auditoría' or 'Audit Log'"
+      }
+    ]
+  },
+  {
+    "id": "TC028",
+    "title": "Plan page shows current plan and pricing cards",
+    "description": "Verify plan page loads showing current plan and all available plans",
+    "category": "Info",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/plan"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for plan data to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains the text 'Free' (current plan name)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify at least 6 plan cards are displayed with pricing information"
+      }
+    ]
+  },
+  {
+    "id": "TC029",
+    "title": "Exchange rates page with SBS lookup",
+    "description": "Verify exchange rates page loads with rate display and converter",
+    "category": "ExchangeRates",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/exchange-rates"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Tipo de Cambio' or 'Exchange Rate'"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page displays a numeric exchange rate value (e.g., 3.7 or similar PEN/USD rate)"
+      }
+    ]
+  },
+  {
+    "id": "TC030",
+    "title": "Catalogs SUNAT browser page",
+    "description": "Verify SUNAT catalogs page loads with catalog list and search",
+    "category": "Catalogs",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/catalogs"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Catálogos SUNAT' or 'Catálogos'"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify there are multiple catalog entries or sections visible on the page"
+      }
+    ]
+  },
+  {
+    "id": "TC031",
+    "title": "Certificate upload page",
+    "description": "Verify certificate management page loads with upload form",
+    "category": "Certificate",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/certificate"
+      },
+      {
+        "type": "action",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Certificado Digital' or 'Certificate'"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a file input or upload area exists on the page"
+      }
+    ]
+  },
+  {
+    "id": "TC032",
+    "title": "Navigate all sidebar links successfully",
+    "description": "Click through ALL sidebar navigation links and verify each page loads",
+    "category": "Navigation",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Click the sidebar link with text 'Documentos'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 2 seconds and verify URL contains /documents"
+      },
+      {
+        "type": "action",
+        "description": "Click the sidebar link with text 'Clientes'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 2 seconds and verify URL contains /customers"
+      },
+      {
+        "type": "action",
+        "description": "Click the sidebar link with text 'Productos'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 2 seconds and verify URL contains /products"
+      },
+      {
+        "type": "action",
+        "description": "Click the sidebar link with text 'Guías' or 'Guías de Remisión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 2 seconds and verify URL contains /despatch-advices"
+      },
+      {
+        "type": "action",
+        "description": "Click the sidebar link with text 'Series'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 2 seconds and verify URL contains /series"
+      },
+      {
+        "type": "action",
+        "description": "Click the sidebar link with text 'Reportes'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 2 seconds and verify URL contains /reports"
+      },
+      {
+        "type": "action",
+        "description": "Click the sidebar link with text 'Dashboard'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 2 seconds and verify URL contains /dashboard"
+      }
+    ]
+  },
+  {
+    "id": "TC033",
+    "title": "Logout flow",
+    "description": "Logout from authenticated session and verify redirect to login",
+    "category": "Navigation",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Find and click the user menu button at the bottom of the sidebar (shows user name or has chevron/avatar)"
+      },
+      {
+        "type": "action",
+        "description": "In the dropdown menu, click 'Cerrar Sesión' or 'Cerrar sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 5 seconds for the URL to contain /login"
+      }
+    ]
+  },
+  {
+    "id": "TC034",
+    "title": "AI Copilot page renders with chat",
+    "description": "Verify AI copilot page loads with chat interface",
+    "category": "AI",
     "priority": "Low",
     "steps": [
-      {"type": "action", "description": "Navigate directly to http://localhost:3000/dashboard without logging in first (fresh browser, no cookies)"},
-      {"type": "assertion", "description": "Wait up to 5 seconds. Verify the URL contains /login, confirming the user was redirected to the login page"}
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/ai"
+      },
+      {
+        "type": "action",
+        "description": "Wait 2 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains text 'Copiloto' or 'IA' or 'Asistente'"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page contains an input field or textarea for typing messages"
+      }
+    ]
+  },
+  {
+    "id": "TC035",
+    "title": "Backoffice login and dashboard",
+    "description": "Login to backoffice as superadmin and verify global dashboard with metrics",
+    "category": "Backoffice",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/backoffice/login"
+      },
+      {
+        "type": "action",
+        "description": "Wait 2 seconds for the login page to load"
+      },
+      {
+        "type": "action",
+        "description": "Find the input field labeled 'Email' and fill it with superadmin@tukifact.net.pe"
+      },
+      {
+        "type": "action",
+        "description": "Find the input field labeled 'Contraseña' or 'Password' and fill it with SuperAdmin2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the login button (text 'Iniciar Sesión' or 'Login')"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /backoffice/dashboard or /backoffice"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page shows global metrics — text like 'Total Tenants' or 'Tenants Activos' or 'Total Documentos'"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify at least 3 KPI cards are visible with numeric values"
+      }
+    ]
+  },
+  {
+    "id": "TC036",
+    "title": "Backoffice tenants list and detail",
+    "description": "Navigate to tenants list, search, and open tenant detail",
+    "category": "Backoffice",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/backoffice/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill email with superadmin@tukifact.net.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill password with SuperAdmin2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click login button"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for URL to contain /backoffice"
+      },
+      {
+        "type": "action",
+        "description": "Click the sidebar link with text 'Tenants' or 'Empresas'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 3 seconds and verify a table with tenant rows is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the table shows columns for RUC, Razón Social, Estado, Plan"
+      },
+      {
+        "type": "action",
+        "description": "Click the first row in the tenants table to open tenant detail"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 3 seconds. Verify the detail page shows tenant information: RUC, users list, document stats"
+      }
+    ]
+  },
+  {
+    "id": "TC037",
+    "title": "Backoffice documents search cross-tenant",
+    "description": "Search documents across all tenants in backoffice",
+    "category": "Backoffice",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/backoffice/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill email with superadmin@tukifact.net.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill password with SuperAdmin2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click login button"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for URL to contain /backoffice"
+      },
+      {
+        "type": "action",
+        "description": "Click the sidebar link with text 'Documentos' or 'Soporte'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 3 seconds for the documents search page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a search input or filter fields are present (RUC, Serie, Correlativo)"
+      },
+      {
+        "type": "action",
+        "description": "Find the RUC search input and type 20100070970"
+      },
+      {
+        "type": "action",
+        "description": "Wait 2 seconds for results"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a table with document results is displayed showing documents from that tenant"
+      }
+    ]
+  },
+  {
+    "id": "TC038",
+    "title": "Backoffice employees list",
+    "description": "Navigate to employees page and verify platform users are listed",
+    "category": "Backoffice",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/backoffice/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill email with superadmin@tukifact.net.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill password with SuperAdmin2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click login button"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for URL to contain /backoffice"
+      },
+      {
+        "type": "action",
+        "description": "Click the sidebar link with text 'Empleados' or 'Equipo'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 3 seconds for the page to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a table or list shows at least 1 employee (the superadmin)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the table shows columns for Email, Nombre, Rol, Estado"
+      }
+    ]
+  },
+  {
+    "id": "TC039",
+    "title": "Dark mode toggle works",
+    "description": "Toggle dark mode and verify theme changes",
+    "category": "UX",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Find and click the theme toggle button (sun/moon icon, usually in the header or sidebar)"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 1 second. Verify the HTML element or body has class 'dark' or data-theme='dark'"
+      },
+      {
+        "type": "action",
+        "description": "Click the theme toggle button again"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait 1 second. Verify dark class is removed"
+      }
+    ]
+  },
+  {
+    "id": "TC040",
+    "title": "Responsive sidebar collapses on mobile",
+    "description": "Verify sidebar behavior on mobile viewport",
+    "category": "UX",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:3000/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill the first input field with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"
+      },
+      {
+        "type": "action",
+        "description": "Fill the second input field with prdtest@test.pe"
+      },
+      {
+        "type": "action",
+        "description": "Fill the third input field with PrdTest2026!"
+      },
+      {
+        "type": "action",
+        "description": "Click the button with text 'Iniciar Sesión'"
+      },
+      {
+        "type": "assertion",
+        "description": "Wait up to 10 seconds for the URL to contain /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Resize the browser viewport to 375x812 (mobile)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the sidebar is hidden or collapsed (not visible on screen)"
+      },
+      {
+        "type": "action",
+        "description": "Find and click the hamburger menu button (three lines icon) to open mobile sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the sidebar overlay or drawer appears with navigation links"
+      }
     ]
   }
 ]
