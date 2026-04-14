@@ -40,6 +40,8 @@ import {
   ShieldAlert,
   FileSpreadsheet,
   Repeat,
+  DollarSign,
+  BookOpen,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -58,8 +60,12 @@ const NAV_ITEMS = [
   { href: '/retentions', label: 'Retenciones', icon: ShieldCheck },
   { href: '/perceptions', label: 'Percepciones', icon: ShieldAlert },
   { href: '/recurring-invoices', label: 'Recurrentes', icon: Repeat },
+  { href: '/exchange-rates', label: 'Tipo de Cambio', icon: DollarSign },
+  { href: '/catalogs', label: 'Catálogos SUNAT', icon: BookOpen },
   { href: '/products', label: 'Productos', icon: Package },
   { href: '/customers', label: 'Clientes', icon: Contact },
+  { href: '/exchange-rates', label: 'Tipo Cambio', icon: DollarSign },
+  { href: '/catalogs', label: 'Catálogos SUNAT', icon: BookOpen },
   { href: '/reports', label: 'Reportes', icon: BarChart3 },
   { href: '/series', label: 'Series', icon: ListOrdered },
   { href: '/voided', label: 'Bajas', icon: Ban },

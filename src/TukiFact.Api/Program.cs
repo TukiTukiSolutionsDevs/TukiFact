@@ -103,7 +103,7 @@ if (app.Environment.IsDevelopment())
         options.DefaultHttpClient = new(ScalarTarget.Shell, ScalarClient.Curl);
         options.Authentication = new ScalarAuthenticationOptions
         {
-            PreferredSecurityScheme = "Bearer"
+            PreferredSecuritySchemes = ["Bearer"]
         };
     });
 }

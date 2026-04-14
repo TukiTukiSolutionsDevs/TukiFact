@@ -14,8 +14,8 @@ FASE 1  ████████████████████████
 FASE 2  █████████████████░░░░░░  75%   Producción — Frontend + Infra (Sprints 5-8)
 FASE 3  ░░░░░░░░░░░░░░░░░░░░░░░  0%   Crecimiento — IA + SDK + Scale (Sprints 9-12)
 EXTRA   ██████░░░░░░░░░░░░░░░░░  25%   Backoffice + DevOps (Sprint B1-B3)
-MEJORA  ████████████████████████ 100%  Batch A+B+C Backend + Frontend + Migrado ✅
-TOTAL   █████████████████░░░░░░  72%   Backend COMPLETO, Deploy pendiente
+MEJORA  ████████████████████████ 100%  Batch A+B+C Backend + Frontend + Migrado ✅ (B frontend added)
+TOTAL   █████████████████░░░░░░  74%   Backend COMPLETO, Build limpio (0 warnings), Deploy pendiente
 ```
 
 ## Credenciales Actuales
@@ -341,14 +341,14 @@ _Completado 2026-04-13 (backend) + 2026-04-14 (frontend)_
 | A2 | Email transaccional | EmailLog entity + Service + Templates |
 | A3 | Password Reset | PasswordResetToken + Controller |
 
-### Batch B — "Competitivo con Nubefact" ✅ Backend + Migrado
-_Completado 2026-04-13_
+### Batch B — "Competitivo con Nubefact" ✅ Backend + Migrado + Frontend
+_Completado 2026-04-13 (backend) + 2026-04-14 (frontend)_
 
 | Item | Feature | Archivos |
 |------|---------|----------|
-| B1 | Tipo de Cambio (SBS automático) | ExchangeRate entity + Service + Controller |
+| B1 | Tipo de Cambio (SBS automático) | ExchangeRate entity + Service + Controller + Frontend |
 | B2 | Detracciones SPOT | Document fields + UBL extension |
-| B3 | Catálogos SUNAT | SunatCatalog + SunatCatalogCode + Seed 600+ |
+| B3 | Catálogos SUNAT | SunatCatalog + SunatCatalogCode + Seed 600+ + Frontend |
 | B4 | Códigos de Detracción | DetractionCode entity + Seed |
 
 ### Batch C — "MEJOR que Nubefact" ✅ Backend + Migrado + Frontend
@@ -363,7 +363,7 @@ _Completado 2026-04-14_
 | C5 | Facturación Recurrente | Entity + BackgroundService + Controller + Frontend |
 | C6 | Cotizaciones → Factura | Entity + Controller (convert-to-invoice) + Frontend |
 
-**Totales**: 37+ archivos backend, 14 archivos frontend, 34 tablas DB, 10 migraciones
+**Totales**: 37+ archivos backend, 16 archivos frontend, 34 tablas DB, 10 migraciones
 
 ### Batch D — "Deploy + Infraestructura" 🔲 PENDIENTE
 
@@ -390,7 +390,7 @@ _Completado 2026-04-14_
 | Docker services (prod) | 7 |
 | MinIO buckets | 4 (xml, pdf, cdr, certs) |
 | Planes de pricing | 6 |
-| Rutas frontend (tenant) | 31 (17 original + 14 Batch A+B+C) |
+| Rutas frontend (tenant) | 33 (17 original + 14 Batch A+B+C + 2 Batch B frontend) |
 | Rutas frontend (backoffice) | 0 → 8 (Sprint B2) |
 | Archivos frontend nuevos | 14 páginas Batch A+B+C |
 
