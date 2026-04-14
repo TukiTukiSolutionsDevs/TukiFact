@@ -64,8 +64,6 @@ const NAV_ITEMS = [
   { href: '/catalogs', label: 'Catálogos SUNAT', icon: BookOpen },
   { href: '/products', label: 'Productos', icon: Package },
   { href: '/customers', label: 'Clientes', icon: Contact },
-  { href: '/exchange-rates', label: 'Tipo Cambio', icon: DollarSign },
-  { href: '/catalogs', label: 'Catálogos SUNAT', icon: BookOpen },
   { href: '/reports', label: 'Reportes', icon: BarChart3 },
   { href: '/series', label: 'Series', icon: ListOrdered },
   { href: '/voided', label: 'Bajas', icon: Ban },
