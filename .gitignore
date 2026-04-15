@@ -48,3 +48,11 @@ testsprite_tests/tmp/raw_report.md
 __pycache__/
 *.pyc
 .venv/
+
+# Secrets - API keys
+opencode.json
+testsprite_tests/tmp/config.json
+src/tukifact-web/testsprite_tests/tmp/config.json
+src/tukifact-web/testsprite_tests/tmp/test_results.json
+src/tukifact-web/testsprite_tests/tmp/raw_report.md
+src/tukifact-web/testsprite_tests/tmp/mcp.log

@@ -1,0 +1,90 @@
+{
+  "projectName": "TukiFact",
+  "description": "Sistema de facturación electrónica SaaS para Perú (SUNAT). Multi-tenant con roles (admin, emisor). Emite facturas, boletas, notas de crédito/débito, guías de remisión, retenciones, percepciones. Panel backoffice para superadmin.",
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "title": "Authentication & Authorization",
+      "description": "Login with tenantId + email + password. JWT tokens. Role-based access (admin, emisor). Redirect to /login when unauthenticated. Backoffice separate login.",
+      "testCases": ["TC001", "TC002", "TC003", "TC004", "TC005", "TC030", "TC036", "TC037", "TC038"]
+    },
+    {
+      "id": "REQ-002",
+      "title": "Dashboard",
+      "description": "KPI cards showing document counts, revenue, charts. Loads after login.",
+      "testCases": ["TC006"]
+    },
+    {
+      "id": "REQ-003",
+      "title": "Document Management",
+      "description": "List documents with filters. Emit new factura/boleta/nota. View document details.",
+      "testCases": ["TC007", "TC008"]
+    },
+    {
+      "id": "REQ-004",
+      "title": "Despatch Advices",
+      "description": "Guías de remisión - list and create.",
+      "testCases": ["TC009"]
+    },
+    {
+      "id": "REQ-005",
+      "title": "Customer Management",
+      "description": "CRUD for customers (RUC, DNI). Search functionality.",
+      "testCases": ["TC010"]
+    },
+    {
+      "id": "REQ-006",
+      "title": "Product Catalog",
+      "description": "CRUD for products and services.",
+      "testCases": ["TC011"]
+    },
+    {
+      "id": "REQ-007",
+      "title": "Series Management",
+      "description": "Configure document series (F001, B001, etc). Activate/deactivate.",
+      "testCases": ["TC012"]
+    },
+    {
+      "id": "REQ-008",
+      "title": "Quotations & Recurring",
+      "description": "Quotation management. Recurring invoice configuration.",
+      "testCases": ["TC013", "TC014"]
+    },
+    {
+      "id": "REQ-009",
+      "title": "Retentions & Perceptions",
+      "description": "Retenciones (tipo 20) and Percepciones (tipo 40) management.",
+      "testCases": ["TC015", "TC016"]
+    },
+    {
+      "id": "REQ-010",
+      "title": "Voided Documents",
+      "description": "Comunicaciones de baja - void emitted documents.",
+      "testCases": ["TC017"]
+    },
+    {
+      "id": "REQ-011",
+      "title": "Administration",
+      "description": "User management, API keys, webhooks, settings, reports, audit log.",
+      "testCases": ["TC018", "TC019", "TC020", "TC021", "TC022", "TC023"]
+    },
+    {
+      "id": "REQ-012",
+      "title": "Reference Data",
+      "description": "SUNAT catalogs, exchange rates, plan info, certificates.",
+      "testCases": ["TC024", "TC025", "TC026", "TC027", "TC028"]
+    },
+    {
+      "id": "REQ-013",
+      "title": "Navigation & UX",
+      "description": "Sidebar navigation, logout flow, responsive design.",
+      "testCases": ["TC029", "TC030", "TC039", "TC040"]
+    },
+    {
+      "id": "REQ-014",
+      "title": "Backoffice Panel",
+      "description": "Superadmin panel - login, dashboard, tenant management, documents, employees.",
+      "testCases": ["TC031", "TC032", "TC033", "TC034", "TC035"]
+    }
+  ]
+}

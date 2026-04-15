@@ -1,0 +1,242 @@
+version: "2"
+type: frontend
+tech_stack:
+  - typescript
+  - next.js 16
+  - react 19
+  - tailwindcss 4
+  - shadcn/ui
+  - sonner (toasts)
+routes:
+  - path: /login
+    file: src/app/login/page.tsx
+    auth_required: false
+    description: Login with tenantId, email, password
+  - path: /register
+    file: src/app/register/page.tsx
+    auth_required: false
+    description: New tenant registration
+  - path: /dashboard
+    file: src/app/(authenticated)/dashboard/page.tsx
+    auth_required: true
+    description: Dashboard with KPI cards and charts
+  - path: /documents
+    file: src/app/(authenticated)/documents/page.tsx
+    auth_required: true
+    description: List all emitted documents with filters
+  - path: /documents/new
+    file: src/app/(authenticated)/documents/new/page.tsx
+    auth_required: true
+    description: Emit new document (factura, boleta, etc.)
+  - path: /despatch-advices
+    file: src/app/(authenticated)/despatch-advices/page.tsx
+    auth_required: true
+    description: Guias de remision list
+  - path: /customers
+    file: src/app/(authenticated)/customers/page.tsx
+    auth_required: true
+    description: Customer CRUD
+  - path: /products
+    file: src/app/(authenticated)/products/page.tsx
+    auth_required: true
+    description: Products catalog
+  - path: /series
+    file: src/app/(authenticated)/series/page.tsx
+    auth_required: true
+    description: Series management (F001, B001, etc.)
+  - path: /quotations
+    file: src/app/(authenticated)/quotations/page.tsx
+    auth_required: true
+    description: Quotations list and management
+  - path: /recurring-invoices
+    file: src/app/(authenticated)/recurring-invoices/page.tsx
+    auth_required: true
+    description: Recurring invoices configuration
+  - path: /retentions
+    file: src/app/(authenticated)/retentions/page.tsx
+    auth_required: true
+    description: Retenciones (tipo 20)
+  - path: /perceptions
+    file: src/app/(authenticated)/perceptions/page.tsx
+    auth_required: true
+    description: Percepciones (tipo 40)
+  - path: /voided
+    file: src/app/(authenticated)/voided/page.tsx
+    auth_required: true
+    description: Voided documents (comunicaciones de baja)
+  - path: /users
+    file: src/app/(authenticated)/users/page.tsx
+    auth_required: true
+    description: User management
+  - path: /api-keys
+    file: src/app/(authenticated)/api-keys/page.tsx
+    auth_required: true
+    description: API keys management
+  - path: /webhooks
+    file: src/app/(authenticated)/webhooks/page.tsx
+    auth_required: true
+    description: Webhook configuration
+  - path: /settings
+    file: src/app/(authenticated)/settings/page.tsx
+    auth_required: true
+    description: Tenant settings
+  - path: /reports
+    file: src/app/(authenticated)/reports/page.tsx
+    auth_required: true
+    description: Reports and analytics
+  - path: /audit-log
+    file: src/app/(authenticated)/audit-log/page.tsx
+    auth_required: true
+    description: Audit log viewer
+  - path: /catalogs
+    file: src/app/(authenticated)/catalogs/page.tsx
+    auth_required: true
+    description: SUNAT catalogs reference
+  - path: /certificate
+    file: src/app/(authenticated)/certificate/page.tsx
+    auth_required: true
+    description: Digital certificate upload
+  - path: /exchange-rates
+    file: src/app/(authenticated)/exchange-rates/page.tsx
+    auth_required: true
+    description: Exchange rates viewer
+  - path: /plan
+    file: src/app/(authenticated)/plan/page.tsx
+    auth_required: true
+    description: Subscription plan info
+  - path: /ai
+    file: src/app/(authenticated)/ai/page.tsx
+    auth_required: true
+    description: AI copilot configuration
+  - path: /welcome
+    file: src/app/(authenticated)/welcome/page.tsx
+    auth_required: true
+    description: Welcome/onboarding page
+  - path: /backoffice/login
+    file: src/app/backoffice/login/page.tsx
+    auth_required: false
+    description: Backoffice superadmin login
+  - path: /backoffice/dashboard
+    file: src/app/backoffice/(panel)/dashboard/page.tsx
+    auth_required: true
+    description: Backoffice dashboard
+  - path: /backoffice/tenants
+    file: src/app/backoffice/(panel)/tenants/page.tsx
+    auth_required: true
+    description: Backoffice tenant management
+  - path: /backoffice/documents
+    file: src/app/backoffice/(panel)/documents/page.tsx
+    auth_required: true
+    description: Backoffice document viewer
+  - path: /backoffice/employees
+    file: src/app/backoffice/(panel)/employees/page.tsx
+    auth_required: true
+    description: Backoffice employee management
+features:
+  - name: Tenant Login
+    description: Login with tenant ID, email and password
+    files:
+      - src/app/login/page.tsx
+      - src/lib/auth-context.tsx
+    entry_route: /login
+    user_interactions:
+      - Fill 'ID de Empresa' input with tenant UUID
+      - Fill 'Email' input with email
+      - Fill 'Contraseña' input with password
+      - Click 'Iniciar Sesión' button
+      - See error toast on invalid credentials
+      - Redirect to /dashboard on success
+    api_calls:
+      - method: POST
+        endpoint: /v1/auth/login
+  - name: Document Emission
+    description: Emit factura, boleta, nota de credito, etc.
+    files:
+      - src/app/(authenticated)/documents/page.tsx
+      - src/app/(authenticated)/documents/new/page.tsx
+    entry_route: /documents/new
+    user_interactions:
+      - Select document type
+      - Fill customer info
+      - Add line items with products
+      - Click emit button
+      - See success/error toast
+    api_calls:
+      - method: POST
+        endpoint: /v1/documents
+      - method: GET
+        endpoint: /v1/documents
+  - name: Customer Management
+    description: CRUD operations for customers
+    files:
+      - src/app/(authenticated)/customers/page.tsx
+    entry_route: /customers
+    user_interactions:
+      - View customer list
+      - Create new customer
+      - Edit customer
+      - Delete customer
+      - Search customers
+    api_calls:
+      - method: GET
+        endpoint: /v1/customers
+      - method: POST
+        endpoint: /v1/customers
+  - name: Product Catalog
+    description: Manage products and services
+    files:
+      - src/app/(authenticated)/products/page.tsx
+    entry_route: /products
+    user_interactions:
+      - View product list
+      - Create new product
+      - Edit product
+      - Delete product
+    api_calls:
+      - method: GET
+        endpoint: /v1/products
+      - method: POST
+        endpoint: /v1/products
+  - name: Series Management
+    description: Configure document series (F001, B001, etc.)
+    files:
+      - src/app/(authenticated)/series/page.tsx
+    entry_route: /series
+    user_interactions:
+      - View series list
+      - Create new series
+      - Activate/deactivate series
+    api_calls:
+      - method: GET
+        endpoint: /v1/series
+      - method: POST
+        endpoint: /v1/series
+  - name: Dashboard
+    description: KPI cards and charts overview
+    files:
+      - src/app/(authenticated)/dashboard/page.tsx
+    entry_route: /dashboard
+    user_interactions:
+      - View KPI summary cards
+      - View charts
+    api_calls:
+      - method: GET
+        endpoint: /v1/dashboard
+  - name: Backoffice Management
+    description: Superadmin panel for tenants, employees, documents
+    files:
+      - src/app/backoffice/login/page.tsx
+      - src/app/backoffice/(panel)/dashboard/page.tsx
+      - src/app/backoffice/(panel)/tenants/page.tsx
+    entry_route: /backoffice/login
+    user_interactions:
+      - Login as superadmin
+      - View tenants list
+      - Manage employees
+      - View all documents
+    api_calls:
+      - method: POST
+        endpoint: /v1/backoffice/auth/login
+      - method: GET
+        endpoint: /v1/backoffice/tenants
+known_limitations: []

@@ -1,0 +1,287 @@
+[
+  {
+    "id": "TC001",
+    "title": "Login successful and dashboard loads with KPIs",
+    "description": "Navigate to /login. Fill the input labeled 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572. Fill the input labeled 'Email' with prdtest@test.pe. Fill the input labeled 'Contraseña' with PrdTest2026!. Click the button 'Iniciar Sesión'. Wait up to 10 seconds for URL to contain /dashboard. Wait 3 more seconds for API data to load. Verify the page heading or content area shows dashboard elements. Verify there are card elements on the page showing KPI numbers or statistics.",
+    "category": "Authentication",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "action", "description": "Fill the input labeled 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"},
+      {"type": "action", "description": "Fill the input labeled 'Email' with prdtest@test.pe"},
+      {"type": "action", "description": "Fill the input labeled 'Contraseña' with PrdTest2026!"},
+      {"type": "action", "description": "Click the button 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Wait up to 10 seconds for URL to contain /dashboard"},
+      {"type": "assertion", "description": "Wait 3 seconds. Page contains card elements with KPI numbers or statistics"}
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Login fails with wrong password and shows error toast",
+    "description": "Navigate to /login. Fill the input labeled 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572. Fill the input labeled 'Email' with prdtest@test.pe. Fill the input labeled 'Contraseña' with WrongPassword999. Click the button 'Iniciar Sesión'. Wait 5 seconds. Verify a toast notification appears on the page (look for an element with role='status' or a div with class containing 'toast' or 'sonner' with error text). Verify the URL still contains /login and did NOT navigate to /dashboard.",
+    "category": "Authentication",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "action", "description": "Fill the input labeled 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"},
+      {"type": "action", "description": "Fill the input labeled 'Email' with prdtest@test.pe"},
+      {"type": "action", "description": "Fill the input labeled 'Contraseña' with WrongPassword999"},
+      {"type": "action", "description": "Click the button 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Wait 5 seconds. A toast notification with error text appears (look for [data-sonner-toast] or role=status element)"},
+      {"type": "assertion", "description": "URL still contains /login, NOT /dashboard"}
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Unauthenticated user redirected to login",
+    "description": "Navigate directly to /dashboard without logging in first. Wait up to 5 seconds. Verify the URL redirects to contain /login. The dashboard should NOT be accessible without authentication.",
+    "category": "Authentication",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate directly to /dashboard without being logged in"},
+      {"type": "assertion", "description": "Wait 5 seconds. URL redirects and contains /login"}
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Create a new customer via dialog form",
+    "description": "Login first: Navigate to /login, fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572, fill 'Email' with prdtest@test.pe, fill 'Contraseña' with PrdTest2026!, click 'Iniciar Sesión', wait for URL to contain /dashboard. Then navigate to /customers. Wait 5 seconds for the page to load. Verify the heading 'Directorio de Clientes' is visible. Click the button that contains text 'Nuevo Cliente'. Wait 2 seconds for the dialog to open. In the dialog, verify the title shows 'Nuevo Cliente'. The form has a select for 'Tipo Doc.' — leave it as RUC (default). Fill the input labeled 'N° Documento' with 20999888777. Fill the input labeled 'Nombre / Razón Social' with EMPRESA TEST SPRITE SAC. Fill the input labeled 'Email' with testsprite@empresa.pe. Fill the input labeled 'Teléfono' with 987654321. Fill the input labeled 'Dirección' with Av. Test 123 Lima. Fill the input labeled 'Categoría' with VIP. Click the button labeled 'Crear Cliente'. Wait 5 seconds. Verify a success toast appears with text 'Cliente creado'. Verify the dialog closes and the customer table now shows 'EMPRESA TEST SPRITE SAC' or '20999888777' in the list.",
+    "category": "Customers CRUD",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "action", "description": "Fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"},
+      {"type": "action", "description": "Fill 'Email' with prdtest@test.pe"},
+      {"type": "action", "description": "Fill 'Contraseña' with PrdTest2026!"},
+      {"type": "action", "description": "Click 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Wait 10 seconds for URL to contain /dashboard"},
+      {"type": "action", "description": "Navigate to /customers"},
+      {"type": "assertion", "description": "Wait 5 seconds. Page shows heading 'Directorio de Clientes'"},
+      {"type": "action", "description": "Click the button containing text 'Nuevo Cliente'"},
+      {"type": "assertion", "description": "Wait 2 seconds. Dialog opens with title 'Nuevo Cliente'"},
+      {"type": "action", "description": "Fill the input labeled 'N° Documento' with 20999888777"},
+      {"type": "action", "description": "Fill the input labeled 'Nombre / Razón Social' with EMPRESA TEST SPRITE SAC"},
+      {"type": "action", "description": "Fill the input labeled 'Email' with testsprite@empresa.pe"},
+      {"type": "action", "description": "Fill the input labeled 'Teléfono' with 987654321"},
+      {"type": "action", "description": "Fill the input labeled 'Dirección' with Av. Test 123 Lima"},
+      {"type": "action", "description": "Fill the input labeled 'Categoría' with VIP"},
+      {"type": "action", "description": "Click the button labeled 'Crear Cliente'"},
+      {"type": "assertion", "description": "Wait 5 seconds. Success toast 'Cliente creado' appears. Table shows EMPRESA TEST SPRITE SAC"}
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Search customers by document number",
+    "description": "Login first: Navigate to /login, fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572, fill 'Email' with prdtest@test.pe, fill 'Contraseña' with PrdTest2026!, click 'Iniciar Sesión', wait for URL to contain /dashboard. Navigate to /customers. Wait 5 seconds. Find the search input with placeholder 'Buscar por nombre o documento...'. Type '20' into the search field and press Enter. Wait 3 seconds for results to filter. Verify the customer table updates and shows filtered results (fewer rows or matching rows). The table should still be visible with at least column headers 'Documento', 'Nombre', 'Email'.",
+    "category": "Customers CRUD",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "action", "description": "Fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"},
+      {"type": "action", "description": "Fill 'Email' with prdtest@test.pe"},
+      {"type": "action", "description": "Fill 'Contraseña' with PrdTest2026!"},
+      {"type": "action", "description": "Click 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Wait 10 seconds for URL to contain /dashboard"},
+      {"type": "action", "description": "Navigate to /customers"},
+      {"type": "assertion", "description": "Wait 5 seconds. Page loads with customer list"},
+      {"type": "action", "description": "Find the input with placeholder 'Buscar por nombre o documento...' and type '20' then press Enter"},
+      {"type": "assertion", "description": "Wait 3 seconds. Table shows filtered results with column headers visible"}
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Create a new product with full details",
+    "description": "Login first: Navigate to /login, fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572, fill 'Email' with prdtest@test.pe, fill 'Contraseña' with PrdTest2026!, click 'Iniciar Sesión', wait for URL to contain /dashboard. Navigate to /products. Wait 5 seconds. Verify heading 'Catálogo de Productos' is visible. Click the button containing text 'Nuevo Producto'. Wait 2 seconds for dialog to open. Verify dialog title shows 'Nuevo Producto'. Fill the input labeled 'Código (SKU)' with TSPRITE-001. Fill the input labeled 'Descripción' with Servicio de Testing Automatizado. Fill the input labeled 'Precio sin IGV' with 100.00. Fill the input labeled 'Precio con IGV' with 118.00. The 'Tipo IGV' select should default to 'Gravado'. The 'Unidad' select should default to 'Unidad (NIU)'. The 'Moneda' select should default to 'PEN'. Fill the input labeled 'Categoría' with Servicios. Fill the input labeled 'Marca' with TestSprite. Click the button labeled 'Crear Producto'. Wait 5 seconds. Verify a success toast 'Producto creado' appears. Verify the product table now shows 'TSPRITE-001' or 'Servicio de Testing Automatizado'.",
+    "category": "Products CRUD",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "action", "description": "Fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"},
+      {"type": "action", "description": "Fill 'Email' with prdtest@test.pe"},
+      {"type": "action", "description": "Fill 'Contraseña' with PrdTest2026!"},
+      {"type": "action", "description": "Click 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Wait 10 seconds for URL to contain /dashboard"},
+      {"type": "action", "description": "Navigate to /products"},
+      {"type": "assertion", "description": "Wait 5 seconds. Page shows heading 'Catálogo de Productos'"},
+      {"type": "action", "description": "Click the button containing text 'Nuevo Producto'"},
+      {"type": "assertion", "description": "Wait 2 seconds. Dialog opens with title 'Nuevo Producto'"},
+      {"type": "action", "description": "Fill 'Código (SKU)' with TSPRITE-001"},
+      {"type": "action", "description": "Fill 'Descripción' with Servicio de Testing Automatizado"},
+      {"type": "action", "description": "Fill 'Precio sin IGV' with 100.00"},
+      {"type": "action", "description": "Fill 'Precio con IGV' with 118.00"},
+      {"type": "action", "description": "Fill 'Categoría' with Servicios"},
+      {"type": "action", "description": "Fill 'Marca' with TestSprite"},
+      {"type": "action", "description": "Click the button labeled 'Crear Producto'"},
+      {"type": "assertion", "description": "Wait 5 seconds. Success toast 'Producto creado' appears. Table shows TSPRITE-001"}
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Open new document form and verify all sections",
+    "description": "Login first: Navigate to /login, fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572, fill 'Email' with prdtest@test.pe, fill 'Contraseña' with PrdTest2026!, click 'Iniciar Sesión', wait for URL to contain /dashboard. Navigate to /documents/new. Wait 5 seconds. Verify the page heading shows 'Emitir Comprobante'. Verify there is a card section titled 'Documento' with selects for Tipo (showing 'Factura') and Serie. Verify there is a card section titled 'Cliente' with document type select and input fields. Verify there is an Items table with headers: #, Descripción, Cant., P.Unit, IGV, Total. Verify there is a button 'Emitir Comprobante' at the bottom. Verify total shows S/ 0.00 initially.",
+    "category": "Documents",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "action", "description": "Fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"},
+      {"type": "action", "description": "Fill 'Email' with prdtest@test.pe"},
+      {"type": "action", "description": "Fill 'Contraseña' with PrdTest2026!"},
+      {"type": "action", "description": "Click 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Wait 10 seconds for URL to contain /dashboard"},
+      {"type": "action", "description": "Navigate to /documents/new"},
+      {"type": "assertion", "description": "Wait 5 seconds. Page shows heading 'Emitir Comprobante'"},
+      {"type": "assertion", "description": "Page has card titled 'Documento' with Tipo select showing 'Factura'"},
+      {"type": "assertion", "description": "Page has card titled 'Cliente' with document type select and input fields"},
+      {"type": "assertion", "description": "Page has Items table with headers: Descripción, Cant., P.Unit, IGV, Total"},
+      {"type": "assertion", "description": "Page has button 'Emitir Comprobante' and shows TOTAL with S/ 0.00"}
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Emit a Factura with full form data",
+    "description": "Login first: Navigate to /login, fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572, fill 'Email' with prdtest@test.pe, fill 'Contraseña' with PrdTest2026!, click 'Iniciar Sesión', wait for URL to contain /dashboard. Navigate to /documents/new. Wait 5 seconds for form to load. The Tipo select should already show 'Factura' (default). The Serie select should auto-select the first available serie. In the Cliente section: the Doc select defaults to 'RUC'. Fill the 'Número' input field (the one next to the Doc select, with placeholder '20XXXXXXXXX') with 20100130204. Fill the input labeled 'Razón Social / Nombre' with SUNAT - SUPERINTENDENCIA NAC. In the Items table row 1: fill the 'Descripción' input (placeholder 'Descripción del producto/servicio') with Servicio de consultoría E2E. Fill the 'Cant.' input with 2. Fill the 'P.Unit' input with 500. The IGV select defaults to 'Gravado'. Wait 1 second. Verify the row Total shows S/ 1,180.00 (500 * 2 = 1000 + 18% IGV = 1180). Verify the bottom TOTAL section shows approximately S/ 1,180.00. Click the button 'Emitir Comprobante'. Wait 10 seconds for the API response. Verify either: a success toast appears with text containing 'emitido', OR the URL changes to /documents/ followed by an ID (document detail page).",
+    "category": "Documents",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "action", "description": "Fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"},
+      {"type": "action", "description": "Fill 'Email' with prdtest@test.pe"},
+      {"type": "action", "description": "Fill 'Contraseña' with PrdTest2026!"},
+      {"type": "action", "description": "Click 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Wait 10 seconds for URL to contain /dashboard"},
+      {"type": "action", "description": "Navigate to /documents/new"},
+      {"type": "assertion", "description": "Wait 5 seconds. Page shows 'Emitir Comprobante' and form loads with Factura selected"},
+      {"type": "action", "description": "In the Cliente section, fill the 'Número' input (placeholder '20XXXXXXXXX') with 20100130204"},
+      {"type": "action", "description": "Fill the input labeled 'Razón Social / Nombre' with SUNAT - SUPERINTENDENCIA NAC"},
+      {"type": "action", "description": "In the Items table first row, fill the 'Descripción' input (placeholder 'Descripción del producto/servicio') with Servicio de consultoría E2E"},
+      {"type": "action", "description": "In the same row, clear and fill the 'Cant.' input with 2"},
+      {"type": "action", "description": "In the same row, clear and fill the 'P.Unit' input with 500"},
+      {"type": "assertion", "description": "Wait 2 seconds. The TOTAL section shows approximately S/ 1,180.00"},
+      {"type": "action", "description": "Click the button 'Emitir Comprobante'"},
+      {"type": "assertion", "description": "Wait 10 seconds. Success toast with 'emitido' appears OR URL changes to /documents/ with an ID"}
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Documents list shows emitted documents with table",
+    "description": "Login first: Navigate to /login, fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572, fill 'Email' with prdtest@test.pe, fill 'Contraseña' with PrdTest2026!, click 'Iniciar Sesión', wait for URL to contain /dashboard. Navigate to /documents. Wait 5 seconds for the page and data to load. Verify the page shows a heading with text 'Comprobantes' or 'Documentos'. Verify there is a data table with rows. Each row should show document data like series numbers (F001, B001), amounts, dates, or status badges. Verify the table has columns visible. If there are documents, at least one row should be visible in the table body.",
+    "category": "Documents",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "action", "description": "Fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"},
+      {"type": "action", "description": "Fill 'Email' with prdtest@test.pe"},
+      {"type": "action", "description": "Fill 'Contraseña' with PrdTest2026!"},
+      {"type": "action", "description": "Click 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Wait 10 seconds for URL to contain /dashboard"},
+      {"type": "action", "description": "Navigate to /documents"},
+      {"type": "assertion", "description": "Wait 5 seconds. Page shows heading 'Comprobantes' or 'Documentos'"},
+      {"type": "assertion", "description": "Table is visible with column headers and at least one data row showing document info"}
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Series page shows configured series with F001 and B001",
+    "description": "Login first: Navigate to /login, fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572, fill 'Email' with prdtest@test.pe, fill 'Contraseña' with PrdTest2026!, click 'Iniciar Sesión', wait for URL to contain /dashboard. Navigate to /series. Wait 5 seconds for data to load. Verify the page shows heading 'Series' or similar. Verify the page contains text 'F001' (factura series) somewhere in the content. Verify the page also contains text 'B001' (boleta series). These are the main series configured for this tenant.",
+    "category": "Series",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "action", "description": "Fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"},
+      {"type": "action", "description": "Fill 'Email' with prdtest@test.pe"},
+      {"type": "action", "description": "Fill 'Contraseña' with PrdTest2026!"},
+      {"type": "action", "description": "Click 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Wait 10 seconds for URL to contain /dashboard"},
+      {"type": "action", "description": "Navigate to /series"},
+      {"type": "assertion", "description": "Wait 5 seconds. Page contains text 'F001' and 'B001' in the series list"}
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Sidebar navigation works for all main sections",
+    "description": "Login first: Navigate to /login, fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572, fill 'Email' with prdtest@test.pe, fill 'Contraseña' with PrdTest2026!, click 'Iniciar Sesión', wait for URL to contain /dashboard. Wait 3 seconds. Verify the page has a sidebar or navigation area. Click on a sidebar link that contains text 'Clientes' or navigates to /customers. Wait 3 seconds. Verify URL now contains /customers. Verify the page shows 'Directorio de Clientes'. Then click on a sidebar link for 'Productos' or that navigates to /products. Wait 3 seconds. Verify URL contains /products. Verify page shows 'Catálogo de Productos'. Then click on a sidebar link for documents or 'Comprobantes'. Wait 3 seconds. Verify URL contains /documents.",
+    "category": "Navigation",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "action", "description": "Fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"},
+      {"type": "action", "description": "Fill 'Email' with prdtest@test.pe"},
+      {"type": "action", "description": "Fill 'Contraseña' with PrdTest2026!"},
+      {"type": "action", "description": "Click 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Wait 10 seconds for URL to contain /dashboard"},
+      {"type": "action", "description": "Click sidebar link containing 'Clientes'"},
+      {"type": "assertion", "description": "Wait 3 seconds. URL contains /customers. Page shows 'Directorio de Clientes'"},
+      {"type": "action", "description": "Click sidebar link containing 'Productos'"},
+      {"type": "assertion", "description": "Wait 3 seconds. URL contains /products. Page shows 'Catálogo de Productos'"},
+      {"type": "action", "description": "Click sidebar link for documents or 'Comprobantes'"},
+      {"type": "assertion", "description": "Wait 3 seconds. URL contains /documents"}
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Backoffice login and tenant list",
+    "description": "Navigate to /backoffice/login. Wait 3 seconds for the page to load. Find the email input field and fill it with superadmin@tukifact.net.pe. Find the password input field and fill it with SuperAdmin2026!. Click the login or submit button. Wait up to 10 seconds for the URL to change to contain /backoffice. Verify the backoffice panel loads. Then navigate to /backoffice/tenants. Wait 5 seconds. Verify the page shows a list or table of tenants. There should be at least one tenant visible in the list.",
+    "category": "Backoffice",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /backoffice/login"},
+      {"type": "assertion", "description": "Wait 3 seconds. Login form is visible"},
+      {"type": "action", "description": "Fill email input with superadmin@tukifact.net.pe"},
+      {"type": "action", "description": "Fill password input with SuperAdmin2026!"},
+      {"type": "action", "description": "Click the login/submit button"},
+      {"type": "assertion", "description": "Wait 10 seconds. URL contains /backoffice"},
+      {"type": "action", "description": "Navigate to /backoffice/tenants"},
+      {"type": "assertion", "description": "Wait 5 seconds. Page shows tenant list with at least one tenant row"}
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Logout flow redirects to login",
+    "description": "Login first: Navigate to /login, fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572, fill 'Email' with prdtest@test.pe, fill 'Contraseña' with PrdTest2026!, click 'Iniciar Sesión', wait for URL to contain /dashboard. Wait 3 seconds. Look for a user menu, avatar, or account button in the top-right area of the page. Click it to open a dropdown or menu. Look for text 'Cerrar Sesión' or 'Salir' or a logout option in the menu. Click it. Wait 5 seconds. Verify the URL redirects back to /login. Verify the login form is visible again with the 'ID de Empresa' field.",
+    "category": "Authentication",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "action", "description": "Fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"},
+      {"type": "action", "description": "Fill 'Email' with prdtest@test.pe"},
+      {"type": "action", "description": "Fill 'Contraseña' with PrdTest2026!"},
+      {"type": "action", "description": "Click 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Wait 10 seconds for URL to contain /dashboard"},
+      {"type": "action", "description": "Find and click user menu/avatar in top area, then click 'Cerrar Sesión' or logout option"},
+      {"type": "assertion", "description": "Wait 5 seconds. URL contains /login. Login form visible with 'ID de Empresa' field"}
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Quotations page loads and shows content",
+    "description": "Login first: Navigate to /login, fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572, fill 'Email' with prdtest@test.pe, fill 'Contraseña' with PrdTest2026!, click 'Iniciar Sesión', wait for URL to contain /dashboard. Navigate to /quotations. Wait 5 seconds. Verify the page loads with a heading containing 'Cotizaciones'. Verify there is either a table with quotation data or an empty state message. The page should be fully rendered without errors.",
+    "category": "Quotations",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "action", "description": "Fill 'ID de Empresa' with b2ba4cad-45c9-4a98-96f9-bf2eb6c96572"},
+      {"type": "action", "description": "Fill 'Email' with prdtest@test.pe"},
+      {"type": "action", "description": "Fill 'Contraseña' with PrdTest2026!"},
+      {"type": "action", "description": "Click 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Wait 10 seconds for URL to contain /dashboard"},
+      {"type": "action", "description": "Navigate to /quotations"},
+      {"type": "assertion", "description": "Wait 5 seconds. Page shows heading 'Cotizaciones' and either a data table or empty state"}
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Login page branding and register link",
+    "description": "Navigate to /login. Wait 3 seconds for the page to fully load. Verify the page shows the TukiFact logo (an img element with alt 'TukiFact'). Verify the page shows text 'Inicia sesión en tu cuenta'. Verify there are 3 input fields: one labeled 'ID de Empresa', one labeled 'Email', one labeled 'Contraseña'. Verify there is a button labeled 'Iniciar Sesión'. Verify there is a link with text 'Registrate' that links to /register. Click the 'Registrate' link. Wait 3 seconds. Verify the URL changes to contain /register.",
+    "category": "UI",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Navigate to /login"},
+      {"type": "assertion", "description": "Wait 3 seconds. Page shows TukiFact logo (img with alt='TukiFact')"},
+      {"type": "assertion", "description": "Page shows text 'Inicia sesión en tu cuenta'"},
+      {"type": "assertion", "description": "Page has inputs labeled 'ID de Empresa', 'Email', 'Contraseña' and button 'Iniciar Sesión'"},
+      {"type": "assertion", "description": "Page has link with text 'Registrate'"},
+      {"type": "action", "description": "Click the link with text 'Registrate'"},
+      {"type": "assertion", "description": "Wait 3 seconds. URL contains /register"}
+    ]
+  }
+]
