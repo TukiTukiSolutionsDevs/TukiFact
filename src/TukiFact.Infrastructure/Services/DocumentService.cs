@@ -5,6 +5,7 @@ using TukiFact.Application.DTOs.Documents;
 using TukiFact.Application.Interfaces;
 using TukiFact.Domain.Entities;
 using TukiFact.Domain.Enums;
+using TukiFact.Domain.Services;
 
 namespace TukiFact.Infrastructure.Services;
 
@@ -18,6 +19,7 @@ public class DocumentService : IDocumentService
     private readonly ISunatClient _sunatClient;
     private readonly IStorageService _storageService;
     private readonly IPdfGenerator _pdfGenerator;
+    private readonly ISecretProtector _secrets;
     private readonly ILogger<DocumentService> _logger;
     private const decimal IgvRate = 0.18m;
 
@@ -30,6 +32,7 @@ public class DocumentService : IDocumentService
         ISunatClient sunatClient,
         IStorageService storageService,
         IPdfGenerator pdfGenerator,
+        ISecretProtector secrets,
         ILogger<DocumentService> logger)
     {
         _documentRepo = documentRepo;
@@ -40,6 +43,7 @@ public class DocumentService : IDocumentService
         _sunatClient = sunatClient;
         _storageService = storageService;
         _pdfGenerator = pdfGenerator;
+        _secrets = secrets;
         _logger = logger;
     }
 
@@ -72,28 +76,33 @@ public class DocumentService : IDocumentService
         // 5. Build UBL XML
         var xml = _ublBuilder.BuildInvoiceXml(document, tenant);
 
-        // 6. Sign XML (if certificate available)
-        string signedXml = xml;
-        string? hashCode = null;
-        if (tenant.CertificateData is not null && tenant.CertificatePasswordEncrypted is not null)
+        // 6. Sign XML — required; an unsigned XML to SUNAT = guaranteed rejection 0306 + masks the failure.
+        if (tenant.CertificateData is null || tenant.CertificatePasswordEncrypted is null)
         {
-            try
-            {
-                var (signed, digest) = _signingService.SignXml(xml, tenant.CertificateData, tenant.CertificatePasswordEncrypted);
-                signedXml = signed;
-                hashCode = digest;
-                document.HashCode = hashCode;
-                document.Status = DocumentStatus.Signed;
-                _logger.LogInformation("Document signed: {FullNumber}, Hash: {Hash}", document.FullNumber, hashCode);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to sign document {FullNumber}. Continuing without signature.", document.FullNumber);
-            }
+            document.Status = DocumentStatus.Rejected;
+            document.SunatResponseDescription = "El emisor no tiene certificado digital configurado.";
+            await _documentRepo.UpdateAsync(document, ct);
+            throw new InvalidOperationException("El emisor no tiene certificado digital configurado.");
         }
-        else
+
+        string signedXml;
+        string hashCode;
+        try
         {
-            _logger.LogWarning("No certificate configured for tenant {TenantId}. Document will not be signed.", tenantId);
+            var (signed, digest) = _signingService.SignXml(xml, tenant.CertificateData, _secrets.Unprotect(tenant.CertificatePasswordEncrypted));
+            signedXml = signed;
+            hashCode = digest;
+            document.HashCode = hashCode;
+            document.Status = DocumentStatus.Signed;
+            _logger.LogInformation("Document signed: {FullNumber}, Hash: {Hash}", document.FullNumber, hashCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to sign document {FullNumber}.", document.FullNumber);
+            document.Status = DocumentStatus.Rejected;
+            document.SunatResponseDescription = "Error firmando XML: " + ex.Message;
+            await _documentRepo.UpdateAsync(document, ct);
+            throw new InvalidOperationException("Error firmando XML: " + ex.Message);
         }
 
         // 7. Store XML in MinIO
@@ -102,12 +111,20 @@ public class DocumentService : IDocumentService
             $"{document.FullNumber}.xml", xmlBytes, ct);
         document.XmlUrl = xmlPath;
 
-        // 8. Send to SUNAT
+        // 8. Send to SUNAT — credentials per tenant (NO global fallback)
+        if (string.IsNullOrEmpty(tenant.SunatUser) || string.IsNullOrEmpty(tenant.SunatPasswordEncrypted))
+        {
+            document.Status = DocumentStatus.Rejected;
+            document.SunatResponseDescription = "Faltan credenciales SUNAT (SOL user/password) en la configuración del emisor.";
+            await _documentRepo.UpdateAsync(document, ct);
+            throw new InvalidOperationException("Faltan credenciales SUNAT (SOL) en la configuración del emisor.");
+        }
+        var sunatCreds = new SunatCredentials(tenant.SunatUser, _secrets.Unprotect(tenant.SunatPasswordEncrypted), tenant.Environment);
         try
         {
             var zipBytes = CreateZipFromXml($"{tenant.Ruc}-{document.DocumentType}-{document.FullNumber}.xml", xmlBytes);
             var sunatResponse = await _sunatClient.SendDocumentAsync(
-                tenant.Ruc, document.DocumentType, document.FullNumber, zipBytes, ct);
+                tenant.Ruc, document.DocumentType, document.FullNumber, zipBytes, sunatCreds, ct);
 
             document.SunatResponseCode = sunatResponse.ResponseCode;
             document.SunatResponseDescription = sunatResponse.Description;
@@ -142,9 +159,9 @@ public class DocumentService : IDocumentService
         return MapToResponse(document);
     }
 
-    public async Task<DocumentResponse?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    public async Task<DocumentResponse?> GetByIdAsync(Guid id, Guid tenantId, CancellationToken ct = default)
     {
-        var doc = await _documentRepo.GetByIdWithItemsAsync(id, ct);
+        var doc = await _documentRepo.GetByIdWithItemsAsync(id, tenantId, ct);
         return doc is null ? null : MapToResponse(doc);
     }
 
@@ -168,7 +185,7 @@ public class DocumentService : IDocumentService
             SeriesId = series.Id,
             Serie = request.Serie,
             Correlative = correlative,
-            IssueDate = request.IssueDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
+            IssueDate = request.IssueDate ?? RecurringScheduleCalculator.TodayInLima(),
             DueDate = request.DueDate,
             Currency = request.Currency ?? "PEN",
             CustomerDocType = request.CustomerDocType,
@@ -263,8 +280,8 @@ public class DocumentService : IDocumentService
         var tenant = await _tenantRepo.GetByIdAsync(tenantId, ct)
             ?? throw new InvalidOperationException("Tenant no encontrado");
 
-        // Get the reference document
-        var refDoc = await _documentRepo.GetByIdWithItemsAsync(request.ReferenceDocumentId, ct)
+        // Get the reference document (tenant-scoped — prevents IDOR across tenants)
+        var refDoc = await _documentRepo.GetByIdWithItemsAsync(request.ReferenceDocumentId, tenantId, ct)
             ?? throw new InvalidOperationException("Documento de referencia no encontrado");
 
         // Get series for the credit note (type 07)
@@ -298,7 +315,7 @@ public class DocumentService : IDocumentService
         var tenant = await _tenantRepo.GetByIdAsync(tenantId, ct)
             ?? throw new InvalidOperationException("Tenant no encontrado");
 
-        var refDoc = await _documentRepo.GetByIdWithItemsAsync(request.ReferenceDocumentId, ct)
+        var refDoc = await _documentRepo.GetByIdWithItemsAsync(request.ReferenceDocumentId, tenantId, ct)
             ?? throw new InvalidOperationException("Documento de referencia no encontrado");
 
         var series = await _seriesRepo.GetByTypeAndSerieAsync(tenantId, "08", request.Serie, ct)
@@ -336,23 +353,32 @@ public class DocumentService : IDocumentService
             _ => _ublBuilder.BuildInvoiceXml(document, tenant)
         };
 
-        // Sign XML (if certificate available)
-        string signedXml = xml;
-        string? hashCode = null;
-        if (tenant.CertificateData is not null && tenant.CertificatePasswordEncrypted is not null)
+        // Sign XML — required; an unsigned XML to SUNAT = guaranteed rejection 0306.
+        if (tenant.CertificateData is null || tenant.CertificatePasswordEncrypted is null)
         {
-            try
-            {
-                var (signed, digest) = _signingService.SignXml(xml, tenant.CertificateData, tenant.CertificatePasswordEncrypted);
-                signedXml = signed;
-                hashCode = digest;
-                document.HashCode = hashCode;
-                document.Status = DocumentStatus.Signed;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to sign document {FullNumber}.", document.FullNumber);
-            }
+            document.Status = DocumentStatus.Rejected;
+            document.SunatResponseDescription = "El emisor no tiene certificado digital configurado.";
+            await _documentRepo.UpdateAsync(document, ct);
+            throw new InvalidOperationException("El emisor no tiene certificado digital configurado.");
+        }
+
+        string signedXml;
+        string hashCode;
+        try
+        {
+            var (signed, digest) = _signingService.SignXml(xml, tenant.CertificateData, _secrets.Unprotect(tenant.CertificatePasswordEncrypted));
+            signedXml = signed;
+            hashCode = digest;
+            document.HashCode = hashCode;
+            document.Status = DocumentStatus.Signed;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to sign document {FullNumber}.", document.FullNumber);
+            document.Status = DocumentStatus.Rejected;
+            document.SunatResponseDescription = "Error firmando XML: " + ex.Message;
+            await _documentRepo.UpdateAsync(document, ct);
+            throw new InvalidOperationException("Error firmando XML: " + ex.Message);
         }
 
         // Store XML
@@ -361,12 +387,20 @@ public class DocumentService : IDocumentService
             $"{document.FullNumber}.xml", xmlBytes, ct);
         document.XmlUrl = xmlPath;
 
-        // Send to SUNAT
+        // Send to SUNAT — credentials per tenant (NO global fallback)
+        if (string.IsNullOrEmpty(tenant.SunatUser) || string.IsNullOrEmpty(tenant.SunatPasswordEncrypted))
+        {
+            document.Status = DocumentStatus.Rejected;
+            document.SunatResponseDescription = "Faltan credenciales SUNAT (SOL user/password) en la configuración del emisor.";
+            await _documentRepo.UpdateAsync(document, ct);
+            throw new InvalidOperationException("Faltan credenciales SUNAT (SOL) en la configuración del emisor.");
+        }
+        var sunatCreds = new SunatCredentials(tenant.SunatUser, _secrets.Unprotect(tenant.SunatPasswordEncrypted), tenant.Environment);
         try
         {
             var zipBytes = CreateZipFromXml($"{tenant.Ruc}-{document.DocumentType}-{document.FullNumber}.xml", xmlBytes);
             var sunatResponse = await _sunatClient.SendDocumentAsync(
-                tenant.Ruc, document.DocumentType, document.FullNumber, zipBytes, ct);
+                tenant.Ruc, document.DocumentType, document.FullNumber, zipBytes, sunatCreds, ct);
 
             document.SunatResponseCode = sunatResponse.ResponseCode;
             document.SunatResponseDescription = sunatResponse.Description;
@@ -392,7 +426,7 @@ public class DocumentService : IDocumentService
             document.Status = DocumentStatus.Sent;
         }
 
-        document.QrData = $"{tenant.Ruc}|{document.DocumentType}|{document.Serie}|{document.Correlative}|{document.Igv:F2}|{document.Total:F2}|{document.IssueDate:yyyy-MM-dd}|{document.CustomerDocType}|{document.CustomerDocNumber}|{hashCode ?? ""}";
+        document.QrData = $"{tenant.Ruc}|{document.DocumentType}|{document.Serie}|{document.Correlative}|{document.Igv:F2}|{document.Total:F2}|{document.IssueDate:yyyy-MM-dd}|{document.CustomerDocType}|{document.CustomerDocNumber}|{hashCode}";
 
         await _documentRepo.UpdateAsync(document, ct);
         return MapToResponse(document);

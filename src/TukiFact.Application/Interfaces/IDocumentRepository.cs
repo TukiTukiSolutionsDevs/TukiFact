@@ -4,8 +4,8 @@ namespace TukiFact.Application.Interfaces;
 
 public interface IDocumentRepository
 {
-    Task<Document?> GetByIdAsync(Guid id, CancellationToken ct = default);
-    Task<Document?> GetByIdWithItemsAsync(Guid id, CancellationToken ct = default);
+    Task<Document?> GetByIdAsync(Guid id, Guid tenantId, CancellationToken ct = default);
+    Task<Document?> GetByIdWithItemsAsync(Guid id, Guid tenantId, CancellationToken ct = default);
     Task<(IReadOnlyList<Document> Items, int TotalCount)> GetByTenantAsync(
         Guid tenantId, int page, int pageSize,
         string? documentType = null, string? status = null,

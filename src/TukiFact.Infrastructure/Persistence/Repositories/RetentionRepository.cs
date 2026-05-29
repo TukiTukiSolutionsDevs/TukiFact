@@ -10,11 +10,11 @@ public class RetentionRepository : IRetentionRepository
 
     public RetentionRepository(AppDbContext context) => _context = context;
 
-    public async Task<RetentionDocument?> GetByIdWithReferencesAsync(Guid id, CancellationToken ct = default)
+    public async Task<RetentionDocument?> GetByIdWithReferencesAsync(Guid id, Guid tenantId, CancellationToken ct = default)
         => await _context.RetentionDocuments
             .Include(r => r.References.OrderBy(ref_ => ref_.PaymentDate))
             .Include(r => r.Tenant)
-            .FirstOrDefaultAsync(r => r.Id == id, ct);
+            .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId, ct);
 
     public async Task<(IReadOnlyList<RetentionDocument> Items, int TotalCount)> ListAsync(
         Guid tenantId, int page, int pageSize,

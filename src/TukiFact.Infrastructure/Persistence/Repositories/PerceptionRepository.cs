@@ -10,11 +10,11 @@ public class PerceptionRepository : IPerceptionRepository
 
     public PerceptionRepository(AppDbContext context) => _context = context;
 
-    public async Task<PerceptionDocument?> GetByIdWithReferencesAsync(Guid id, CancellationToken ct = default)
+    public async Task<PerceptionDocument?> GetByIdWithReferencesAsync(Guid id, Guid tenantId, CancellationToken ct = default)
         => await _context.PerceptionDocuments
             .Include(p => p.References.OrderBy(ref_ => ref_.CollectionDate))
             .Include(p => p.Tenant)
-            .FirstOrDefaultAsync(p => p.Id == id, ct);
+            .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId, ct);
 
     public async Task<(IReadOnlyList<PerceptionDocument> Items, int TotalCount)> ListAsync(
         Guid tenantId, int page, int pageSize,

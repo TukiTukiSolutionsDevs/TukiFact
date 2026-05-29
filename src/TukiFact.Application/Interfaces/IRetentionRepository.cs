@@ -4,7 +4,7 @@ namespace TukiFact.Application.Interfaces;
 
 public interface IRetentionRepository
 {
-    Task<RetentionDocument?> GetByIdWithReferencesAsync(Guid id, CancellationToken ct = default);
+    Task<RetentionDocument?> GetByIdWithReferencesAsync(Guid id, Guid tenantId, CancellationToken ct = default);
     Task<(IReadOnlyList<RetentionDocument> Items, int TotalCount)> ListAsync(
         Guid tenantId, int page, int pageSize,
         string? status = null, DateOnly? dateFrom = null, DateOnly? dateTo = null,

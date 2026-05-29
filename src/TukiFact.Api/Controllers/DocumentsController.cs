@@ -63,7 +63,8 @@ public class DocumentsController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
-        var result = await _documentService.GetByIdAsync(id, ct);
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+        var result = await _documentService.GetByIdAsync(id, tenantId, ct);
         return result is null ? NotFound() : Ok(result);
     }
 
@@ -107,7 +108,8 @@ public class DocumentsController : ControllerBase
     [HttpGet("{id:guid}/xml")]
     public async Task<IActionResult> DownloadXml(Guid id, [FromServices] IStorageService storageService, CancellationToken ct)
     {
-        var doc = await _documentService.GetByIdAsync(id, ct);
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+        var doc = await _documentService.GetByIdAsync(id, tenantId, ct);
         if (doc?.XmlUrl is null) return NotFound();
 
         var parts = doc.XmlUrl.Split('/', 2);
@@ -168,16 +170,16 @@ public class DocumentsController : ControllerBase
         [FromServices] IPdfGenerator pdfGenerator,
         CancellationToken ct)
     {
-        var doc = await _documentService.GetByIdAsync(id, ct);
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+        var doc = await _documentService.GetByIdAsync(id, tenantId, ct);
         if (doc is null) return NotFound();
 
-        var tenantId = _tenantProvider.GetCurrentTenantId();
         var documentRepo = HttpContext.RequestServices
             .GetRequiredService<IDocumentRepository>();
         var tenantRepo = HttpContext.RequestServices
             .GetRequiredService<ITenantRepository>();
 
-        var document = await documentRepo.GetByIdWithItemsAsync(id, ct);
+        var document = await documentRepo.GetByIdWithItemsAsync(id, tenantId, ct);
         var tenant = await tenantRepo.GetByIdAsync(tenantId, ct);
         if (document is null || tenant is null) return NotFound();
 

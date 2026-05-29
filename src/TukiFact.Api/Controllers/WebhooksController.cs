@@ -62,8 +62,9 @@ public class WebhooksController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateWebhookRequest request, CancellationToken ct)
     {
+        var tenantId = _tenantProvider.GetCurrentTenantId();
         var config = await _webhookRepo.GetByIdAsync(id, ct);
-        if (config is null) return NotFound();
+        if (config is null || config.TenantId != tenantId) return NotFound();
 
         if (request.Url is not null) config.Url = request.Url;
         if (request.Events is not null) config.Events = JsonSerializer.Serialize(request.Events);
@@ -77,6 +78,9 @@ public class WebhooksController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+        var config = await _webhookRepo.GetByIdAsync(id, ct);
+        if (config is null || config.TenantId != tenantId) return NotFound();
         await _webhookRepo.DeleteAsync(id, ct);
         return NoContent();
     }
@@ -84,6 +88,9 @@ public class WebhooksController : ControllerBase
     [HttpGet("{id:guid}/deliveries")]
     public async Task<IActionResult> GetDeliveries(Guid id, CancellationToken ct)
     {
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+        var config = await _webhookRepo.GetByIdAsync(id, ct);
+        if (config is null || config.TenantId != tenantId) return NotFound();
         var deliveries = await _deliveryRepo.GetByWebhookAsync(id, 50, ct);
         return Ok(deliveries.Select(d => new WebhookDeliveryResponse(d.Id, d.EventType, d.Status, d.Attempt, d.ResponseStatus, d.CreatedAt)));
     }

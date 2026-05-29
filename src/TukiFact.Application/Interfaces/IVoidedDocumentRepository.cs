@@ -4,7 +4,7 @@ namespace TukiFact.Application.Interfaces;
 
 public interface IVoidedDocumentRepository
 {
-    Task<VoidedDocument?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task<VoidedDocument?> GetByIdAsync(Guid id, Guid tenantId, CancellationToken ct = default);
     Task<IReadOnlyList<VoidedDocument>> GetByTenantAsync(Guid tenantId, CancellationToken ct = default);
     Task<VoidedDocument> CreateAsync(VoidedDocument doc, CancellationToken ct = default);
     Task UpdateAsync(VoidedDocument doc, CancellationToken ct = default);

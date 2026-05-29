@@ -10,14 +10,14 @@ public class DocumentRepository : IDocumentRepository
 
     public DocumentRepository(AppDbContext context) => _context = context;
 
-    public async Task<Document?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _context.Documents.FirstOrDefaultAsync(d => d.Id == id, ct);
+    public async Task<Document?> GetByIdAsync(Guid id, Guid tenantId, CancellationToken ct = default)
+        => await _context.Documents.FirstOrDefaultAsync(d => d.Id == id && d.TenantId == tenantId, ct);
 
-    public async Task<Document?> GetByIdWithItemsAsync(Guid id, CancellationToken ct = default)
+    public async Task<Document?> GetByIdWithItemsAsync(Guid id, Guid tenantId, CancellationToken ct = default)
         => await _context.Documents
             .Include(d => d.Items.OrderBy(i => i.Sequence))
             .Include(d => d.Tenant)
-            .FirstOrDefaultAsync(d => d.Id == id, ct);
+            .FirstOrDefaultAsync(d => d.Id == id && d.TenantId == tenantId, ct);
 
     public async Task<(IReadOnlyList<Document> Items, int TotalCount)> GetByTenantAsync(
         Guid tenantId, int page, int pageSize,

@@ -47,7 +47,7 @@ public class EmailService : IEmailService
 
     public async Task SendDocumentEmailAsync(Guid tenantId, Guid documentId, string recipientEmail, CancellationToken ct = default)
     {
-        var document = await _documentRepo.GetByIdWithItemsAsync(documentId, ct);
+        var document = await _documentRepo.GetByIdWithItemsAsync(documentId, tenantId, ct);
         var tenant = await _tenantRepo.GetByIdAsync(tenantId, ct);
         if (document is null || tenant is null) return;
 

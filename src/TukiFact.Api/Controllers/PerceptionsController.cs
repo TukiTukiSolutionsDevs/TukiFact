@@ -7,6 +7,7 @@ using TukiFact.Application.DTOs.Perceptions;
 using TukiFact.Application.Interfaces;
 using TukiFact.Domain.Entities;
 using TukiFact.Domain.Enums;
+using TukiFact.Domain.Services;
 
 namespace TukiFact.Api.Controllers;
 
@@ -21,6 +22,7 @@ public class PerceptionsController : ControllerBase
     private readonly IXmlSigningService _signingService;
     private readonly ISunatClient _sunatClient;
     private readonly IStorageService _storageService;
+    private readonly ISecretProtector _secrets;
     private readonly ILogger<PerceptionsController> _logger;
 
     public PerceptionsController(
@@ -30,6 +32,7 @@ public class PerceptionsController : ControllerBase
         IXmlSigningService signingService,
         ISunatClient sunatClient,
         IStorageService storageService,
+        ISecretProtector secrets,
         ILogger<PerceptionsController> logger)
     {
         _perceptionRepo = perceptionRepo;
@@ -38,6 +41,7 @@ public class PerceptionsController : ControllerBase
         _signingService = signingService;
         _sunatClient = sunatClient;
         _storageService = storageService;
+        _secrets = secrets;
         _logger = logger;
     }
 
@@ -58,7 +62,7 @@ public class PerceptionsController : ControllerBase
             TenantId = tenantId,
             Serie = request.Serie,
             Correlative = correlative,
-            IssueDate = request.IssueDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
+            IssueDate = request.IssueDate ?? RecurringScheduleCalculator.TodayInLima(),
             CustomerDocType = request.CustomerDocType,
             CustomerDocNumber = request.CustomerDocNumber,
             CustomerName = request.CustomerName,
@@ -108,21 +112,30 @@ public class PerceptionsController : ControllerBase
         // Build XML (UBL 2.0)
         var xml = _xmlBuilder.BuildPerceptionXml(perception, tenant);
 
-        // Sign
-        string signedXml = xml;
-        if (tenant.CertificateData is not null && tenant.CertificatePasswordEncrypted is not null)
+        // Sign — required; SUNAT rechazará XML sin firma (0306) y dejaría el flujo en estado inconsistente.
+        if (tenant.CertificateData is null || tenant.CertificatePasswordEncrypted is null)
         {
-            try
-            {
-                var (signed, digest) = _signingService.SignXml(xml, tenant.CertificateData, tenant.CertificatePasswordEncrypted);
-                signedXml = signed;
-                perception.HashCode = digest;
-                perception.Status = DocumentStatus.Signed;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to sign perception {FullNumber}", perception.FullNumber);
-            }
+            perception.Status = DocumentStatus.Rejected;
+            perception.SunatResponseDescription = "El emisor no tiene certificado digital configurado.";
+            await _perceptionRepo.UpdateAsync(perception, ct);
+            return UnprocessableEntity(new { error = "El emisor no tiene certificado digital configurado. Configúralo en /certificate antes de emitir." });
+        }
+
+        string signedXml;
+        try
+        {
+            var (signed, digest) = _signingService.SignXml(xml, tenant.CertificateData, _secrets.Unprotect(tenant.CertificatePasswordEncrypted));
+            signedXml = signed;
+            perception.HashCode = digest;
+            perception.Status = DocumentStatus.Signed;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to sign perception {FullNumber}", perception.FullNumber);
+            perception.Status = DocumentStatus.Rejected;
+            perception.SunatResponseDescription = "Error firmando XML: " + ex.Message;
+            await _perceptionRepo.UpdateAsync(perception, ct);
+            return UnprocessableEntity(new { error = "Error firmando XML", detail = ex.Message });
         }
 
         // Store XML
@@ -130,12 +143,20 @@ public class PerceptionsController : ControllerBase
         perception.XmlUrl = await _storageService.UploadXmlAsync(tenantId,
             $"{perception.FullNumber}.xml", xmlBytes, ct);
 
-        // Send to SUNAT (same endpoint as retention — otroscpe)
+        // Send to SUNAT — credentials per tenant (NO global fallback; cada tenant tiene su SOL user/pass)
+        if (string.IsNullOrEmpty(tenant.SunatUser) || string.IsNullOrEmpty(tenant.SunatPasswordEncrypted))
+        {
+            perception.Status = DocumentStatus.Rejected;
+            perception.SunatResponseDescription = "Faltan credenciales SUNAT (SOL user/password) en la configuración del emisor.";
+            await _perceptionRepo.UpdateAsync(perception, ct);
+            return UnprocessableEntity(new { error = "Faltan credenciales SUNAT (SOL) en la configuración del emisor. Configúralas en /settings." });
+        }
+        var sunatCreds = new SunatCredentials(tenant.SunatUser, _secrets.Unprotect(tenant.SunatPasswordEncrypted), tenant.Environment);
         try
         {
             var zipBytes = CreateZip($"{tenant.Ruc}-40-{perception.FullNumber}.xml", xmlBytes);
             var response = await _sunatClient.SendDocumentAsync(
-                tenant.Ruc, "40", perception.FullNumber, zipBytes, ct);
+                tenant.Ruc, "40", perception.FullNumber, zipBytes, sunatCreds, ct);
 
             perception.SunatResponseCode = response.ResponseCode;
             perception.SunatResponseDescription = response.Description;
@@ -158,7 +179,7 @@ public class PerceptionsController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<PerceptionResponse>> GetById(Guid id, CancellationToken ct)
     {
-        var perception = await _perceptionRepo.GetByIdWithReferencesAsync(id, ct);
+        var perception = await _perceptionRepo.GetByIdWithReferencesAsync(id, GetTenantId(), ct);
         return perception is null ? NotFound() : Ok(MapToResponse(perception));
     }
 

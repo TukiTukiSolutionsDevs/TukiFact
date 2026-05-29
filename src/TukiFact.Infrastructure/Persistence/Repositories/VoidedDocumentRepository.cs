@@ -10,8 +10,8 @@ public class VoidedDocumentRepository : IVoidedDocumentRepository
 
     public VoidedDocumentRepository(AppDbContext context) => _context = context;
 
-    public async Task<VoidedDocument?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _context.VoidedDocuments.FirstOrDefaultAsync(v => v.Id == id, ct);
+    public async Task<VoidedDocument?> GetByIdAsync(Guid id, Guid tenantId, CancellationToken ct = default)
+        => await _context.VoidedDocuments.FirstOrDefaultAsync(v => v.Id == id && v.TenantId == tenantId, ct);
 
     public async Task<IReadOnlyList<VoidedDocument>> GetByTenantAsync(Guid tenantId, CancellationToken ct = default)
         => await _context.VoidedDocuments

@@ -6,6 +6,7 @@ using TukiFact.Application.Interfaces;
 using TukiFact.Domain.Entities;
 using TukiFact.Domain.Enums;
 using TukiFact.Domain.Interfaces;
+using TukiFact.Domain.Services;
 
 namespace TukiFact.Api.Controllers;
 
@@ -39,14 +40,14 @@ public class VoidedDocumentsController : ControllerBase
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
-        var document = await _documentRepo.GetByIdAsync(request.DocumentId, ct);
+        var document = await _documentRepo.GetByIdAsync(request.DocumentId, tenantId, ct);
         if (document is null)
             return NotFound(new { error = "Documento no encontrado" });
 
         if (document.Status != DocumentStatus.Accepted)
             return BadRequest(new { error = $"Solo se pueden anular documentos aceptados. Estado actual: {document.Status}" });
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = RecurringScheduleCalculator.TodayInLima();
         var ticketSeq = await _voidedRepo.GetNextTicketNumberAsync(tenantId, "RA", today, ct);
         var ticketNumber = $"RA-{today:yyyyMMdd}-{ticketSeq:D3}";
 

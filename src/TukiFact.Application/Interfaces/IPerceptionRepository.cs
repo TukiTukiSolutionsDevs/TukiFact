@@ -4,7 +4,7 @@ namespace TukiFact.Application.Interfaces;
 
 public interface IPerceptionRepository
 {
-    Task<PerceptionDocument?> GetByIdWithReferencesAsync(Guid id, CancellationToken ct = default);
+    Task<PerceptionDocument?> GetByIdWithReferencesAsync(Guid id, Guid tenantId, CancellationToken ct = default);
     Task<(IReadOnlyList<PerceptionDocument> Items, int TotalCount)> ListAsync(
         Guid tenantId, int page, int pageSize,
         string? status = null, DateOnly? dateFrom = null, DateOnly? dateTo = null,
