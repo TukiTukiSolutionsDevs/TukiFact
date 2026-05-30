@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TukiFact.Application.DTOs.Documents;
 using TukiFact.Application.Interfaces;
+using TukiFact.Application.Validation;
 using TukiFact.Domain.Entities;
 using TukiFact.Domain.Enums;
 using TukiFact.Domain.Interfaces;
@@ -38,6 +39,10 @@ public class VoidedDocumentsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> VoidDocument([FromBody] VoidDocumentRequest request, CancellationToken ct)
     {
+        var validationErrors = VoidDocumentValidator.Validate(request);
+        if (validationErrors.Count > 0)
+            return BadRequest(new { error = "Datos inválidos para la anulación.", details = validationErrors });
+
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
         var document = await _documentRepo.GetByIdAsync(request.DocumentId, tenantId, ct);

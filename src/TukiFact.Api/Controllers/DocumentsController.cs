@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TukiFact.Application.DTOs.Documents;
 using TukiFact.Application.Interfaces;
+using TukiFact.Application.Validation;
 using TukiFact.Domain.Interfaces;
 
 namespace TukiFact.Api.Controllers;
@@ -32,6 +33,10 @@ public class DocumentsController : ControllerBase
     [Authorize(Roles = "admin,emisor")]
     public async Task<IActionResult> Emit([FromBody] CreateDocumentRequest request, CancellationToken ct)
     {
+        var validationErrors = DocumentValidator.Validate(request);
+        if (validationErrors.Count > 0)
+            return BadRequest(new { error = "Datos inválidos para emitir el documento.", details = validationErrors });
+
         try
         {
             var tenantId = _tenantProvider.GetCurrentTenantId();
@@ -128,6 +133,10 @@ public class DocumentsController : ControllerBase
     [Authorize(Roles = "admin,emisor")]
     public async Task<IActionResult> EmitCreditNote([FromBody] CreateCreditNoteRequest request, CancellationToken ct)
     {
+        var validationErrors = DocumentValidator.ValidateCreditNote(request);
+        if (validationErrors.Count > 0)
+            return BadRequest(new { error = "Datos inválidos para emitir la nota de crédito.", details = validationErrors });
+
         try
         {
             var tenantId = _tenantProvider.GetCurrentTenantId();
@@ -148,6 +157,10 @@ public class DocumentsController : ControllerBase
     [Authorize(Roles = "admin,emisor")]
     public async Task<IActionResult> EmitDebitNote([FromBody] CreateDebitNoteRequest request, CancellationToken ct)
     {
+        var validationErrors = DocumentValidator.ValidateDebitNote(request);
+        if (validationErrors.Count > 0)
+            return BadRequest(new { error = "Datos inválidos para emitir la nota de débito.", details = validationErrors });
+
         try
         {
             var tenantId = _tenantProvider.GetCurrentTenantId();

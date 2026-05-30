@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TukiFact.Application.DTOs.Perceptions;
 using TukiFact.Application.Interfaces;
+using TukiFact.Application.Validation;
 using TukiFact.Domain.Entities;
 using TukiFact.Domain.Enums;
 using TukiFact.Domain.Services;
@@ -51,6 +52,10 @@ public class PerceptionsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PerceptionResponse>> Create([FromBody] CreatePerceptionRequest request, CancellationToken ct)
     {
+        var validationErrors = PerceptionValidator.Validate(request);
+        if (validationErrors.Count > 0)
+            return BadRequest(new { error = "Datos inválidos para emitir la percepción.", details = validationErrors });
+
         var tenantId = GetTenantId();
         var tenant = await _tenantRepo.GetByIdAsync(tenantId, ct)
             ?? throw new InvalidOperationException("Tenant no encontrado");

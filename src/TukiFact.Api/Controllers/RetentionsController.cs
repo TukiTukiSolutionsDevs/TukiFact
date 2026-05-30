@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TukiFact.Application.DTOs.Retentions;
 using TukiFact.Application.Interfaces;
+using TukiFact.Application.Validation;
 using TukiFact.Domain.Entities;
 using TukiFact.Domain.Enums;
 using TukiFact.Domain.Services;
@@ -51,6 +52,10 @@ public class RetentionsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<RetentionResponse>> Create([FromBody] CreateRetentionRequest request, CancellationToken ct)
     {
+        var validationErrors = RetentionValidator.Validate(request);
+        if (validationErrors.Count > 0)
+            return BadRequest(new { error = "Datos inválidos para emitir la retención.", details = validationErrors });
+
         var tenantId = GetTenantId();
         var tenant = await _tenantRepo.GetByIdAsync(tenantId, ct)
             ?? throw new InvalidOperationException("Tenant no encontrado");
