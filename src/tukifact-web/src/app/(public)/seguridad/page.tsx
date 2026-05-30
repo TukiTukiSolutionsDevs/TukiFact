@@ -87,8 +87,8 @@ export default function SeguridadPage() {
           <h2 className="t-display-lg text-foreground">Reportar una vulnerabilidad</h2>
           <p className="mt-4 text-slate-600">
             Si descubriste un problema de seguridad, queremos saberlo. Escríbenos a{' '}
-            <a className="font-semibold text-foreground underline" href="mailto:security@tukifact.pe">
-              security@tukifact.pe
+            <a className="font-semibold text-foreground underline" href="mailto:security@tukifact.com.pe">
+              security@tukifact.com.pe
             </a>{' '}
             con los detalles. Respondemos en menos de 48h hábiles y reconocemos a investigadores responsables en nuestro hall of fame.
           </p>

@@ -15,7 +15,7 @@ const COLUMNS = [
     title: 'Empresa',
     links: [
       { href: '/contacto', label: 'Contacto' },
-      { href: 'mailto:hola@tukifact.pe', label: 'hola@tukifact.pe' },
+      { href: 'mailto:hola@tukifact.com.pe', label: 'hola@tukifact.com.pe' },
     ],
   },
   {

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   },
   description:
     'Emite facturas, boletas, notas y guías de remisión electrónicas con TukiFact. SUNAT al día, SOL incluida, asistente IA y API REST.',
-  metadataBase: new URL('https://tukifact.pe'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_PUBLIC_URL ?? 'https://tukifact.com.pe'),
   openGraph: {
     type: 'website',
     locale: 'es_PE',

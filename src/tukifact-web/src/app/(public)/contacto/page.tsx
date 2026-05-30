@@ -29,13 +29,13 @@ export default function ContactoPage() {
               <Mail className="h-5 w-5 text-[var(--brand-toucan-orange)]" />
               <h3 className="mt-3 font-semibold text-foreground">Email</h3>
               <p className="mt-1 text-sm text-slate-600">
-                <a href="mailto:hola@tukifact.pe" className="hover:text-foreground">
-                  hola@tukifact.pe
+                <a href="mailto:hola@tukifact.com.pe" className="hover:text-foreground">
+                  hola@tukifact.com.pe
                 </a>
               </p>
               <p className="mt-1 text-sm text-slate-600">
-                <a href="mailto:ventas@tukifact.pe" className="hover:text-foreground">
-                  ventas@tukifact.pe
+                <a href="mailto:ventas@tukifact.com.pe" className="hover:text-foreground">
+                  ventas@tukifact.com.pe
                 </a>
               </p>
             </div>

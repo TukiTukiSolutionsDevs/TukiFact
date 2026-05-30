@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const BASE = process.env.NEXT_PUBLIC_PUBLIC_URL ?? 'https://tukifact.pe';
+const BASE = process.env.NEXT_PUBLIC_PUBLIC_URL ?? 'https://tukifact.com.pe';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

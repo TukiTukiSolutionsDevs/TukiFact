@@ -4,18 +4,22 @@
 > Marca `[x]` lo cerrado, deja `[ ]` lo pendiente. Las tareas están ordenadas
 > por criticidad. Estimaciones en horas de dev senior.
 
-**Última actualización:** 2026-05-29 · sesión nocturna
+**Última actualización:** 2026-05-30 01:00 · sesión nocturna
 **Branch:** `main`
-**Commits base:** `ca52f72` (5 blockers Fase A) + `753e018` (sitio público + leads)
+**Commits hasta ahora:**
+- `ca52f72` 5 blockers Fase A (SUNAT creds, Lima TZ, IDOR, signing, webhooks IDOR)
+- `753e018` sitio público + leads endpoint
+- `cf2bb20` per-host routing + Idempotency-Key middleware (#5 + #3)
+- `?` validators 4 flujos SUNAT (#4)
 
 ## Resumen de progreso
 
 | Tier | Hecho | Pendiente | Total |
 |---|---|---|---|
-| 🔴 Bloqueadores duros | 0 | 6 | 6 |
+| 🔴 Bloqueadores duros | **3** | 3 | 6 |
 | 🟡 Importantes | 0 | 8 | 8 |
 | 🟢 Escala / venta | 0 | 8 | 8 |
-| **Total** | **0** | **22** | **22** |
+| **Total** | **3** | **19** | **22** |
 
 ---
 
@@ -55,41 +59,46 @@
 - **Archivos:** los 4 controllers + DocumentService + nuevo `EmissionRecoveryHostedService`.
 - **Esfuerzo:** ~3h
 
-### 3. C6 — Idempotency-Key middleware
+### 3. C6 — Idempotency-Key middleware ✅ CERRADO
 
-- [ ] **Status:** 🔴 abierto
-- **Problema:** POST a `/v1/documents`, `/v1/perceptions`, `/v1/retentions`, `/v1/voided-documents` no leen header `Idempotency-Key`. Doble click = doble factura emitida a SUNAT, doble correlativo, dos cobros al cliente.
-- **Fix:**
-  - Middleware ASP.NET que lee `Idempotency-Key`, hashea body, almacena `(tenant_id, key, request_hash, response_body, response_status, expires_at)` en tabla `idempotency_keys` (TTL 24h).
-  - Si key + hash matchean → replay response stored.
-  - Si key + hash distinto → 409 Conflict.
-- **Archivos:** nuevo middleware + nueva tabla + migration.
-- **Esfuerzo:** ~1.5h
+- [x] **Status:** ✅ cerrado en sesión nocturna 2026-05-29
+- **Commit:** `cf2bb20`
+- **Implementado:**
+  - Entity `IdempotencyKey` + tabla `idempotency_keys` (TTL 24h, índice único en `(TenantId, Key)`)
+  - `IdempotencyMiddleware` ([file](src/TukiFact.Infrastructure/Middleware/IdempotencyMiddleware.cs:1)) buffera request body + hash SHA-256
+  - Replay con header `X-Idempotent-Replay: true` cuando key + hash matchean
+  - 409 Conflict cuando key reusada con body distinto
+  - Solo se activa en POST a los 6 endpoints de emisión
+  - Tenant scope vía claim `tenant_id` del JWT
+  - Migration `20260530004045_IdempotencyKeys_AddTable` aplicada
+- **Esfuerzo real:** ~1h
 
-### 4. C5 — FluentValidation en 4 flujos SUNAT
+### 4. C5 — Validators en 4 flujos SUNAT ✅ CERRADO
 
-- [ ] **Status:** 🔴 abierto
-- **Problema:** Ningún controller tiene validators. Inputs basura llegan a SUNAT y rebotan con códigos crípticos. Específicos por flujo: RUC mod-11, regímenes Cat 23, percentajes (3/6/10/15), montos > 0, currency PEN/USD, customer doc type ↔ doc number, series regex, items count > 0.
-- **Fix:**
-  - `CreateDocumentRequestValidator`, `CreateCreditNoteRequestValidator`, `CreateDebitNoteRequestValidator`
-  - `CreatePerceptionRequestValidator`, `CreateRetentionRequestValidator`, `VoidDocumentRequestValidator`
-  - Registro en DI + `[ApiController]` auto-validation.
-- **Archivos:** `src/TukiFact.Application/Validation/` (carpeta ya existe con `Recurring*` y `DespatchAdvice*`).
-- **Esfuerzo:** ~3h
+- [x] **Status:** ✅ cerrado en sesión nocturna 2026-05-29
+- **Implementado (hand-rolled siguiendo patrón GRE/Recurring):**
+  - [`SunatIdentity.cs`](src/TukiFact.Application/Validation/SunatIdentity.cs) — mod-11 RUC + DNI shape + Catálogos 02/06/07
+  - [`DocumentValidator.cs`](src/TukiFact.Application/Validation/DocumentValidator.cs) — `Validate()` para Factura/Boleta + `ValidateCreditNote()` + `ValidateDebitNote()`. Reglas: type, serie regex, currency, customer (RUC obligatorio para FB), items ≥1/≤5000 con qty/price/IGV/unit measure.
+  - [`PerceptionValidator.cs`](src/TukiFact.Application/Validation/PerceptionValidator.cs) — régimen ↔ % (01/02/03 → 2/1/0.5), serie P###, currency PEN, customer RUC, refs ≥1/≤100 con FX si USD.
+  - [`RetentionValidator.cs`](src/TukiFact.Application/Validation/RetentionValidator.cs) — régimen 01→3%, 02→6%, serie R###, currency PEN, supplier RUC, refs validation.
+  - [`VoidDocumentValidator.cs`](src/TukiFact.Application/Validation/VoidDocumentValidator.cs) — DocumentId + voidReason 5..100.
+  - Wire en 4 controllers (Documents.Emit/EmitCreditNote/EmitDebitNote, Perceptions.Create, Retentions.Create, VoidedDocuments.VoidDocument).
+  - Respuesta uniforme: `400 { error: "Datos inválidos…", details: [\"…\", \"…\"] }` con TODOS los errores al toque (no fix→retry→next).
+- **Esfuerzo real:** ~1.5h
 
-### 5. Per-host routing `tukifact.pe` ↔ `app.tukifact.pe`
+### 5. Per-host routing `tukifact.com.pe` ↔ `app.tukifact.com.pe` ✅ CERRADO
 
-- [ ] **Status:** 🔴 abierto
-- **Problema:** Hoy `(public)` y `(authenticated)` viven en el mismo Next.js app y comparten el mismo host. En prod necesitamos:
-  - `tukifact.pe` → solo grupo `(public)` (marketing)
-  - `app.tukifact.pe` → solo `(authenticated)` + `/login`, `/register`, `/welcome`, etc.
-- **Fix:**
-  - `middleware.ts` en `src/tukifact-web/src/` que inspecciona `host` header:
-    - si `host === 'tukifact.pe'` y path empieza con `/dashboard|/documents|...` → 404 o redirect a `app.`
-    - si `host === 'app.tukifact.pe'` y path es `/` o `/planes|/funcionalidades|...` → 404 o redirect
-  - En dev (`localhost:3000`) deshabilitar el split.
-- **Archivos:** `src/tukifact-web/src/middleware.ts` (nuevo).
-- **Esfuerzo:** ~1h
+- [x] **Status:** ✅ cerrado en sesión nocturna 2026-05-29
+- **Commit:** `cf2bb20`
+- **Implementado:** [`src/tukifact-web/src/middleware.ts`](src/tukifact-web/src/middleware.ts:1) inspecciona el `host` header del request:
+  - `localhost`/`127.0.0.1`/`*.local`/`*.test` → pass through (dev sin split).
+  - `app.tukifact.com.pe` + path `/` → redirect 307 a `/dashboard`.
+  - `app.tukifact.com.pe` + path marketing (`/planes`, `/funcionalidades`, `/seguridad`, `/contacto`) → redirect 301 al host root.
+  - `tukifact.com.pe` + path portal/auth → redirect 301 a `app.{domain}`.
+  - `/privacy` y `/terms` permitidos en ambos hosts.
+  - Excluye sitemap/robots/static via matcher.
+  - **Nota dominio:** el middleware deriva el root domain dinámicamente (`host.replace(/^app\./, '')`), así que funciona con `tukifact.com.pe`, `tukifact.pe`, o cualquier futuro dominio sin tocar código.
+- **Esfuerzo real:** ~30min
 
 ### 6. HTTPS + dominio en producción
 
@@ -220,7 +229,7 @@
 - [ ] **Object storage:** MinIO self-hosted o S3 / R2 / DO Spaces?
 - [ ] **NATS:** self-hosted en mismo droplet o Synadia Cloud?
 - [ ] **Web:** Vercel (gratis hasta cierto tráfico) o mismo droplet?
-- [ ] **Dominio:** ¿ya tienes `tukifact.pe` registrado?
+- [x] **Dominio:** `tukifact.com.pe` ya está registrado (confirmado por usuario 2026-05-30).
 - [ ] **Cert SUNAT:** ¿usaremos Llama.pe gratis (beta) para validación + luego cert producción?
 
 ---
@@ -239,8 +248,22 @@ día 5        : Primera factura producción contigo de prueba
 
 ---
 
-## Notas de la sesión 2026-05-29
+## Notas de la sesión 2026-05-29 (sesión completa)
 
-- Cerrados ya (commit `ca52f72`): C1 SUNAT creds, C4 Lima TZ, C8 IDOR, Docs #9 signing, Webhooks IDOR.
-- Sitio público live (commit `753e018`): `/`, `/planes` (real /v1/plans), `/funcionalidades`, `/seguridad`, `/contacto` (POST a /v1/leads verificado).
-- Sesión nocturna: ataco bloqueadores duros 🔴 en orden 5 → 3 → 1 → 2 → 4. Ver final del archivo.
+### Día (commits `ca52f72` + `753e018`)
+- Fase A — auditoría production-readiness de 4 flujos SUNAT (Perceptions, Retentions, Voided, DocumentService): 4 explore agents en paralelo, veredicto 🔴 BLOCKED en los 4 con ~30 blockers consolidados.
+- Cerrados 5 blockers críticos compartidos: C1 (per-tenant SUNAT creds), C4 (Lima TZ), C8 (IDOR cross-tenant en 4 repos), Documents #9 (silent signing failure → unsigned XML a SUNAT), Webhooks IDOR (PUT/DELETE/GetDeliveries).
+- Fase C — sitio público completo desde cero: `/`, `/planes` (fetch real `/v1/plans`), `/funcionalidades`, `/seguridad`, `/contacto` con form. Backend: Lead entity + endpoint `POST /v1/leads`. sitemap.ts + robots.ts. Verificado: 1 lead persistido en DB.
+
+### Noche (commits `cf2bb20` + validators)
+- ✅ #5 Per-host routing — `src/tukifact-web/src/middleware.ts` con split `tukifact.pe` ↔ `app.tukifact.pe`, deshabilitado en localhost para dev. 30min.
+- ✅ #3 C6 Idempotency-Key middleware — entity + tabla + middleware con SHA-256 body hash, replay 24h, 409 en hash conflict. Wire global en pipeline (después de Audit, antes de MapControllers). Migration aplicada. ~1h.
+- ✅ #4 C5 Validators — 5 archivos en `Application/Validation/` (Document/Perception/Retention/VoidDocument + SunatIdentity helper). Wire en 4 controllers. ~1.5h.
+- 🔴 #1 Voided worker — NO INICIADO. Scope estimado 3-4h por necesitar SUNAT Summary XML builder desde cero. Defer a próxima sesión con dedicación full.
+- 🔴 #2 C7 atomic materialization — NO INICIADO. Scope 3h. Defer.
+- 🔴 #6 HTTPS + dominio — infra, requires hosting decisions del usuario.
+
+### Estado al cierre nocturno
+- **3 de 6 🔴 bloqueadores duros cerrados** (50%).
+- Lo restante (#1, #2) son los items con más código nuevo (worker + recovery). Mejor abordarlos con full session y no dejar a medias.
+- Sesión siguiente arrancar por **#1 Voided worker** (impacto usuario crítico) y luego **#2 atomic mat**.
