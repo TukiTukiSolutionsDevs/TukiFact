@@ -108,11 +108,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// HTTPS redirect handled by nginx, not the API
-if (app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+// HTTPS redirect handled by nginx in prod; dev uses http directly
 app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
@@ -127,6 +123,9 @@ app.UseAuthorization();
 
 // Audit logging (after authorization so we have full user context)
 app.UseMiddleware<AuditMiddleware>();
+
+// Idempotency replay (after auth/tenant so the tenant claim is set; before the controllers)
+app.UseMiddleware<TukiFact.Infrastructure.Middleware.IdempotencyMiddleware>();
 
 app.MapControllers();
 

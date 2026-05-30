@@ -50,6 +50,7 @@ public class AppDbContext : DbContext
     public DbSet<PlatformConfig> PlatformConfigs => Set<PlatformConfig>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<Lead> Leads => Set<Lead>();
+    public DbSet<IdempotencyKey> IdempotencyKeys => Set<IdempotencyKey>();
     public DbSet<PlatformAuditLog> PlatformAuditLogs => Set<PlatformAuditLog>();
 
     // Batch C
