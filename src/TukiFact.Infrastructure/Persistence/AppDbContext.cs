@@ -49,6 +49,7 @@ public class AppDbContext : DbContext
     // Platform (M3 — Backoffice Pro)
     public DbSet<PlatformConfig> PlatformConfigs => Set<PlatformConfig>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<Lead> Leads => Set<Lead>();
     public DbSet<PlatformAuditLog> PlatformAuditLogs => Set<PlatformAuditLog>();
 
     // Batch C
@@ -57,6 +58,7 @@ public class AppDbContext : DbContext
     public DbSet<PerceptionDocument> PerceptionDocuments => Set<PerceptionDocument>();
     public DbSet<PerceptionDocumentReference> PerceptionDocumentReferences => Set<PerceptionDocumentReference>();
     public DbSet<RecurringInvoice> RecurringInvoices => Set<RecurringInvoice>();
+    public DbSet<RecurringInvoiceEmission> RecurringInvoiceEmissions => Set<RecurringInvoiceEmission>();
     public DbSet<Quotation> Quotations => Set<Quotation>();
     public DbSet<QuotationItem> QuotationItems => Set<QuotationItem>();
 
