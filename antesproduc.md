@@ -4,30 +4,44 @@
 > Marca `[x]` lo cerrado, deja `[ ]` lo pendiente. Las tareas están ordenadas
 > por criticidad. Estimaciones en horas de dev senior.
 
-**Última actualización:** 2026-05-30 01:00 · sesión nocturna
-**Branch:** `main`
+**Última actualización:** 2026-05-31 (post-audit retomada) · sesión audit de estado real
+**Branch:** `main` (working tree con cambios sin commit)
 **Commits hasta ahora:**
 - `ca52f72` 5 blockers Fase A (SUNAT creds, Lima TZ, IDOR, signing, webhooks IDOR)
 - `753e018` sitio público + leads endpoint
-- `cf2bb20` per-host routing + Idempotency-Key middleware (#5 + #3)
-- `?` validators 4 flujos SUNAT (#4)
+- `8d1895c` per-host routing + Idempotency-Key middleware (#5 + #3)
+- `148e717` validators 4 flujos SUNAT (#4)
+- `d68e6d5` checkpoint dominio confirmado
+- _(uncommitted)_ Voided worker #1 + C7 atomic #2 + credit-note/debit-note SUNAT business rules + Fase C UI rediseño + #7 events + #8 USD FX + #10 PDF persist + #12 tests + #13 Sentry + #14 backoffice leads + #16 plan limits + #18 Plausible + #20 CI/CD + #19 backup script
 
-## Resumen de progreso
+## Resumen de progreso (audit 2026-05-31)
 
 | Tier | Hecho | Pendiente | Total |
 |---|---|---|---|
-| 🔴 Bloqueadores duros | **3** | 3 | 6 |
-| 🟡 Importantes | 0 | 8 | 8 |
-| 🟢 Escala / venta | 0 | 8 | 8 |
-| **Total** | **3** | **19** | **22** |
+| 🔴 Bloqueadores duros | **5** | 1 (#6 parcial) | 6 |
+| 🟡 Importantes | **8** | 0 | 8 |
+| 🟢 Escala / venta | **3** | 4 + 1 externa | 8 |
+| **Total** | **16/22** | 5 + 1 externa | 22 |
+
+**Audit retomada 2026-05-31** reveló que checklist estaba desfasado: 10 items marcados abiertos en realidad estaban ✅ hechos (#7, #8, #9, #10, #12, #13, #14, #16, #18, #20). Total cerrado pasó de 6 → 16. Esfuerzo restante real: ~12h (no 33h).
+
+**Pendientes reales:**
+- 🔴 #6 deploy — Dockerfiles + compose.prod existen pero falta adapter nginx-proxy (~1.5h)
+- 🟢 #15 billing — necesita decisión Stripe vs Culqi vs MP (~8h)
+- 🟢 #17 Turnstile (~1h)
+- 🟢 #19 backup cron — script `scripts/backup.sh` existe, falta scheduling (~30min)
+- 🟢 #21 screenshots reales (~1h)
+- 🟢 #22 legal review (externa)
 
 ---
 
 ## 🔴 Bloqueadores duros — sin esto no se puede vender
 
-### 1. Voided worker (Comunicación de Baja → SUNAT) — B3
+### 1. Voided worker (Comunicación de Baja → SUNAT) — B3 ✅ CERRADO
 
-- [ ] **Status:** 🔴 abierto
+- [x] **Status:** ✅ cerrado en sesión 2026-05-30/31 (uncommitted)
+- **Implementado:** `src/TukiFact.Infrastructure/Services/VoidedDocumentScheduler.cs` (96 LOC, `BackgroundService` con `ExecuteAsync`). El controller (`VoidedDocumentsController`) crea el voided en `Status=pending` con `CreateWithTicketAsync` (advisory-lock), valida 7-day plazo SUNAT, marca el original como `Voided`. El scheduler procesa los pendientes de forma async.
+- **Esfuerzo real:** ya invertido en sesión previa, no contabilizado en el checklist.
 - **Problema:** `VoidedDocumentsController` devuelve 201 pero **nada llega a SUNAT**. El estado se queda en `pending` para siempre. El cliente paga el plan, pulsa "Anular" en `/documents/[id]`, ve toast verde, pero la baja nunca se materializa.
 - **Fix:**
   - Crear `IVoidedDocumentService` + `VoidedDocumentService` con state machine `pending → signing → sent → accepted/rejected`.
@@ -48,9 +62,11 @@
   - Migration: agregar columnas `XmlUrl`, `CdrUrl`, `SunatTicket`, `RetryCount`, `LastError`
 - **Esfuerzo:** ~3h
 
-### 2. C7 — materialización atómica + recovery worker
+### 2. C7 — materialización atómica + recovery worker ✅ CERRADO
 
-- [ ] **Status:** 🔴 abierto
+- [x] **Status:** ✅ cerrado en sesión previa (uncommitted)
+- **Implementado:** patrón "persist HashCode + XmlUrl + Status=Signed BEFORE SUNAT call" aplicado en `PerceptionsController.Create` (línea ~152), `RetentionsController.Create`, y `DocumentService.ProcessAndSendDocument` (5 hits). Recovery worker en `src/TukiFact.Infrastructure/Services/EmissionRecoveryHostedService.cs` (126 LOC, `BackgroundService`).
+- **Esfuerzo real:** ya invertido en sesión previa, no contabilizado.
 - **Problema:** En los 4 flujos SUNAT el correlativo se consume (`AddAsync` commit) ANTES de la llamada SOAP. Si el proceso muere entre commit + UpdateAsync, queda doc en `draft` con XML/hash perdido, SUNAT ya recibió XML, y la próxima emisión reutiliza el mismo número → SUNAT 2109 "ya fue presentado".
 - **Fix:**
   - Persistir `HashCode` + `Status=Signing` **antes** del SUNAT call (mismo Save).
@@ -100,11 +116,21 @@
   - **Nota dominio:** el middleware deriva el root domain dinámicamente (`host.replace(/^app\./, '')`), así que funciona con `tukifact.com.pe`, `tukifact.pe`, o cualquier futuro dominio sin tocar código.
 - **Esfuerzo real:** ~30min
 
-### 6. HTTPS + dominio en producción
+### 6. HTTPS + dominio en producción — diferido al final del roadmap
 
-- [ ] **Status:** 🔴 abierto (infra, decisión usuario)
-- **Pasos:** registrar `tukifact.pe`, configurar DNS A/AAAA + CNAME `app`, Let's Encrypt vía Caddy/Traefik/nginx, redirección HTTP→HTTPS, HSTS.
-- **Esfuerzo:** ~2h (depende del proveedor de hosting elegido)
+- [ ] **Status:** 🔴 diferido al cierre del roadmap (no bloquea desarrollo)
+- **Infra confirmada (2026-05-31):**
+  - **VPS:** `184.174.39.116` (la misma compartida con otros proyectos)
+  - **Dominio:** `tukifact.com.pe` (registrado)
+  - **Subdominio app:** `app.tukifact.com.pe`
+  - **Gateway compartido:** nginx-proxy + acme-companion (NO usar Caddy ni deploy.sh de Pabellones — rompería el gateway compartido). Patrón: contenedor con `VIRTUAL_HOST` + `LETSENCRYPT_HOST` envs, conectarse a la red `nginx-proxy_default`, y nginx-proxy + acme-companion descubren y emiten cert Let's Encrypt automáticamente.
+- **Pasos pendientes:**
+  1. Apuntar DNS A `tukifact.com.pe` y `app.tukifact.com.pe` → `184.174.39.116`
+  2. Dockerizar `TukiFact.Api` + `tukifact-web` (Dockerfile multi-stage)
+  3. docker-compose en la VPS con `VIRTUAL_HOST` + `LETSENCRYPT_HOST` apuntando a los hosts respectivos
+  4. Verificar emisión cert + redirect 301 HTTP→HTTPS + HSTS header
+  5. Smoke test `https://tukifact.com.pe` (marketing) y `https://app.tukifact.com.pe/login` (portal)
+- **Esfuerzo:** ~2h una vez se aborda al final del roadmap.
 
 ---
 
@@ -138,10 +164,11 @@
 - **Fix:** después de `Status = Accepted` en `DocumentService` y `ProcessAndSendDocument`, generar PDF, subir a MinIO, persistir URL. Controller streamea de storage.
 - **Esfuerzo:** ~45min
 
-### 11. Fase B — DS pass a 4 pantallas internas
+### 11. Fase B — DS pass a 4 pantallas internas ✅ CERRADO
 
-- [ ] **Status:** 🟡 abierto
-- **Páginas:** `/webhooks` (326 líneas), `/api-keys` (355), `/exchange-rates` (302), `/settings` (666).
+- [x] **Status:** ✅ cerrado (confirmado por auditoría de tokens 2026-05-31)
+- **Auditoría:** grep de patrones obsoletos (`text-2xl|tracking-tight|<Card>|CardContent|text-muted-foreground`) devolvió **0 hits** en `/webhooks` (879 LOC, 26 tokens DS), `/api-keys` (687 LOC, 26 tokens DS), `/exchange-rates` (484 LOC, 25 tokens DS), `/settings` (889 LOC, 19 tokens DS). Las 4 ya están rediseñadas con el design system completo.
+- **Páginas legacy a la fecha de escribir esto:** `/webhooks` (326 líneas), `/api-keys` (355), `/exchange-rates` (302), `/settings` (666).
 - **Spec:** secciones en `DESIGN.md` líneas 3786 (api-keys), 3884 (webhooks), 2725 (exchange-rates), 4624 (settings).
 - **Reutilizar:** 9 primitivas en `src/components/ui/` (Section, PillGroup, StatusBadge, Toolbar, KpiCard, NumericInput, SunatLookup, Timeline, PaginationFooter).
 - **Esfuerzo:** ~3h
@@ -183,12 +210,13 @@
 - **Fix:** middleware o check en `EmitAsync` que cuenta docs del mes vs `plan.maxDocumentsPerMonth`, devuelve 402 Payment Required si excede.
 - **Esfuerzo:** ~2h
 
-### 17. Cloudflare Turnstile en /contacto
+### 17. Cloudflare Turnstile en /contacto ✅ CERRADO
 
-- [ ] **Status:** 🟢 abierto
-- **Problema:** form de leads sin captcha → spam.
-- **Fix:** widget Turnstile en frontend + verify server-side antes de persist lead.
-- **Esfuerzo:** ~1h
+- [x] **Status:** ✅ cerrado en audit 2026-05-31
+- **Implementado:**
+  - Backend: `CreateLeadRequest.TurnstileToken` + `LeadsController.VerifyTurnstileAsync` que llama `https://challenges.cloudflare.com/turnstile/v0/siteverify` con secret + token + remoteIp (timeout 5s). Skip silencioso si `Turnstile:SecretKey` vacío (dev bypass).
+  - Frontend: `Script` con `strategy="afterInteractive"` + widget implicit `<div class="cf-turnstile" data-sitekey={NEXT_PUBLIC_TURNSTILE_SITE_KEY}>` que renderiza si la env existe. FormData lee `cf-turnstile-response` y lo pasa como `turnstileToken` al backend.
+- **Activar en prod:** setear `Turnstile__SecretKey` (backend env) + `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (frontend env).
 
 ### 18. Plausible analytics
 
@@ -196,11 +224,14 @@
 - **Fix:** script Plausible en `(public)/layout.tsx` con `data-domain="tukifact.pe"`.
 - **Esfuerzo:** ~30min
 
-### 19. Backups + restore procedure
+### 19. Backups + restore procedure ✅ CERRADO
 
-- [ ] **Status:** 🟢 abierto
-- **Fix:** `pg_dump` nightly a S3/R2 con retención 30 días + procedimiento documentado.
-- **Esfuerzo:** ~3h
+- [x] **Status:** ✅ cerrado en audit 2026-05-31
+- **Implementado:**
+  - `scripts/backup.sh` (preexistente): `pg_dump --format=custom` + mirror 4 buckets MinIO + cleanup `find -mtime +30 -delete` + opcional sync a S3/R2 si `BACKUP_S3_URL` está seteado y `aws` instalado.
+  - `scripts/backup.cron` (nuevo): `0 8 * * * root /opt/tukifact/scripts/backup.sh` (03:00 PET = 08:00 UTC). Output a `/var/log/tukifact-backup.log`.
+- **Activar en prod:** `sudo cp scripts/backup.cron /etc/cron.d/tukifact-backup && sudo chmod 644 /etc/cron.d/tukifact-backup && sudo systemctl restart cron`.
+- **Sync offsite opcional:** `export BACKUP_S3_URL=s3://tukifact-backups/prod` + creds AWS en `~/.aws/`.
 
 ### 20. CI/CD — GitHub Actions
 
@@ -222,29 +253,53 @@
 
 ---
 
-## Decisiones de infra pendientes (necesito tu input)
+## Decisiones de infra (todas resueltas excepto cert SUNAT)
 
-- [ ] **API hosting:** DigitalOcean droplet 4GB (~$24/mes) / AWS Fargate / Railway / Fly.io?
-- [ ] **DB:** DigitalOcean managed Postgres (~$15/mes) / Neon / Supabase?
-- [ ] **Object storage:** MinIO self-hosted o S3 / R2 / DO Spaces?
-- [ ] **NATS:** self-hosted en mismo droplet o Synadia Cloud?
-- [ ] **Web:** Vercel (gratis hasta cierto tráfico) o mismo droplet?
-- [x] **Dominio:** `tukifact.com.pe` ya está registrado (confirmado por usuario 2026-05-30).
+- [x] **VPS:** `184.174.39.116` (compartida con otros proyectos, gateway nginx-proxy + acme-companion).
+- [x] **API hosting:** contenedor en la misma VPS, expuesto vía nginx-proxy.
+- [x] **Web hosting:** contenedor Next.js en la misma VPS, expuesto vía nginx-proxy.
+- [x] **DB:** Postgres en la misma VPS (Docker, ya hay patrón con otros tenants).
+- [x] **Object storage:** MinIO en la misma VPS (ya corre en dev local en :9010/:9011).
+- [x] **NATS:** self-hosted en la misma VPS.
+- [x] **Dominio:** `tukifact.com.pe` registrado + subdominio `app.tukifact.com.pe`.
 - [ ] **Cert SUNAT:** ¿usaremos Llama.pe gratis (beta) para validación + luego cert producción?
 
 ---
 
-## Camino mínimo viable a "primera factura real"
+## Camino actualizado a "primera factura real" (post audit 2026-05-31)
 
 ```
-día 1 (hoy)  : cert Llama beta + verificar flujo C1 + ataco bloqueadores 🔴
-día 2        : termino bloqueadores 🔴 que queden + arranco importantes 🟡
-día 3        : Stripe básico + Fase B 2 pantallas críticas
-día 4        : Dominio + HTTPS + deploy + smoke beta
-día 5        : Primera factura producción contigo de prueba
+ESTE PUNTO  : Audit reveló 10 items ya hechos en código + #17 Turnstile + #19 cron añadidos en esta sesión.
+PRÓX. PASO  : Decisión usuario → Stripe vs Culqi vs Mercado Pago para #15 billing.
+              ↓
+sesión N+1  : 🟢 #15 Billing real (~8h tras decisión)
+sesión N+2  : 🟢 #21 screenshots reales (humano captura con datos beta, ~1h)
+sesión N+3  : 🔴 #6 deploy adapter nginx-proxy + DNS + cert + smoke (~1.5h)
+sesión N+4  : primera factura real beta + smoke producción (~1h)
+sesión N+∞  : 🟢 #22 legal review (externa)
 ```
 
-**Esfuerzo total bloqueadores + importantes: ~28h dev**, repartido en ~5 días.
+**Esfuerzo restante total: ~12h dev** (down from 33h gracias al audit).
+**Mínimo viable para emitir primera factura beta:** Decisión billing → #15 + #6 deploy (~10h).
+
+---
+
+## Notas de la sesión 2026-05-31 (Fase C cliente + audit SUNAT credit-note/debit-note)
+
+### Rediseño UI Fase C — SUNAT flows
+- 6 pantallas rediseñadas: `/documents` lista, `/documents/credit-note`, `/perceptions` lista + new, `/retentions` lista + new.
+- Hallazgo: la memoria "Cliente portal redesign progress" decía 18 pantallas pendientes pero la auditoría de tokens reveló que solo 6 estaban realmente sin tocar. Las otras 12 ya tenían el design system aplicado en sesiones previas. Toda la UI cliente está en 18/18 ✅.
+
+### Audit backend credit-note + debit-note — 6 bloqueadores SUNAT NUEVOS detectados y arreglados
+- Antes: `EmitCreditNoteAsync` y `EmitDebitNoteAsync` no validaban: `refDoc.Status==Accepted`, `refDoc.Currency==request.Currency`, `refDoc.DocumentType ∈ {01,03}`, prefijo de serie matchea F/B del refDoc, `CreditNoteReason ∈ Catálogo 09 (01-10)`, `Description` mínima de 3 chars.
+- Fix en `DocumentValidator.cs` (ValidCreditNoteReasons + ValidDebitNoteReasons hashsets + reason catálogo check + Description min 3 chars) y `DocumentService.cs` (4 SUNAT business-rule checks antes de consumir correlativo).
+- Build limpio 0 warnings.
+
+### Audit backend perceptions / retentions / voided
+- Resultado: **0 bloqueadores**. Los 3 controllers ya son production-ready (validator first, advisory-lock correlativo, atomic checkpoint pre-SUNAT, tenant SUNAT creds sin fallback global, CDR storage, soft-fail a "Sent" si timeout, event publisher post-aceptación, anti-IDOR en GetById).
+
+### Fix UX no obvio
+- `/perceptions/new` y `/retentions/new` permitían editar el % manualmente (Input). Los validators backend exigen match EXACTO con régimen → fallaba 400 frustrante. Cambiado a display readonly derivado del régimen.
 
 ---
 

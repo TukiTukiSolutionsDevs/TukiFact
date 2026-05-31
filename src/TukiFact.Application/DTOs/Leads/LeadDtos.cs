@@ -6,7 +6,8 @@ public record CreateLeadRequest(
     string? Company,
     string? Phone,
     string? Reason,
-    string Message
+    string Message,
+    string? TurnstileToken = null
 );
 
 public record LeadResponse(

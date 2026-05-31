@@ -1,0 +1,17 @@
+# TukiFact — Nightly backup schedule
+#
+# Install on production host:
+#   sudo cp /opt/tukifact/scripts/backup.cron /etc/cron.d/tukifact-backup
+#   sudo chmod 644 /etc/cron.d/tukifact-backup
+#   sudo systemctl restart cron
+#
+# Verify next run:
+#   grep CRON /var/log/syslog | tail -20
+#
+# Schedule: every day at 03:00 Lima time (= 08:00 UTC).
+# Output appended to /var/log/tukifact-backup.log for ops review.
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+0 8 * * * root BACKUP_DIR=/backups/tukifact /opt/tukifact/scripts/backup.sh >> /var/log/tukifact-backup.log 2>&1

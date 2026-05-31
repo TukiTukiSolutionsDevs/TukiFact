@@ -27,6 +27,14 @@ for BUCKET in tukifact-xml tukifact-pdf tukifact-cdr tukifact-certs; do
 done
 echo "  MinIO: $BACKUP_DIR/minio/"
 
+# Optional offsite sync to S3/R2 (set BACKUP_S3_URL=s3://bucket/path or r2://...).
+# Requires `aws` CLI configured on host. Skipped silently when unset.
+if [ -n "${BACKUP_S3_URL:-}" ] && command -v aws >/dev/null 2>&1; then
+    echo "Syncing to ${BACKUP_S3_URL}..."
+    aws s3 sync "$BACKUP_DIR" "$BACKUP_S3_URL" --only-show-errors || \
+        echo "  WARNING: S3 sync failed (local backup intact)"
+fi
+
 # Cleanup old backups (keep last 30 days)
 find "$BACKUP_DIR" -type f -mtime +30 -delete 2>/dev/null || true
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Script from 'next/script';
 import { toast } from 'sonner';
 import { Loader2, Send, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,8 @@ const REASONS = [
   { value: 'general', label: 'Consulta general' },
 ];
 
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
 export function ContactForm() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -22,6 +25,7 @@ export function ContactForm() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const turnstileToken = String(fd.get('cf-turnstile-response') ?? '').trim();
     const payload = {
       name: String(fd.get('name') ?? '').trim(),
       email: String(fd.get('email') ?? '').trim(),
@@ -29,10 +33,16 @@ export function ContactForm() {
       phone: String(fd.get('phone') ?? '').trim(),
       reason: String(fd.get('reason') ?? 'general'),
       message: String(fd.get('message') ?? '').trim(),
+      turnstileToken: turnstileToken || undefined,
     };
 
     if (!payload.name || !payload.email || !payload.message) {
       toast.error('Completa los campos requeridos.');
+      return;
+    }
+
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      toast.error('Resuelve el desafío anti-spam antes de enviar.');
       return;
     }
 
@@ -118,6 +128,23 @@ export function ContactForm() {
           className="mt-1.5"
         />
       </div>
+
+      {TURNSTILE_SITE_KEY && (
+        <>
+          <Script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            strategy="afterInteractive"
+            defer
+          />
+          <div className="mt-5">
+            <div
+              className="cf-turnstile"
+              data-sitekey={TURNSTILE_SITE_KEY}
+              data-theme="light"
+            />
+          </div>
+        </>
+      )}
 
       <Button type="submit" size="lg" className="mt-6 w-full gap-2 bg-foreground text-background hover:bg-foreground/90" disabled={submitting}>
         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
