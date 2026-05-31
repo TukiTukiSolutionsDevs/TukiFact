@@ -1,9 +1,9 @@
 namespace TukiFact.Domain.Entities;
 
 /// <summary>
-/// Tracks tenant subscription lifecycle: plan, billing dates, usage.
-/// Payment gateway integration (Stripe/MercadoPago) is POST-DEPLOY.
-/// For now: managed manually from backoffice.
+/// Tracks tenant subscription lifecycle + Culqi payment gateway wiring.
+/// On subscribe: we create a Culqi customer, attach a card from a frontend tokenization,
+/// then create a recurring subscription on Culqi. Culqi charges monthly and posts to our webhook.
 /// </summary>
 public class Subscription
 {
@@ -17,6 +17,16 @@ public class Subscription
     public decimal MonthlyAmount { get; set; }
     public int DocumentsUsedThisMonth { get; set; }
     public int DocumentsLimit { get; set; }
+
+    // Culqi gateway IDs (null until first subscribe; cleared on cancel only if
+    // we delete the Culqi sub — customer/card stay to allow re-subscribe).
+    public string? CulqiCustomerId { get; set; }
+    public string? CulqiCardId { get; set; }
+    public string? CulqiSubscriptionId { get; set; }
+    public string? LastChargeId { get; set; }
+    public DateTimeOffset? LastChargedAt { get; set; }
+    public string? CancellationReason { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 

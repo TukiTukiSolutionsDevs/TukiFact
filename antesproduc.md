@@ -14,24 +14,21 @@
 - `d68e6d5` checkpoint dominio confirmado
 - _(uncommitted)_ Voided worker #1 + C7 atomic #2 + credit-note/debit-note SUNAT business rules + Fase C UI rediseño + #7 events + #8 USD FX + #10 PDF persist + #12 tests + #13 Sentry + #14 backoffice leads + #16 plan limits + #18 Plausible + #20 CI/CD + #19 backup script
 
-## Resumen de progreso (audit 2026-05-31)
+## Resumen de progreso (post sesión 2026-05-31 Culqi)
 
 | Tier | Hecho | Pendiente | Total |
 |---|---|---|---|
 | 🔴 Bloqueadores duros | **5** | 1 (#6 parcial) | 6 |
 | 🟡 Importantes | **8** | 0 | 8 |
-| 🟢 Escala / venta | **3** | 4 + 1 externa | 8 |
-| **Total** | **16/22** | 5 + 1 externa | 22 |
+| 🟢 Escala / venta | **6** | 1 + 1 externa | 8 |
+| **Total** | **19/22** | 2 + 1 externa | 22 |
 
-**Audit retomada 2026-05-31** reveló que checklist estaba desfasado: 10 items marcados abiertos en realidad estaban ✅ hechos (#7, #8, #9, #10, #12, #13, #14, #16, #18, #20). Total cerrado pasó de 6 → 16. Esfuerzo restante real: ~12h (no 33h).
+**Sesión 2026-05-31** cerró el audit (6/22 → 16/22) y luego implementó Culqi billing + Turnstile + backup cron (16/22 → **19/22**). Único trabajo de código real pendiente: #21 screenshots (humano captura) y #6 deploy nginx-proxy adapter. #22 legal es externo.
 
 **Pendientes reales:**
-- 🔴 #6 deploy — Dockerfiles + compose.prod existen pero falta adapter nginx-proxy (~1.5h)
-- 🟢 #15 billing — necesita decisión Stripe vs Culqi vs MP (~8h)
-- 🟢 #17 Turnstile (~1h)
-- 🟢 #19 backup cron — script `scripts/backup.sh` existe, falta scheduling (~30min)
-- 🟢 #21 screenshots reales (~1h)
-- 🟢 #22 legal review (externa)
+- 🔴 #6 deploy — Dockerfiles + compose.prod existen pero falta adapter nginx-proxy (~1.5h, al final)
+- 🟢 #21 screenshots reales (~1h, humano)
+- 🟢 #22 legal review (externa, abogado)
 
 ---
 
@@ -197,11 +194,21 @@
 
 ## 🟢 Escala / cerrar venta
 
-### 15. Billing real — Stripe / Culqi / Mercado Pago
+### 15. Billing real — Culqi ✅ CÓDIGO COMPLETO (falta sandbox)
 
-- [ ] **Status:** 🟢 abierto
-- **Hoy:** los planes son cosméticos (no hay cobro automático). Necesitas integrar provider que soporte recurring + 3DS + facturación para Perú. Culqi y Mercado Pago son los principales en Perú.
-- **Esfuerzo:** ~8h (integración base + webhook subscription.updated/canceled + UI plan upgrade/downgrade)
+- [x] **Status:** ✅ código completo en sesión 2026-05-31 (provider: Culqi, elegido por target Perú).
+- **Backend implementado:**
+  - `ICulqiService` + `CulqiService` (v2 customers/cards/recurrent/plans/recurrent/subscriptions con Bearer auth + HMAC-SHA256 webhook verify).
+  - `BillingController` con `GET /v1/billing/subscription`, `POST /v1/billing/subscribe`, `POST /v1/billing/cancel`, `POST /v1/billing/webhook` (AllowAnonymous + signature mandatory).
+  - Domain: `Subscription.CulqiCustomerId / CulqiCardId / CulqiSubscriptionId / LastChargeId / LastChargedAt / CancellationReason`. `Plan.CulqiPlanId` (lazy upsert).
+  - Migration `20260531223332_Subscriptions_AddTableWithCulqiFields` aplicada (tabla `subscriptions` snake_case + 5 indexes incluyendo unique parcial en `CulqiSubscriptionId`).
+  - HttpClient "Culqi" registrado (base `https://api.culqi.com/`, 15s timeout).
+- **Frontend implementado:**
+  - `/plan` page: Culqi Checkout (`https://checkout.culqi.com/js/v4`) cargado vía `next/script`. Botones "Suscribirme" en cada plan pagado (handler `Culqi.open()` → token → POST `/v1/billing/subscribe`). Botón "Cancelar suscripción" en header cuando hay sub Culqi-managed. Banner `past_due` cuando aplica.
+- **Webhook events soportados:** `charge.succeeded`, `charge.creation.succeeded`, `subscription.cancelled/canceled`, `subscription.past_due`, `charge.failed` (resetea `DocumentsUsedThisMonth=0` y `NextBillingDate+=1mo` al cobro exitoso).
+- **Activar en prod:** setear `Culqi__SecretKey` (backend) + `NEXT_PUBLIC_CULQI_PUBLIC_KEY` (frontend) + registrar `https://app.tukifact.com.pe/v1/billing/webhook` en el dashboard Culqi.
+- **Falta validar contra sandbox:** confirmar `interval_unit_time=3` (monthly), nombres de eventos webhook, y campo de header HMAC (`culqi-signature` vs `x-culqi-webhook-signature`). Smoke test con tarjeta test `4111 1111 1111 1111`.
+- **Esfuerzo real:** ~3.5h (vs 8h estimado).
 
 ### 16. Plan limits enforcement
 

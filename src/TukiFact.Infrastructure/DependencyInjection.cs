@@ -45,15 +45,21 @@ public static class DependencyInjection
         // Services
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<IUblBuilder, UblBuilder>();
         services.AddScoped<IXmlSigningService, XmlSigningService>();
+        services.AddScoped<ISecretProtector, SecretProtector>();
         services.AddScoped<ISunatClient, SunatClient>();
         services.AddScoped<IStorageService, MinioStorageService>();
 
         // Sprint 4 services
         services.AddScoped<IVoidedDocumentRepository, VoidedDocumentRepository>();
+        services.AddScoped<IVoidedDocumentXmlBuilder, VoidedDocumentXmlBuilder>();
+        services.AddScoped<IVoidedDocumentService, VoidedDocumentService>();
+        services.AddHostedService<VoidedDocumentScheduler>();
+        services.AddHostedService<EmissionRecoveryHostedService>();
         services.AddScoped<IPdfGenerator, PdfGenerator>();
         services.AddScoped<IDashboardService, DashboardService>();
 
@@ -148,6 +154,15 @@ public static class DependencyInjection
         {
             client.Timeout = TimeSpan.FromSeconds(30);
         });
+
+        // HttpClient for Culqi v2 REST API (recurring billing)
+        services.AddHttpClient("Culqi", client =>
+        {
+            client.BaseAddress = new Uri("https://api.culqi.com/");
+            client.Timeout = TimeSpan.FromSeconds(15);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+        services.AddScoped<ICulqiService, CulqiService>();
 
         return services;
     }

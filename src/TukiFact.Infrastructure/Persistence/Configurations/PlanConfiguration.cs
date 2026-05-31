@@ -17,6 +17,8 @@ public class PlanConfiguration : IEntityTypeConfiguration<Plan>
         builder.Property(p => p.MaxDocumentsPerMonth).IsRequired();
         builder.Property(p => p.Features).HasColumnType("jsonb").HasDefaultValueSql("'{}'");
         builder.Property(p => p.IsActive).HasDefaultValue(true);
+        builder.Property(p => p.CulqiPlanId).HasMaxLength(80);
+        builder.HasIndex(p => p.CulqiPlanId).IsUnique().HasFilter("\"CulqiPlanId\" IS NOT NULL");
         builder.Property(p => p.CreatedAt).HasDefaultValueSql("now()");
     }
 }
