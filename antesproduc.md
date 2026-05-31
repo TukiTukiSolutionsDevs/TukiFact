@@ -273,21 +273,48 @@
 
 ---
 
-## Camino actualizado a "primera factura real" (post audit 2026-05-31)
+## Camino actualizado a "primera factura real" (post sesión Culqi 2026-05-31)
 
 ```
-ESTE PUNTO  : Audit reveló 10 items ya hechos en código + #17 Turnstile + #19 cron añadidos en esta sesión.
-PRÓX. PASO  : Decisión usuario → Stripe vs Culqi vs Mercado Pago para #15 billing.
+ESTE PUNTO  : 19/22 cerrados. #15 Culqi code-complete. Working tree commiteado.
+PRÓX. SESIÓN: 🔴 #6 deploy a VPS 184.174.39.116 + tukifact.com.pe (nginx-proxy adapter)
               ↓
-sesión N+1  : 🟢 #15 Billing real (~8h tras decisión)
-sesión N+2  : 🟢 #21 screenshots reales (humano captura con datos beta, ~1h)
-sesión N+3  : 🔴 #6 deploy adapter nginx-proxy + DNS + cert + smoke (~1.5h)
-sesión N+4  : primera factura real beta + smoke producción (~1h)
+sesión N+1  : 🔴 #6 deploy adapter + DNS + cert + smoke prod                                    (~1.5h)
+sesión N+2  : primera factura real beta + Culqi sandbox smoke (interval_unit_time + webhooks)  (~1h)
+sesión N+3  : 🟢 #21 screenshots reales (humano captura del portal beta)                        (~1h)
 sesión N+∞  : 🟢 #22 legal review (externa)
 ```
 
-**Esfuerzo restante total: ~12h dev** (down from 33h gracias al audit).
-**Mínimo viable para emitir primera factura beta:** Decisión billing → #15 + #6 deploy (~10h).
+**Esfuerzo restante total: ~3.5h dev + 1h humano + 1h externa.**
+**Mínimo viable para primera factura beta: solo falta #6 deploy (~1.5h)**.
+
+### Siguiente sesión: #6 deploy (instrucciones concretas)
+
+**Infra ya decidida (NO discutir):**
+- VPS `184.174.39.116` compartida, gateway `nginx-proxy + acme-companion`.
+- Dominios: `tukifact.com.pe` (marketing) + `app.tukifact.com.pe` (portal + API).
+- Patrón: contenedor Docker con `VIRTUAL_HOST` + `LETSENCRYPT_HOST` envs, conectado a red externa `nginx-proxy_default`. NO usar Caddy. NO usar `deploy.sh` de Pabellones (rompería el gateway compartido).
+
+**Pasos concretos:**
+1. **Adaptar `docker/docker-compose.prod.yml`:**
+   - Eliminar el servicio interno `nginx` (el gateway externo lo maneja).
+   - `api` service: añadir `VIRTUAL_HOST=app.tukifact.com.pe`, `VIRTUAL_PATH=/api/`, `VIRTUAL_DEST=/api/`, `LETSENCRYPT_HOST=app.tukifact.com.pe`, `LETSENCRYPT_EMAIL=ops@tukifact.com.pe`. No exponer puertos al host.
+   - `web` service: añadir `VIRTUAL_HOST=tukifact.com.pe,app.tukifact.com.pe`, `LETSENCRYPT_HOST=tukifact.com.pe,app.tukifact.com.pe`. La lógica Next middleware ya hace el split host. No exponer puertos.
+   - Añadir red externa `nginx-proxy_default` + marcar api/web como participantes. La red interna queda solo para api↔postgres/minio/nats.
+2. **Verificar Dockerfiles** (`docker/Dockerfile.api` + `docker/Dockerfile.web`) compilan multistage y exponen el puerto correcto (`5000` o `80` para API, `3000` para Next).
+3. **Configurar env file `docker/.env.prod`** con: `PG_PASSWORD`, `Jwt__Secret`, `Culqi__SecretKey`, `NEXT_PUBLIC_CULQI_PUBLIC_KEY`, `Turnstile__SecretKey`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `Sentry__Dsn`, `Sunat__Environment=production`.
+4. **DNS:** apuntar `tukifact.com.pe` A → `184.174.39.116` y `app.tukifact.com.pe` A → `184.174.39.116`.
+5. **Deploy:**
+   ```bash
+   scp -r docker/ scripts/ .env.prod root@184.174.39.116:/opt/tukifact/
+   ssh root@184.174.39.116 'cd /opt/tukifact && docker compose -f docker/docker-compose.prod.yml up -d'
+   sudo cp scripts/backup.cron /etc/cron.d/tukifact-backup && sudo systemctl restart cron
+   ```
+6. **Verificar cert + smoke:**
+   - `curl -I https://tukifact.com.pe/` → 200 + HSTS
+   - `curl -I https://app.tukifact.com.pe/login` → 200
+   - `curl https://app.tukifact.com.pe/api/health` → 200
+   - Subir tu cert SUNAT desde portal, emitir 1 boleta beta, verificar CDR.
 
 ---
 
