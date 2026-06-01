@@ -38,5 +38,15 @@ public class GoogleAuthService : IGoogleAuthService
         {
             throw new UnauthorizedAccessException("Token de Google inválido");
         }
+        catch (FormatException)
+        {
+            // Malformed base64 inside the JWT segments — same user-facing error.
+            throw new UnauthorizedAccessException("Token de Google inválido");
+        }
+        catch (ArgumentException)
+        {
+            // Empty / null id_token.
+            throw new UnauthorizedAccessException("Token de Google inválido");
+        }
     }
 }

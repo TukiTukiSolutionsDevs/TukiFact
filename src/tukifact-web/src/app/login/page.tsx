@@ -51,14 +51,23 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-      const tenants = await loginWithGoogle(cred.credential);
-      if (tenants === null) {
+      const outcome = await loginWithGoogle(cred.credential);
+      if (outcome.kind === 'ok') {
         toast.success('Sesión iniciada con Google');
         router.push('/dashboard');
         return;
       }
+      if (outcome.kind === 'needs-register') {
+        // Hand the Google credential to /register so the wizard skips authentication
+        // and only asks for the missing company data.
+        sessionStorage.setItem('tukifact:pending-google-token', cred.credential);
+        toast.info(`Aún no tenés cuenta con ${outcome.prompt.email}. Vamos a crearla.`);
+        router.push('/register?from=google');
+        return;
+      }
+      // pick-tenant
       setPendingIdToken(cred.credential);
-      setPickerTenants(tenants);
+      setPickerTenants(outcome.tenants);
       setPickerOpen(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error al iniciar sesión con Google');

@@ -58,6 +58,11 @@ public class AuthController : ControllerBase
         {
             return Unauthorized(new { error = ex.Message });
         }
+        catch (ArgumentException)
+        {
+            // Malformed or unparseable Google id_token.
+            return Unauthorized(new { error = "Token de Google inválido" });
+        }
     }
 
     [HttpPost("google/register")]

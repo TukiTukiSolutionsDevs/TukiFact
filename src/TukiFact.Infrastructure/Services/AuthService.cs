@@ -69,6 +69,14 @@ public class AuthService : IAuthService
     {
         var googleUser = await _googleAuth.ValidateIdTokenAsync(request.IdToken, ct);
 
+        // Platform admins should never reach the tenant portal — bounce them with a clear message.
+        var isPlatformAdmin = await _dbContext.PlatformUsers
+            .AsNoTracking()
+            .AnyAsync(p => p.Email == googleUser.Email && p.IsActive, ct);
+        if (isPlatformAdmin)
+            throw new UnauthorizedAccessException(
+                "Esta cuenta es de administrador de la plataforma. Iniciá sesión en /backoffice/login.");
+
         // If client already picked a tenant → log into it directly.
         if (request.TenantId is Guid tid)
         {
@@ -86,8 +94,17 @@ public class AuthService : IAuthService
         var matches = await _userRepo.GetActiveByEmailWithTenantsAsync(googleUser.Email, ct);
 
         if (matches.Count == 0)
-            throw new UnauthorizedAccessException(
-                "Tu correo no está registrado en ninguna empresa. Pide a tu administrador que te invite, o registra una nueva empresa.");
+        {
+            // No tenant yet — invite the user into the registration flow with their Google profile
+            // already filled in, instead of failing with a dead-end error message.
+            return new GoogleLoginResult(
+                Auth: null,
+                Tenants: null,
+                NeedsRegistration: new GoogleRegistrationPrompt(
+                    googleUser.Email,
+                    googleUser.Name ?? googleUser.Email,
+                    googleUser.Picture));
+        }
 
         if (matches.Count == 1)
         {

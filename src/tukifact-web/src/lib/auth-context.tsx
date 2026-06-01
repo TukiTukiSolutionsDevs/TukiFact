@@ -12,10 +12,22 @@ export interface TenantChoice {
   razonSocial: string;
 }
 
+export interface GoogleRegistrationPrompt {
+  email: string;
+  name: string;
+  picture?: string | null;
+}
+
 export interface GoogleLoginResult {
   auth: AuthResponse | null;
   tenants: TenantChoice[] | null;
+  needsRegistration?: GoogleRegistrationPrompt | null;
 }
+
+export type GoogleLoginOutcome =
+  | { kind: 'ok' }
+  | { kind: 'pick-tenant'; tenants: TenantChoice[] }
+  | { kind: 'needs-register'; prompt: GoogleRegistrationPrompt };
 
 export interface RegisterWithGoogleData {
   ruc: string;
@@ -29,8 +41,14 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string, tenantId: string) => Promise<void>;
-  /** Returns the list of tenants to pick from, or null if already logged in. */
-  loginWithGoogle: (idToken: string) => Promise<TenantChoice[] | null>;
+  /**
+   * Result of attempting Google login. Three outcomes:
+   *  - ok          → tokens stored, caller can navigate to dashboard.
+   *  - pick-tenant → Google email matches multiple tenants, caller must show the picker.
+   *  - needs-register → Google email has no tenant yet; caller should walk the user
+   *                     through /register with the Google token already accepted.
+   */
+  loginWithGoogle: (idToken: string) => Promise<GoogleLoginOutcome>;
   /** Logs in with a specific tenant after the user picked one. */
   loginWithGoogleAtTenant: (idToken: string, tenantId: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
@@ -83,13 +101,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
   }, []);
 
-  const loginWithGoogle = useCallback(async (idToken: string): Promise<TenantChoice[] | null> => {
+  const loginWithGoogle = useCallback(async (idToken: string): Promise<GoogleLoginOutcome> => {
     const res = await api.post<GoogleLoginResult>('/v1/auth/google', { idToken });
     if (res.auth) {
       storeAuth(res.auth);
-      return null;
+      return { kind: 'ok' };
     }
-    return res.tenants ?? [];
+    if (res.needsRegistration) {
+      return { kind: 'needs-register', prompt: res.needsRegistration };
+    }
+    return { kind: 'pick-tenant', tenants: res.tenants ?? [] };
   }, [storeAuth]);
 
   const loginWithGoogleAtTenant = useCallback(async (idToken: string, tenantId: string) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -164,6 +164,20 @@ export default function RegisterPage() {
     }));
     toast.success('Cuenta de Google vinculada — completa los datos de la empresa');
   };
+
+  // When /login redirects here with ?from=google, pick up the pending id_token from
+  // sessionStorage and pre-fill the form so the user only has to type RUC + Razón Social.
+  // (Reading window.location avoids useSearchParams + Suspense plumbing.)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('from') !== 'google') return;
+    const token = sessionStorage.getItem('tukifact:pending-google-token');
+    if (!token) return;
+    sessionStorage.removeItem('tukifact:pending-google-token');
+    handleGoogleSuccess({ credential: token } as CredentialResponse);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const clearGoogle = () => {
     setGoogleIdToken(null);
