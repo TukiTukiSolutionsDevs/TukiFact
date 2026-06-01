@@ -34,13 +34,12 @@ public class InMemoryRateLimiter : IRateLimiter
         // Hourly request limits per plan (M1.5 spec)
         var limit = plan?.Name switch
         {
-            "Free" => 100,
+            "Gratis" => 100,
             "Emprendedor" => 500,
             "Negocio" => 2_000,
-            "Developer" => 2_000,
-            "Profesional" => 5_000,
+            "Profesional" => 6_000,
             "Empresa" => 20_000,
-            _ => 100 // Default to Free tier
+            _ => 100 // Default to free tier
         };
 
         var key = $"rate:{tenantId}";

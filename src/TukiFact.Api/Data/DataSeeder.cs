@@ -16,26 +16,51 @@ public static class DataSeeder
 
     private static async Task SeedPlansAsync(AppDbContext context)
     {
-        if (await context.Plans.AnyAsync())
-            return;
-
-        var plans = new[]
+        // Canonical plans (upsert by Name — safe to evolve across deploys).
+        // Pricing tuned against Nubefact, IntiFact, FacturaPeru and CPESunat (2026).
+        var canonical = new[]
         {
-            new Plan { Name = "Free", PriceMonthly = 0, MaxDocumentsPerMonth = 50,
-                Features = "{\"api\":false,\"support\":\"none\",\"ai\":false,\"users\":1,\"series\":1}" },
-            new Plan { Name = "Emprendedor", PriceMonthly = 39, MaxDocumentsPerMonth = 300,
-                Features = "{\"api\":true,\"api_rate_limit\":100,\"support\":\"email\",\"ai\":false,\"users\":3,\"series\":1}" },
-            new Plan { Name = "Negocio", PriceMonthly = 79, MaxDocumentsPerMonth = 1000,
-                Features = "{\"api\":true,\"api_rate_limit\":300,\"support\":\"email+tickets\",\"ai\":\"basic\",\"users\":10,\"series\":\"multiple\",\"webhooks\":true,\"custom_branding\":true}" },
-            new Plan { Name = "Profesional", PriceMonthly = 149, MaxDocumentsPerMonth = 3000,
-                Features = "{\"api\":true,\"api_rate_limit\":500,\"support\":\"priority\",\"ai\":\"full\",\"byok\":true,\"users\":25,\"series\":\"multiple\",\"webhooks\":true,\"reports\":\"advanced\"}" },
-            new Plan { Name = "Empresa", PriceMonthly = 299, MaxDocumentsPerMonth = 10000,
-                Features = "{\"api\":true,\"api_rate_limit\":1000,\"support\":\"sla_99.9\",\"ai\":\"full_all_agents\",\"byok\":true,\"users\":\"unlimited\",\"series\":\"multiple\",\"webhooks\":true,\"dedicated_api\":true}" },
-            new Plan { Name = "Developer", PriceMonthly = 99, MaxDocumentsPerMonth = 1000,
-                Features = "{\"api\":true,\"api_rate_limit\":500,\"support\":\"docs\",\"ai\":\"copilot\",\"sandbox\":true,\"sdks\":true,\"users\":5,\"panel\":false}" }
+            new Plan { Name = "Gratis", PriceMonthly = 0, MaxDocumentsPerMonth = 10,
+                Features = "{\"api\":false,\"support\":\"none\",\"ai\":false,\"users\":1,\"series\":1,\"trial\":true}" },
+            new Plan { Name = "Emprendedor", PriceMonthly = 35, MaxDocumentsPerMonth = 200,
+                Features = "{\"api\":false,\"support\":\"email\",\"ai\":false,\"users\":2,\"series\":1}" },
+            new Plan { Name = "Negocio", PriceMonthly = 79, MaxDocumentsPerMonth = 2000,
+                Features = "{\"api\":true,\"api_rate_limit\":100,\"support\":\"email+tickets\",\"ai\":\"basic\",\"ai_queries\":100,\"users\":5,\"series\":\"multiple\",\"webhooks\":true}" },
+            new Plan { Name = "Profesional", PriceMonthly = 179, MaxDocumentsPerMonth = 5000,
+                Features = "{\"api\":true,\"api_rate_limit\":500,\"support\":\"priority\",\"ai\":\"full\",\"ai_queries\":500,\"byok\":true,\"sdks\":true,\"users\":15,\"series\":\"multiple\",\"webhooks\":true,\"custom_branding\":true,\"reports\":\"advanced\"}" },
+            new Plan { Name = "Empresa", PriceMonthly = 349, MaxDocumentsPerMonth = 15000,
+                Features = "{\"api\":true,\"api_rate_limit\":1000,\"support\":\"sla_99.9\",\"ai\":\"full_all_agents\",\"ai_queries\":\"unlimited\",\"byok\":true,\"sdks\":true,\"users\":\"unlimited\",\"series\":\"multiple\",\"webhooks\":true,\"custom_branding\":true,\"reports\":\"advanced\",\"dedicated_api\":true,\"onboarding\":true}" },
         };
 
-        await context.Plans.AddRangeAsync(plans);
+        var existing = await context.Plans.ToListAsync();
+        var canonicalNames = canonical.Select(p => p.Name).ToHashSet();
+
+        // Upsert by Name — keep Id + CulqiPlanId stable for tenants/subscriptions already pointing at them.
+        foreach (var plan in canonical)
+        {
+            var current = existing.FirstOrDefault(p => p.Name == plan.Name);
+            if (current is null)
+            {
+                await context.Plans.AddAsync(plan);
+                Console.WriteLine($"[Seed] Plan added: {plan.Name} (S/{plan.PriceMonthly} · {plan.MaxDocumentsPerMonth} docs)");
+            }
+            else
+            {
+                current.PriceMonthly = plan.PriceMonthly;
+                current.MaxDocumentsPerMonth = plan.MaxDocumentsPerMonth;
+                current.Features = plan.Features;
+                current.IsActive = true;
+                Console.WriteLine($"[Seed] Plan updated: {plan.Name} (S/{plan.PriceMonthly} · {plan.MaxDocumentsPerMonth} docs)");
+            }
+        }
+
+        // Soft-deactivate plans no longer in the canonical list (don't delete — Tenants may reference them).
+        foreach (var stale in existing.Where(p => !canonicalNames.Contains(p.Name) && p.IsActive))
+        {
+            stale.IsActive = false;
+            Console.WriteLine($"[Seed] Plan deactivated: {stale.Name}");
+        }
+
         await context.SaveChangesAsync();
     }
 

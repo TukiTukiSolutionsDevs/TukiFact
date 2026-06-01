@@ -83,7 +83,7 @@ public class DocumentService : IDocumentService
     {
         // Tenant without a plan = treat as Free defaults (matches DataSeeder's Free plan
         // and the GetTenant response's "Free / 50" fallback).
-        var planName = tenant.Plan?.Name ?? "Free";
+        var planName = tenant.Plan?.Name ?? "Gratis";
         var monthlyLimit = tenant.Plan?.MaxDocumentsPerMonth ?? 50;
 
         var count = await _documentRepo.CountForCurrentMonthAsync(tenant.Id, ct);

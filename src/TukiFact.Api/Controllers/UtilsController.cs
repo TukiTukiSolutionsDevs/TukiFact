@@ -127,7 +127,7 @@ public class UtilsController : ControllerBase
 
         return Ok(new
         {
-            Plan = tenant.Plan?.Name ?? "Free",
+            Plan = tenant.Plan?.Name ?? "Gratis",
             DocumentsThisMonth = documentsThisMonth,
             MaxDocumentsPerMonth = limit,
             UsagePercent = percentage,

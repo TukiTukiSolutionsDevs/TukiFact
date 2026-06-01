@@ -53,7 +53,7 @@ public class SandboxController : ControllerBase
         }
 
         // Get free plan
-        var freePlan = await _db.Plans.FirstOrDefaultAsync(p => p.Name == "Free", ct);
+        var freePlan = await _db.Plans.FirstOrDefaultAsync(p => p.Name == "Gratis", ct);
 
         // Create sandbox tenant
         var tenant = new TukiFact.Domain.Entities.Tenant

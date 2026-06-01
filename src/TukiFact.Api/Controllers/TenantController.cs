@@ -48,7 +48,7 @@ public class TenantController : ControllerBase
             tenant.PrimaryColor,
             tenant.Environment,
             tenant.IsActive,
-            PlanName = tenant.Plan?.Name ?? "Free",
+            PlanName = tenant.Plan?.Name ?? "Gratis",
             PlanMaxDocs = tenant.Plan?.MaxDocumentsPerMonth ?? 50,
             HasCertificate = tenant.CertificateData is not null,
             CertificateExpiresAt = tenant.CertificateExpiresAt,

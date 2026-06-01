@@ -99,7 +99,7 @@ public class AuthService : IAuthService
             throw new InvalidOperationException(
                 "Tu cuenta de Google ya está vinculada a otra empresa. Inicia sesión en su lugar.");
 
-        var freePlan = await _planRepo.GetByNameAsync("Free", ct);
+        var freePlan = await _planRepo.GetByNameAsync("Gratis", ct);
 
         var tenant = new Tenant
         {
@@ -163,7 +163,7 @@ public class AuthService : IAuthService
             throw new InvalidOperationException($"RUC {request.Ruc} ya está registrado");
 
         // Get free plan
-        var freePlan = await _planRepo.GetByNameAsync("Free", ct);
+        var freePlan = await _planRepo.GetByNameAsync("Gratis", ct);
 
         // Create tenant
         var tenant = new Tenant

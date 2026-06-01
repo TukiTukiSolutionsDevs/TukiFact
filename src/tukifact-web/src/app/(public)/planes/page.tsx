@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: 'Planes y precios',
-  description: 'Planes flexibles para empresas peruanas. Desde Free hasta Empresa, con precios claros y sin sorpresas.',
+  description: 'Planes flexibles para empresas peruanas. Desde Gratis hasta Empresa, con API, IA y webhooks incluidos sin sobreprecio.',
   alternates: { canonical: '/planes' },
 };
 
@@ -25,43 +25,43 @@ const FEATURED_NAME = 'Negocio';
 
 const FALLBACK_PLANS: PlanDto[] = [
   {
-    id: 'free',
-    name: 'Free',
+    id: 'gratis',
+    name: 'Gratis',
     priceMonthly: 0,
-    maxDocumentsPerMonth: 50,
-    features: { ai: false, api: false, users: 1, series: 1, support: 'none' },
+    maxDocumentsPerMonth: 10,
+    features: { api: false, ai: false, users: 1, series: 1, support: 'none', trial: true },
     isActive: true,
   },
   {
     id: 'emprendedor',
     name: 'Emprendedor',
-    priceMonthly: 39,
-    maxDocumentsPerMonth: 300,
-    features: { ai: false, api: true, users: 3, series: 1, support: 'email' },
+    priceMonthly: 35,
+    maxDocumentsPerMonth: 200,
+    features: { api: false, ai: false, users: 2, series: 1, support: 'email' },
     isActive: true,
   },
   {
     id: 'negocio',
     name: 'Negocio',
     priceMonthly: 79,
-    maxDocumentsPerMonth: 1000,
-    features: { ai: 'basic', api: true, users: 10, series: 'multiple', support: 'email+tickets', webhooks: true },
+    maxDocumentsPerMonth: 2000,
+    features: { ai: 'basic', ai_queries: 100, api: true, api_rate_limit: 100, users: 5, series: 'multiple', support: 'email+tickets', webhooks: true },
     isActive: true,
   },
   {
     id: 'profesional',
     name: 'Profesional',
-    priceMonthly: 149,
-    maxDocumentsPerMonth: 3000,
-    features: { ai: 'full', api: true, byok: true, users: 25, series: 'multiple', support: 'priority', webhooks: true },
+    priceMonthly: 179,
+    maxDocumentsPerMonth: 5000,
+    features: { ai: 'full', ai_queries: 500, api: true, api_rate_limit: 500, byok: true, sdks: true, users: 15, series: 'multiple', support: 'priority', webhooks: true, custom_branding: true, reports: 'advanced' },
     isActive: true,
   },
   {
     id: 'empresa',
     name: 'Empresa',
-    priceMonthly: 299,
-    maxDocumentsPerMonth: 10000,
-    features: { ai: 'full_all_agents', api: true, byok: true, users: 'unlimited', series: 'multiple', support: 'sla_99.9', webhooks: true },
+    priceMonthly: 349,
+    maxDocumentsPerMonth: 15000,
+    features: { ai: 'full_all_agents', ai_queries: 'unlimited', api: true, api_rate_limit: 1000, byok: true, sdks: true, users: 'unlimited', series: 'multiple', support: 'sla_99.9', webhooks: true, custom_branding: true, reports: 'advanced', dedicated_api: true, onboarding: true },
     isActive: true,
   },
 ];
@@ -80,7 +80,7 @@ const AI_LABELS: Record<string, string> = {
   basic: 'Asistente IA básico',
   full: 'Asistente IA completo',
   copilot: 'Copiloto de desarrollo',
-  full_all_agents: 'IA completa con agentes',
+  full_all_agents: 'IA completa con agentes autónomos',
 };
 
 async function fetchPlans(): Promise<PlanDto[]> {
@@ -104,7 +104,12 @@ function formatPrice(amount: number) {
 function describeFeatures(f: FeatureMap): string[] {
   const lines: string[] = [];
 
-  if (typeof f.ai === 'string' && AI_LABELS[f.ai]) lines.push(AI_LABELS[f.ai]);
+  if (typeof f.ai === 'string' && AI_LABELS[f.ai]) {
+    const baseLabel = AI_LABELS[f.ai];
+    if (f.ai_queries === 'unlimited') lines.push(`${baseLabel} · consultas ilimitadas`);
+    else if (typeof f.ai_queries === 'number') lines.push(`${baseLabel} · ${f.ai_queries} consultas/mes`);
+    else lines.push(baseLabel);
+  }
 
   if (f.api === true) {
     if (typeof f.api_rate_limit === 'number') lines.push(`API REST · ${f.api_rate_limit} req/min`);
@@ -113,8 +118,10 @@ function describeFeatures(f: FeatureMap): string[] {
 
   if (f.byok) lines.push('Trae tu propia API key de IA (Gemini, Claude…)');
   if (f.webhooks) lines.push('Webhooks firmados con HMAC');
-  if (f.sdks) lines.push('SDKs oficiales');
+  if (f.sdks) lines.push('SDKs oficiales (Node, Python, .NET)');
   if (f.sandbox) lines.push('Sandbox para pruebas');
+  if (f.onboarding) lines.push('Onboarding personalizado');
+  if (f.trial) lines.push('Solo para probar la plataforma');
 
   if (typeof f.users === 'number') lines.push(`Hasta ${f.users} ${f.users === 1 ? 'usuario' : 'usuarios'}`);
   else if (f.users === 'unlimited') lines.push('Usuarios ilimitados');
