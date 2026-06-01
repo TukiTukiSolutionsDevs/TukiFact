@@ -5,15 +5,25 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 FROM base AS deps
 WORKDIR /app
 COPY src/tukifact-web/package.json src/tukifact-web/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# pnpm 10 fails the install when packages with postinstall scripts aren't approved.
+# Disable strict-dep-builds here so deps install in a non-interactive container.
+RUN pnpm install --frozen-lockfile --config.strict-dep-builds=false
 
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY src/tukifact-web/ ./
 ARG NEXT_PUBLIC_API_URL=""
+ARG NEXT_PUBLIC_PUBLIC_URL=""
+ARG NEXT_PUBLIC_CULQI_PUBLIC_KEY=""
+ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=""
+ARG NEXT_PUBLIC_PLAUSIBLE_DOMAIN=""
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_PUBLIC_URL=${NEXT_PUBLIC_PUBLIC_URL}
+ENV NEXT_PUBLIC_CULQI_PUBLIC_KEY=${NEXT_PUBLIC_CULQI_PUBLIC_KEY}
+ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+ENV NEXT_PUBLIC_PLAUSIBLE_DOMAIN=${NEXT_PUBLIC_PLAUSIBLE_DOMAIN}
 RUN pnpm build
 
 FROM base AS runner

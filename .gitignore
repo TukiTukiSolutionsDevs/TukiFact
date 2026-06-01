@@ -22,8 +22,18 @@ docker/minio_data/
 # Environment
 .env
 docker/.env
+docker/.env.prod
+docker/.env.*
 *.env.local
 appsettings.*.local.json
+
+# Local-only docs / scratch
+.atl/
+.claude-design-bundle/
+.tukifact-design-audit/
+Shopify-Skill/
+INFORME-EJECUTIVO-BACKEND.*
+*.pdf
 
 # OS
 .DS_Store
