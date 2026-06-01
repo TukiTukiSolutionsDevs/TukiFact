@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TukiFact.Application.DTOs.RecurringInvoices;
 using TukiFact.Application.Interfaces;
+using TukiFact.Application.Validation;
 using TukiFact.Domain.Entities;
+using TukiFact.Domain.Services;
 
 namespace TukiFact.Api.Controllers;
 
@@ -27,6 +29,10 @@ public class RecurringInvoicesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<RecurringInvoiceResponse>> Create([FromBody] CreateRecurringInvoiceRequest request, CancellationToken ct)
     {
+        var validationErrors = RecurringInvoiceValidator.Validate(request);
+        if (validationErrors.Count > 0)
+            return BadRequest(new { errors = validationErrors });
+
         var tenantId = GetTenantId();
 
         var recurring = new RecurringInvoice
@@ -62,7 +68,9 @@ public class RecurringInvoicesController : ControllerBase
     public async Task<ActionResult<RecurringInvoiceResponse>> GetById(Guid id, CancellationToken ct)
     {
         var recurring = await _recurringRepo.GetByIdAsync(id, ct);
-        return recurring is null ? NotFound() : Ok(MapToResponse(recurring));
+        if (recurring is null || recurring.TenantId != GetTenantId())
+            return NotFound();
+        return Ok(MapToResponse(recurring));
     }
 
     [HttpGet]
@@ -79,16 +87,28 @@ public class RecurringInvoicesController : ControllerBase
     public async Task<ActionResult<RecurringInvoiceResponse>> Update(Guid id, [FromBody] UpdateRecurringInvoiceRequest request, CancellationToken ct)
     {
         var recurring = await _recurringRepo.GetByIdAsync(id, ct);
-        if (recurring is null) return NotFound();
-        if (recurring.TenantId != GetTenantId()) return Forbid();
+        // Return 404 (not 403) on cross-tenant access so we don't leak existence.
+        if (recurring is null || recurring.TenantId != GetTenantId())
+            return NotFound();
 
         if (request.Status is not null)
         {
             recurring.Status = request.Status;
             if (request.Status == "cancelled" || request.Status == "paused")
+            {
                 recurring.NextEmissionDate = null;
-            if (request.Status == "active" && recurring.NextEmissionDate is null)
-                recurring.NextEmissionDate = DateOnly.FromDateTime(DateTime.UtcNow);
+            }
+            else if (request.Status == "active" && recurring.NextEmissionDate is null)
+            {
+                // Resume — compute the next logical occurrence strictly after today
+                // so a paused schedule that was reactivated doesn't emit within the next scheduler tick.
+                var today = RecurringScheduleCalculator.TodayInLima();
+                recurring.NextEmissionDate = RecurringScheduleCalculator.NextAfter(
+                    today, recurring.Frequency, recurring.DayOfMonth, recurring.DayOfWeek, recurring.StartDate);
+                // Resume clears the failure streak so the user gets a clean slate.
+                recurring.ConsecutiveFailures = 0;
+                recurring.LastError = null;
+            }
         }
         if (request.EndDate.HasValue) recurring.EndDate = request.EndDate;
         if (request.Notes is not null) recurring.Notes = request.Notes;
@@ -99,9 +119,10 @@ public class RecurringInvoicesController : ControllerBase
 
     private static RecurringInvoiceResponse MapToResponse(RecurringInvoice r) => new(
         r.Id, r.DocumentType, r.Serie,
-        r.CustomerDocType, r.CustomerDocNumber, r.CustomerName, r.CustomerEmail,
+        r.CustomerDocType, r.CustomerDocNumber, r.CustomerName, r.CustomerAddress, r.CustomerEmail,
         r.Currency, r.Frequency, r.DayOfMonth, r.DayOfWeek,
         r.StartDate, r.EndDate, r.NextEmissionDate,
         r.Status, r.EmittedCount, r.LastEmittedDate,
+        r.ConsecutiveFailures, r.LastError,
         r.Notes, r.CreatedAt);
 }

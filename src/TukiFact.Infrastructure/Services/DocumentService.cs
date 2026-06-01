@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using TukiFact.Application.DTOs.Documents;
+using TukiFact.Application.Exceptions;
 using TukiFact.Application.Interfaces;
 using TukiFact.Domain.Entities;
 using TukiFact.Domain.Enums;
@@ -20,6 +21,8 @@ public class DocumentService : IDocumentService
     private readonly IStorageService _storageService;
     private readonly IPdfGenerator _pdfGenerator;
     private readonly ISecretProtector _secrets;
+    private readonly IEventPublisher _eventPublisher;
+    private readonly IExchangeRateService _exchangeRateService;
     private readonly ILogger<DocumentService> _logger;
     private const decimal IgvRate = 0.18m;
 
@@ -33,6 +36,8 @@ public class DocumentService : IDocumentService
         IStorageService storageService,
         IPdfGenerator pdfGenerator,
         ISecretProtector secrets,
+        IEventPublisher eventPublisher,
+        IExchangeRateService exchangeRateService,
         ILogger<DocumentService> logger)
     {
         _documentRepo = documentRepo;
@@ -44,7 +49,115 @@ public class DocumentService : IDocumentService
         _storageService = storageService;
         _pdfGenerator = pdfGenerator;
         _secrets = secrets;
+        _eventPublisher = eventPublisher;
+        _exchangeRateService = exchangeRateService;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Generate the PDF once at acceptance time and persist it in MinIO. Avoids re-rendering
+    /// on every GET /documents/{id}/pdf (CPU/RAM win for large item counts). Best-effort —
+    /// a PDF render failure does NOT roll back the emission, since the doc is already in SUNAT.
+    /// </summary>
+    private async Task EnsurePdfPersistedAsync(Document doc, Tenant tenant, CancellationToken ct)
+    {
+        if (!string.IsNullOrEmpty(doc.PdfUrl)) return;
+        try
+        {
+            var pdfBytes = _pdfGenerator.GenerateInvoicePdf(doc, tenant);
+            doc.PdfUrl = await _storageService.UploadPdfAsync(tenant.Id, $"{doc.FullNumber}.pdf", pdfBytes, ct);
+            await _documentRepo.UpdateAsync(doc, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "PDF persist failed for {FullNumber} (will fall back to on-demand render)", doc.FullNumber);
+        }
+    }
+
+    /// <summary>
+    /// Persist SBS sell rate on USD invoices so PLE 14.1 reconciliation uses the rate
+    /// of the issue date, not whatever rate happens to be cached at report time.
+    /// Fail-fast: a missing rate means we cannot legally emit a USD doc.
+    /// </summary>
+    private async Task EnforcePlanLimitAsync(Tenant tenant, CancellationToken ct)
+    {
+        // Tenant without a plan = treat as Free defaults (matches DataSeeder's Free plan
+        // and the GetTenant response's "Free / 50" fallback).
+        var planName = tenant.Plan?.Name ?? "Free";
+        var monthlyLimit = tenant.Plan?.MaxDocumentsPerMonth ?? 50;
+
+        var count = await _documentRepo.CountForCurrentMonthAsync(tenant.Id, ct);
+        if (count >= monthlyLimit)
+        {
+            _logger.LogWarning(
+                "Tenant {TenantId} exceeded plan limit: {Count}/{Limit} ({Plan})",
+                tenant.Id, count, monthlyLimit, planName);
+            throw new PlanLimitExceededException(planName, monthlyLimit, count);
+        }
+    }
+
+    private async Task EnsureExchangeRateAsync(Document doc, CancellationToken ct)
+    {
+        if (!string.Equals(doc.Currency, "USD", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var rate = await _exchangeRateService.GetRateAsync(doc.IssueDate, "USD", ct);
+        if (rate is null)
+        {
+            // GetRateAsync falls back to FetchAndSave when missing; if it still returned null
+            // SBS itself is unreachable or doesn't publish a rate for this date.
+            throw new InvalidOperationException(
+                $"No se pudo obtener el tipo de cambio SBS USD para {doc.IssueDate:yyyy-MM-dd}. " +
+                "Reintentá cuando SBS publique el TC o emití en PEN.");
+        }
+
+        doc.ExchangeRate = rate.SellRate;
+        doc.ExchangeRateDate = rate.Date;
+    }
+
+    /// <summary>
+    /// Publish a domain event after a document reaches a terminal/notifiable state.
+    /// Subjects match what existing handlers (NotificationEventHandler, GenericWebhookHandler) listen for.
+    /// Failures here are logged but NEVER bubble — emission must not roll back on a publish hiccup.
+    /// </summary>
+    private async Task PublishDocumentEventAsync(Document doc, Tenant tenant, CancellationToken ct)
+    {
+        var subject = doc.Status switch
+        {
+            DocumentStatus.Accepted => "document.sent",
+            DocumentStatus.Sent     => "document.sent",
+            DocumentStatus.Rejected => "document.failed",
+            _ => null
+        };
+        if (subject is null) return;
+
+        var evt = new EventHandlers.TukiFactEvent
+        {
+            TenantId = tenant.Id,
+            EntityId = doc.Id,
+            EntityType = "Document",
+            EventType = subject,
+            DocumentType = doc.DocumentType,
+            Serie = doc.Serie,
+            Correlative = doc.Correlative,
+            FullNumber = doc.FullNumber,
+            Total = doc.Total,
+            Currency = doc.Currency,
+            Status = doc.Status,
+            CustomerName = doc.CustomerName,
+            CustomerEmail = doc.CustomerEmail,
+            SunatResponseCode = doc.SunatResponseCode,
+            SunatResponseDescription = doc.SunatResponseDescription
+        };
+
+        try
+        {
+            await _eventPublisher.PublishAsync(subject, evt, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Publish {Subject} failed for {FullNumber}", subject, doc.FullNumber);
+        }
     }
 
     public async Task<DocumentResponse> EmitAsync(CreateDocumentRequest request, Guid tenantId, CancellationToken ct = default)
@@ -57,6 +170,10 @@ public class DocumentService : IDocumentService
         if (request.Items is null || request.Items.Count == 0)
             throw new ArgumentException("El documento debe contener al menos un item en la lista 'items'");
 
+        // 1b. Plan limit — block emit BEFORE consuming a correlative; otherwise we'd
+        // burn the next number on a doc that never gets created.
+        await EnforcePlanLimitAsync(tenant, ct);
+
         // 2. Get series and next correlative
         var series = await _seriesRepo.GetByTypeAndSerieAsync(tenantId, request.DocumentType, request.Serie, ct)
             ?? throw new InvalidOperationException($"Serie {request.Serie} no encontrada para tipo {request.DocumentType}");
@@ -68,6 +185,9 @@ public class DocumentService : IDocumentService
 
         // 3. Build document with calculated amounts
         var document = BuildDocument(request, tenantId, series, correlative);
+
+        // 3b. Lock in SBS sell rate for USD docs (fail-fast if SBS unreachable)
+        await EnsureExchangeRateAsync(document, ct);
 
         // 4. Save to DB
         await _documentRepo.CreateAsync(document, ct);
@@ -110,6 +230,12 @@ public class DocumentService : IDocumentService
         var xmlPath = await _storageService.UploadXmlAsync(tenantId,
             $"{document.FullNumber}.xml", xmlBytes, ct);
         document.XmlUrl = xmlPath;
+
+        // 7b. Atomic materialization checkpoint (C7): persist HashCode + XmlUrl + Status=Signed
+        // BEFORE calling SUNAT. If the process dies during/after the SOAP call we still have
+        // a record that distinguishes "consumed correlative but never reached SUNAT" from
+        // "in-flight to SUNAT but response not yet persisted". Recovery worker scans for this.
+        await _documentRepo.UpdateAsync(document, ct);
 
         // 8. Send to SUNAT — credentials per tenant (NO global fallback)
         if (string.IsNullOrEmpty(tenant.SunatUser) || string.IsNullOrEmpty(tenant.SunatPasswordEncrypted))
@@ -155,6 +281,11 @@ public class DocumentService : IDocumentService
 
         // 10. Update document
         await _documentRepo.UpdateAsync(document, ct);
+
+        if (document.Status == DocumentStatus.Accepted)
+            await EnsurePdfPersistedAsync(document, tenant, ct);
+
+        await PublishDocumentEventAsync(document, tenant, ct);
 
         return MapToResponse(document);
     }
@@ -280,9 +411,24 @@ public class DocumentService : IDocumentService
         var tenant = await _tenantRepo.GetByIdAsync(tenantId, ct)
             ?? throw new InvalidOperationException("Tenant no encontrado");
 
+        await EnforcePlanLimitAsync(tenant, ct);
+
         // Get the reference document (tenant-scoped — prevents IDOR across tenants)
         var refDoc = await _documentRepo.GetByIdWithItemsAsync(request.ReferenceDocumentId, tenantId, ct)
             ?? throw new InvalidOperationException("Documento de referencia no encontrado");
+
+        // SUNAT business rules — run BEFORE consuming a correlativo so a bad request doesn't burn one.
+        if (refDoc.DocumentType != "01" && refDoc.DocumentType != "03")
+            throw new InvalidOperationException($"Solo puedes emitir NC sobre Factura (01) o Boleta (03). El documento de referencia es tipo {refDoc.DocumentType}.");
+
+        if (refDoc.Status != DocumentStatus.Accepted)
+            throw new InvalidOperationException($"Solo puedes emitir NC sobre documentos aceptados por SUNAT. El documento de referencia está en estado '{refDoc.Status}'.");
+
+        if (!string.Equals(refDoc.Currency, request.Currency, StringComparison.Ordinal))
+            throw new InvalidOperationException($"La moneda de la NC ({request.Currency}) debe coincidir con la del documento de referencia ({refDoc.Currency}).");
+
+        if (request.Serie.Length > 0 && refDoc.Serie.Length > 0 && request.Serie[0] != refDoc.Serie[0])
+            throw new InvalidOperationException($"La serie '{request.Serie}' no coincide con el prefijo del documento de referencia ('{refDoc.Serie}'). Usa una serie con prefijo '{refDoc.Serie[0]}'.");
 
         // Get series for the credit note (type 07)
         var series = await _seriesRepo.GetByTypeAndSerieAsync(tenantId, "07", request.Serie, ct)
@@ -304,6 +450,8 @@ public class DocumentService : IDocumentService
         document.ReferenceDocumentNumber = refDoc.FullNumber;
         document.CreditNoteReason = request.CreditNoteReason;
 
+        await EnsureExchangeRateAsync(document, ct);
+
         await _documentRepo.CreateAsync(document, ct);
         _logger.LogInformation("CreditNote created: {FullNumber} for {RefNumber}", document.FullNumber, refDoc.FullNumber);
 
@@ -315,8 +463,23 @@ public class DocumentService : IDocumentService
         var tenant = await _tenantRepo.GetByIdAsync(tenantId, ct)
             ?? throw new InvalidOperationException("Tenant no encontrado");
 
+        await EnforcePlanLimitAsync(tenant, ct);
+
         var refDoc = await _documentRepo.GetByIdWithItemsAsync(request.ReferenceDocumentId, tenantId, ct)
             ?? throw new InvalidOperationException("Documento de referencia no encontrado");
+
+        // SUNAT business rules — same set as NC; ND only valid against accepted Factura/Boleta.
+        if (refDoc.DocumentType != "01" && refDoc.DocumentType != "03")
+            throw new InvalidOperationException($"Solo puedes emitir ND sobre Factura (01) o Boleta (03). El documento de referencia es tipo {refDoc.DocumentType}.");
+
+        if (refDoc.Status != DocumentStatus.Accepted)
+            throw new InvalidOperationException($"Solo puedes emitir ND sobre documentos aceptados por SUNAT. El documento de referencia está en estado '{refDoc.Status}'.");
+
+        if (!string.Equals(refDoc.Currency, request.Currency, StringComparison.Ordinal))
+            throw new InvalidOperationException($"La moneda de la ND ({request.Currency}) debe coincidir con la del documento de referencia ({refDoc.Currency}).");
+
+        if (request.Serie.Length > 0 && refDoc.Serie.Length > 0 && request.Serie[0] != refDoc.Serie[0])
+            throw new InvalidOperationException($"La serie '{request.Serie}' no coincide con el prefijo del documento de referencia ('{refDoc.Serie}'). Usa una serie con prefijo '{refDoc.Serie[0]}'.");
 
         var series = await _seriesRepo.GetByTypeAndSerieAsync(tenantId, "08", request.Serie, ct)
             ?? throw new InvalidOperationException($"Serie {request.Serie} no encontrada para Nota de Débito");
@@ -336,6 +499,8 @@ public class DocumentService : IDocumentService
         document.ReferenceDocumentType = refDoc.DocumentType;
         document.ReferenceDocumentNumber = refDoc.FullNumber;
         document.DebitNoteReason = request.DebitNoteReason;
+
+        await EnsureExchangeRateAsync(document, ct);
 
         await _documentRepo.CreateAsync(document, ct);
         _logger.LogInformation("DebitNote created: {FullNumber} for {RefNumber}", document.FullNumber, refDoc.FullNumber);
@@ -387,6 +552,10 @@ public class DocumentService : IDocumentService
             $"{document.FullNumber}.xml", xmlBytes, ct);
         document.XmlUrl = xmlPath;
 
+        // Atomic materialization checkpoint (C7): persist HashCode + XmlUrl + Status=Signed
+        // BEFORE the SUNAT call. See EmissionRecoveryHostedService for the recovery scan.
+        await _documentRepo.UpdateAsync(document, ct);
+
         // Send to SUNAT — credentials per tenant (NO global fallback)
         if (string.IsNullOrEmpty(tenant.SunatUser) || string.IsNullOrEmpty(tenant.SunatPasswordEncrypted))
         {
@@ -429,6 +598,12 @@ public class DocumentService : IDocumentService
         document.QrData = $"{tenant.Ruc}|{document.DocumentType}|{document.Serie}|{document.Correlative}|{document.Igv:F2}|{document.Total:F2}|{document.IssueDate:yyyy-MM-dd}|{document.CustomerDocType}|{document.CustomerDocNumber}|{hashCode}";
 
         await _documentRepo.UpdateAsync(document, ct);
+
+        if (document.Status == DocumentStatus.Accepted)
+            await EnsurePdfPersistedAsync(document, tenant, ct);
+
+        await PublishDocumentEventAsync(document, tenant, ct);
+
         return MapToResponse(document);
     }
 

@@ -12,4 +12,7 @@ public interface IRetentionRepository
     Task<long> GetNextCorrelativeAsync(Guid tenantId, string serie, CancellationToken ct = default);
     Task AddAsync(RetentionDocument entity, CancellationToken ct = default);
     Task UpdateAsync(RetentionDocument entity, CancellationToken ct = default);
+
+    /// <summary>Race-safe: advisory_xact_lock(hash(tenant, serie)) + MAX+1 + insert in one tx.</summary>
+    Task<long> AddWithCorrelativeAsync(RetentionDocument entity, string serie, CancellationToken ct = default);
 }

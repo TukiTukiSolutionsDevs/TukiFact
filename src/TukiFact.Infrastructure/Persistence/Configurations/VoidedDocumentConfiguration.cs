@@ -18,8 +18,14 @@ public class VoidedDocumentConfiguration : IEntityTypeConfiguration<VoidedDocume
         builder.Property(v => v.SunatTicket).HasMaxLength(50);
         builder.Property(v => v.SunatResponseCode).HasMaxLength(10);
         builder.Property(v => v.ItemsJson).HasColumnType("jsonb");
+        builder.Property(v => v.XmlUrl).HasMaxLength(500);
+        builder.Property(v => v.CdrUrl).HasMaxLength(500);
+        builder.Property(v => v.RetryCount).HasDefaultValue(0);
         builder.Property(v => v.CreatedAt).HasDefaultValueSql("now()");
         builder.Property(v => v.UpdatedAt).HasDefaultValueSql("now()");
+
+        // Worker hot paths: pending pickup + sent polling
+        builder.HasIndex(v => new { v.Status, v.LastPolledAt });
 
         builder.HasOne(v => v.Tenant).WithMany()
             .HasForeignKey(v => v.TenantId).OnDelete(DeleteBehavior.Cascade);

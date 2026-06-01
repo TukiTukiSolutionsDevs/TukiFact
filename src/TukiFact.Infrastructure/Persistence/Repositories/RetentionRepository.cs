@@ -49,6 +49,29 @@ public class RetentionRepository : IRetentionRepository
         return (max ?? 0) + 1;
     }
 
+    public async Task<long> AddWithCorrelativeAsync(RetentionDocument entity, string serie, CancellationToken ct = default)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await _context.Database.BeginTransactionAsync(ct);
+
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtext({entity.TenantId.ToString() + ":" + serie}))", ct);
+
+            var max = await _context.RetentionDocuments
+                .Where(r => r.TenantId == entity.TenantId && r.Serie == serie)
+                .MaxAsync(r => (long?)r.Correlative, ct);
+            entity.Correlative = (max ?? 0) + 1;
+
+            await _context.RetentionDocuments.AddAsync(entity, ct);
+            await _context.SaveChangesAsync(ct);
+
+            await tx.CommitAsync(ct);
+        });
+        return entity.Correlative;
+    }
+
     public async Task AddAsync(RetentionDocument entity, CancellationToken ct = default)
     {
         await _context.RetentionDocuments.AddAsync(entity, ct);

@@ -23,7 +23,7 @@ public class UblBuilder : IUblBuilder
             new XDeclaration("1.0", "utf-8", null),
             BuildInvoiceRoot(document, tenant));
 
-        using var sw = new StringWriter();
+        using var sw = new Utf8StringWriter();
         doc.Save(sw);
         return sw.ToString();
     }
@@ -92,7 +92,7 @@ public class UblBuilder : IUblBuilder
         root.Descendants().Where(e => e.Value == null && !e.HasElements && !e.HasAttributes).Remove();
 
         var doc = new XDocument(new XDeclaration("1.0", "utf-8", null), root);
-        using var sw = new StringWriter();
+        using var sw = new Utf8StringWriter();
         doc.Save(sw);
         return sw.ToString();
     }
@@ -160,7 +160,7 @@ public class UblBuilder : IUblBuilder
         root.Descendants().Where(e => e.Value == null && !e.HasElements && !e.HasAttributes).Remove();
 
         var doc = new XDocument(new XDeclaration("1.0", "utf-8", null), root);
-        using var sw = new StringWriter();
+        using var sw = new Utf8StringWriter();
         doc.Save(sw);
         return sw.ToString();
     }

@@ -2,6 +2,7 @@ using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TukiFact.Application.Interfaces;
 using TukiFact.Domain.Interfaces;
 using TukiFact.Infrastructure.Persistence;
 
@@ -14,12 +15,14 @@ public class CertificateController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ITenantProvider _tenantProvider;
+    private readonly ISecretProtector _secrets;
     private readonly ILogger<CertificateController> _logger;
 
-    public CertificateController(AppDbContext db, ITenantProvider tenantProvider, ILogger<CertificateController> logger)
+    public CertificateController(AppDbContext db, ITenantProvider tenantProvider, ISecretProtector secrets, ILogger<CertificateController> logger)
     {
         _db = db;
         _tenantProvider = tenantProvider;
+        _secrets = secrets;
         _logger = logger;
     }
 
@@ -77,8 +80,11 @@ public class CertificateController : ControllerBase
         try
         {
             using var cert = X509CertificateLoader.LoadPkcs12(certBytes, password);
-            expiresAt = new DateTimeOffset(cert.NotAfter, TimeSpan.Zero);
-            issuedAt = new DateTimeOffset(cert.NotBefore, TimeSpan.Zero);
+            // X509Certificate2.NotAfter/NotBefore return DateTimeKind.Local — convert to UTC before
+            // constructing DateTimeOffset with TimeSpan.Zero, otherwise the ctor throws when the
+            // host TZ is not UTC (e.g. Lima −05).
+            expiresAt = new DateTimeOffset(cert.NotAfter.ToUniversalTime(), TimeSpan.Zero);
+            issuedAt = new DateTimeOffset(cert.NotBefore.ToUniversalTime(), TimeSpan.Zero);
             subject = cert.Subject;
             serialNumber = cert.SerialNumber;
             thumbprint = cert.Thumbprint;
@@ -120,7 +126,7 @@ public class CertificateController : ControllerBase
         if (tenant is null) return NotFound(new { error = "Tenant no encontrado" });
 
         tenant.CertificateData = certBytes;
-        tenant.CertificatePasswordEncrypted = password; // TODO: encrypt with DataProtection
+        tenant.CertificatePasswordEncrypted = _secrets.Protect(password);
         tenant.CertificateExpiresAt = expiresAt;
         tenant.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -172,7 +178,7 @@ public class CertificateController : ControllerBase
         if (tenant is null) return NotFound(new { error = "Tenant no encontrado" });
 
         tenant.SunatUser = request.SunatUser;
-        tenant.SunatPasswordEncrypted = request.SunatPassword; // TODO: encrypt
+        tenant.SunatPasswordEncrypted = _secrets.Protect(request.SunatPassword);
         tenant.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _db.SaveChangesAsync(ct);

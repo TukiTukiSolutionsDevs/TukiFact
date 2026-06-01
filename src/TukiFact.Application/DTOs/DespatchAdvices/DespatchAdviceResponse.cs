@@ -19,9 +19,11 @@ public record DespatchAdviceResponse(
     string TransportMode,
     string TransportModeName,
     // Carrier
+    string? CarrierDocType,
     string? CarrierDocNumber,
     string? CarrierName,
     // Driver
+    string? DriverDocType,
     string? DriverDocNumber,
     string? DriverName,
     string? DriverLicense,
@@ -46,6 +48,7 @@ public record DespatchAdviceResponse(
     string? SunatTicket,
     string? XmlUrl,
     string? PdfUrl,
+    string? CdrUrl,
     DateTimeOffset CreatedAt,
     List<DespatchAdviceItemResponse> Items
 );

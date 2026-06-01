@@ -49,6 +49,31 @@ public class PerceptionRepository : IPerceptionRepository
         return (max ?? 0) + 1;
     }
 
+    public async Task<long> AddWithCorrelativeAsync(PerceptionDocument entity, string serie, CancellationToken ct = default)
+    {
+        // EnableRetryOnFailure forbids unwrapped user-initiated transactions; must run inside the strategy.
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await _context.Database.BeginTransactionAsync(ct);
+
+            // Lock key: a stable hash of (tenant, serie) — same key on parallel POSTs serializes them.
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtext({entity.TenantId.ToString() + ":" + serie}))", ct);
+
+            var max = await _context.PerceptionDocuments
+                .Where(p => p.TenantId == entity.TenantId && p.Serie == serie)
+                .MaxAsync(p => (long?)p.Correlative, ct);
+            entity.Correlative = (max ?? 0) + 1;
+
+            await _context.PerceptionDocuments.AddAsync(entity, ct);
+            await _context.SaveChangesAsync(ct);
+
+            await tx.CommitAsync(ct);
+        });
+        return entity.Correlative;
+    }
+
     public async Task AddAsync(PerceptionDocument entity, CancellationToken ct = default)
     {
         await _context.PerceptionDocuments.AddAsync(entity, ct);

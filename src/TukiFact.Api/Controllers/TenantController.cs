@@ -12,12 +12,14 @@ public class TenantController : ControllerBase
 {
     private readonly ITenantRepository _tenantRepo;
     private readonly ITenantProvider _tenantProvider;
+    private readonly ISecretProtector _secrets;
     private readonly ILogger<TenantController> _logger;
 
-    public TenantController(ITenantRepository tenantRepo, ITenantProvider tenantProvider, ILogger<TenantController> logger)
+    public TenantController(ITenantRepository tenantRepo, ITenantProvider tenantProvider, ISecretProtector secrets, ILogger<TenantController> logger)
     {
         _tenantRepo = tenantRepo;
         _tenantProvider = tenantProvider;
+        _secrets = secrets;
         _logger = logger;
     }
 
@@ -129,7 +131,7 @@ public class TenantController : ControllerBase
 
             // Store the original cert data (PEM text or PFX binary)
             tenant.CertificateData = certData;
-            tenant.CertificatePasswordEncrypted = ext == ".pem" ? $"PEM:{certPassword}" : certPassword;
+            tenant.CertificatePasswordEncrypted = _secrets.Protect(ext == ".pem" ? $"PEM:{certPassword}" : certPassword);
             // Npgsql requires UTC offset — cert.NotAfter is local timezone
             tenant.CertificateExpiresAt = new DateTimeOffset(cert.NotAfter.ToUniversalTime(), TimeSpan.Zero);
             await _tenantRepo.UpdateAsync(tenant, ct);

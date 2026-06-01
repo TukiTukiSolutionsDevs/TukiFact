@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using TukiFact.Application.Interfaces;
 using TukiFact.Domain.Entities;
 
@@ -6,6 +7,9 @@ namespace TukiFact.Infrastructure.Persistence.Repositories;
 
 public class DespatchAdviceRepository : IDespatchAdviceRepository
 {
+    private const string UniqueViolationSqlState = "23505";
+    private const int MaxCorrelativeRetries = 8;
+
     private readonly AppDbContext _context;
 
     public DespatchAdviceRepository(AppDbContext context) => _context = context;
@@ -54,10 +58,40 @@ public class DespatchAdviceRepository : IDespatchAdviceRepository
         return (maxCorrelative ?? 0) + 1;
     }
 
+    /// <summary>
+    /// Adds a DespatchAdvice with an atomically-assigned correlative. The (TenantId, Serie, Correlative)
+    /// unique index in the DB acts as the source of truth; if two concurrent inserts collide on the same
+    /// correlative, we recompute MAX+1 and retry. Bounded to avoid runaway retries.
+    /// </summary>
     public async Task AddAsync(DespatchAdvice entity, CancellationToken ct = default)
     {
-        await _context.DespatchAdvices.AddAsync(entity, ct);
-        await _context.SaveChangesAsync(ct);
+        // The service may already have called GetNextCorrelativeAsync — honour that as the first attempt.
+        if (entity.Correlative <= 0)
+        {
+            entity.Correlative = await GetNextCorrelativeAsync(entity.TenantId, entity.Serie, ct);
+        }
+
+        _context.DespatchAdvices.Add(entity);
+
+        for (var attempt = 0; attempt < MaxCorrelativeRetries; attempt++)
+        {
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+                return;
+            }
+            catch (DbUpdateException ex) when (IsCorrelativeCollision(ex))
+            {
+                // Detach and re-attempt with a fresh correlative.
+                _context.Entry(entity).State = EntityState.Detached;
+                entity.Correlative = await GetNextCorrelativeAsync(entity.TenantId, entity.Serie, ct);
+                _context.DespatchAdvices.Add(entity);
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"No se pudo asignar correlativo único para serie {entity.Serie} tras {MaxCorrelativeRetries} intentos. " +
+            "Reintenta en unos segundos.");
     }
 
     public async Task UpdateAsync(DespatchAdvice entity, CancellationToken ct = default)
@@ -65,5 +99,10 @@ public class DespatchAdviceRepository : IDespatchAdviceRepository
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         _context.DespatchAdvices.Update(entity);
         await _context.SaveChangesAsync(ct);
+    }
+
+    private static bool IsCorrelativeCollision(DbUpdateException ex)
+    {
+        return ex.InnerException is PostgresException pg && pg.SqlState == UniqueViolationSqlState;
     }
 }

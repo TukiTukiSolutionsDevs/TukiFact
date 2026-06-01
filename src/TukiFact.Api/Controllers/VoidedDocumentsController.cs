@@ -52,9 +52,29 @@ public class VoidedDocumentsController : ControllerBase
         if (document.Status != DocumentStatus.Accepted)
             return BadRequest(new { error = $"Solo se pueden anular documentos aceptados. Estado actual: {document.Status}" });
 
+        // SUNAT only accepts Comunicación de Baja (RA) for invoices, credit notes, debit notes.
+        // Boletas (03) are voided via the daily summary (RC), which is a separate flow not yet wired here.
+        if (document.DocumentType is not ("01" or "07" or "08"))
+        {
+            return BadRequest(new
+            {
+                error = $"Tipo de documento {document.DocumentType} no soportado para Comunicación de Baja. " +
+                        "Las boletas se anulan vía Resumen Diario (próximamente)."
+            });
+        }
+
         var today = RecurringScheduleCalculator.TodayInLima();
-        var ticketSeq = await _voidedRepo.GetNextTicketNumberAsync(tenantId, "RA", today, ct);
-        var ticketNumber = $"RA-{today:yyyyMMdd}-{ticketSeq:D3}";
+
+        // SUNAT plazo: la Comunicación de Baja debe enviarse hasta el 7° día calendario posterior a la emisión.
+        var daysSinceIssue = today.DayNumber - document.IssueDate.DayNumber;
+        if (daysSinceIssue > 7)
+        {
+            return BadRequest(new
+            {
+                error = $"Plazo de anulación vencido. SUNAT acepta Comunicación de Baja hasta 7 días calendario después " +
+                        $"de la emisión (emitido hace {daysSinceIssue} días). Use Nota de Crédito en su lugar."
+            });
+        }
 
         var itemsJson = JsonSerializer.Serialize(new[]
         {
@@ -72,21 +92,21 @@ public class VoidedDocumentsController : ControllerBase
         {
             TenantId = tenantId,
             TicketType = "RA",
-            TicketNumber = ticketNumber,
             IssueDate = today,
             ReferenceDate = document.IssueDate,
             ItemsJson = itemsJson,
             Status = "pending"
+            // TicketNumber assigned race-safely below via CreateWithTicketAsync (advisory lock).
         };
 
-        await _voidedRepo.CreateAsync(voided, ct);
+        await _voidedRepo.CreateWithTicketAsync(voided, ct);
 
         // Update original document status
         document.Status = DocumentStatus.Voided;
         await _documentRepo.UpdateAsync(document, ct);
 
         _logger.LogInformation("Document {FullNumber} voided with ticket {Ticket}",
-            document.FullNumber, ticketNumber);
+            document.FullNumber, voided.TicketNumber);
 
         return Created($"/v1/voided-documents/{voided.Id}", new VoidedDocumentResponse(
             voided.Id, voided.TicketNumber, voided.Status,

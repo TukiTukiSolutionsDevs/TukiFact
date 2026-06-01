@@ -88,7 +88,10 @@ public class SunatClient : ISunatClient
         var fileName = $"{ruc}-{ticketNumber}.zip";
         var base64Zip = Convert.ToBase64String(xmlZip);
 
-        var soapBody = BuildSendSummarySoapEnvelope(fileName, base64Zip);
+        // Production requires WS-Security UsernameToken with SOL credentials; beta accepts unauth body.
+        var soapBody = credentials is not null
+            ? BuildSendSummarySoapEnvelopeWithAuth(fileName, base64Zip, credentials.SolUser, credentials.SolPassword)
+            : BuildSendSummarySoapEnvelope(fileName, base64Zip);
         var endpoint = GetEndpointForEnv("RC", env);
 
         try
@@ -117,7 +120,10 @@ public class SunatClient : ISunatClient
             return new SunatResponse(true, "0", "Proceso completado correctamente", null, null);
         }
 
-        var soapBody = BuildGetStatusSoapEnvelope(sunatTicket);
+        // Production requires WS-Security UsernameToken with SOL credentials; beta accepts unauth body.
+        var soapBody = credentials is not null
+            ? BuildGetStatusSoapEnvelopeWithAuth(sunatTicket, credentials.SolUser, credentials.SolPassword)
+            : BuildGetStatusSoapEnvelope(sunatTicket);
         var endpoint = GetEndpointForEnv("01", env); // Use factura endpoint for getStatus
 
         try
@@ -167,12 +173,59 @@ public class SunatClient : ISunatClient
             """;
     }
 
+    private static string BuildSendSummarySoapEnvelopeWithAuth(string fileName, string base64Content, string solUser, string solPassword)
+    {
+        return $"""
+            <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                              xmlns:ser="http://service.sunat.gob.pe"
+                              xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+                <soapenv:Header>
+                    <wsse:Security>
+                        <wsse:UsernameToken>
+                            <wsse:Username>{solUser}</wsse:Username>
+                            <wsse:Password>{solPassword}</wsse:Password>
+                        </wsse:UsernameToken>
+                    </wsse:Security>
+                </soapenv:Header>
+                <soapenv:Body>
+                    <ser:sendSummary>
+                        <fileName>{fileName}</fileName>
+                        <contentFile>{base64Content}</contentFile>
+                    </ser:sendSummary>
+                </soapenv:Body>
+            </soapenv:Envelope>
+            """;
+    }
+
     private static string BuildGetStatusSoapEnvelope(string ticket)
     {
         return $"""
             <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
                               xmlns:ser="http://service.sunat.gob.pe">
                 <soapenv:Header/>
+                <soapenv:Body>
+                    <ser:getStatus>
+                        <ticket>{ticket}</ticket>
+                    </ser:getStatus>
+                </soapenv:Body>
+            </soapenv:Envelope>
+            """;
+    }
+
+    private static string BuildGetStatusSoapEnvelopeWithAuth(string ticket, string solUser, string solPassword)
+    {
+        return $"""
+            <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                              xmlns:ser="http://service.sunat.gob.pe"
+                              xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+                <soapenv:Header>
+                    <wsse:Security>
+                        <wsse:UsernameToken>
+                            <wsse:Username>{solUser}</wsse:Username>
+                            <wsse:Password>{solPassword}</wsse:Password>
+                        </wsse:UsernameToken>
+                    </wsse:Security>
+                </soapenv:Header>
                 <soapenv:Body>
                     <ser:getStatus>
                         <ticket>{ticket}</ticket>
@@ -232,7 +285,11 @@ public class SunatClient : ISunatClient
             var doc = XDocument.Parse(soapResponse);
             var ticket = doc.Descendants("ticket").FirstOrDefault()?.Value;
             if (ticket is not null)
-                return new SunatResponse(true, "0", $"Ticket: {ticket}", null, null);
+            {
+                // Surface the ticket in ResponseCode so callers (e.g. VoidedDocumentService) can persist
+                // it as SunatTicket and later poll getStatus with it.
+                return new SunatResponse(true, ticket, $"Ticket recibido: {ticket}", null, null);
+            }
 
             var fault = doc.Descendants("faultstring").FirstOrDefault()?.Value;
             return new SunatResponse(false, null, fault, null, fault);

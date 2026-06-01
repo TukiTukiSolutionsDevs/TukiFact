@@ -88,8 +88,6 @@ namespace TukiFact.Infrastructure.Persistence.Migrations
                 maxLength: 200,
                 nullable: true);
 
-            // NOTE: customers table already exists from previous migration — skipped
-
             migrationBuilder.CreateTable(
                 name: "despatch_advices",
                 columns: table => new
@@ -202,8 +200,87 @@ namespace TukiFact.Infrastructure.Persistence.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            // NOTE: platform_users table already exists from previous migration — skipped
-            // NOTE: products table already exists from previous migration — skipped
+            migrationBuilder.CreateTable(
+                name: "customers",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "gen_random_uuid()"),
+                    TenantId = table.Column<Guid>(type: "uuid", nullable: false),
+                    DocType = table.Column<string>(type: "character varying(2)", maxLength: 2, nullable: false),
+                    DocNumber = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Name = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Email = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Phone = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Ubigeo = table.Column<string>(type: "character varying(6)", maxLength: 6, nullable: true),
+                    Departamento = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Provincia = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Distrito = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Category = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_customers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_customers_tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "tenants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "platform_users",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "gen_random_uuid()"),
+                    Email = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    PasswordHash = table.Column<string>(type: "text", nullable: false),
+                    FullName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Role = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "support"),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    LastLoginAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_platform_users", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "products",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "gen_random_uuid()"),
+                    TenantId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    UnitMeasure = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false, defaultValue: "NIU"),
+                    UnitPrice = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: false),
+                    UnitPriceWithIgv = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: false),
+                    Currency = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: false, defaultValue: "PEN"),
+                    IgvType = table.Column<string>(type: "character varying(2)", maxLength: 2, nullable: false, defaultValue: "10"),
+                    SunatCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Category = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Brand = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_products", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_products_tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "tenants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
 
             migrationBuilder.CreateTable(
                 name: "ubigeo",
@@ -243,7 +320,23 @@ namespace TukiFact.Infrastructure.Persistence.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            // NOTE: IX_customers_TenantId_DocNumber already exists — skipped
+            migrationBuilder.CreateIndex(
+                name: "IX_customers_TenantId_DocNumber",
+                table: "customers",
+                columns: new[] { "TenantId", "DocNumber" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_platform_users_Email",
+                table: "platform_users",
+                column: "Email",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_products_TenantId_Code",
+                table: "products",
+                columns: new[] { "TenantId", "Code" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_despatch_advice_items_DespatchAdviceId",
@@ -306,8 +399,6 @@ namespace TukiFact.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // NOTE: customers table not created by this migration — skip drop
-
             migrationBuilder.DropTable(
                 name: "despatch_advice_items");
 
@@ -317,7 +408,14 @@ namespace TukiFact.Infrastructure.Persistence.Migrations
             migrationBuilder.DropTable(
                 name: "password_reset_tokens");
 
-            // NOTE: customers, platform_users, products not created by this migration — skip drop
+            migrationBuilder.DropTable(
+                name: "customers");
+
+            migrationBuilder.DropTable(
+                name: "platform_users");
+
+            migrationBuilder.DropTable(
+                name: "products");
 
             migrationBuilder.DropTable(
                 name: "ubigeo");

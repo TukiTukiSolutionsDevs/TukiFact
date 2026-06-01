@@ -24,6 +24,7 @@ public class RetentionsController : ControllerBase
     private readonly ISunatClient _sunatClient;
     private readonly IStorageService _storageService;
     private readonly ISecretProtector _secrets;
+    private readonly IEventPublisher _eventPublisher;
     private readonly ILogger<RetentionsController> _logger;
 
     public RetentionsController(
@@ -34,6 +35,7 @@ public class RetentionsController : ControllerBase
         ISunatClient sunatClient,
         IStorageService storageService,
         ISecretProtector secrets,
+        IEventPublisher eventPublisher,
         ILogger<RetentionsController> logger)
     {
         _retentionRepo = retentionRepo;
@@ -43,6 +45,7 @@ public class RetentionsController : ControllerBase
         _sunatClient = sunatClient;
         _storageService = storageService;
         _secrets = secrets;
+        _eventPublisher = eventPublisher;
         _logger = logger;
     }
 
@@ -60,14 +63,11 @@ public class RetentionsController : ControllerBase
         var tenant = await _tenantRepo.GetByIdAsync(tenantId, ct)
             ?? throw new InvalidOperationException("Tenant no encontrado");
 
-        var correlative = await _retentionRepo.GetNextCorrelativeAsync(tenantId, request.Serie, ct);
-
-        // Build entity
+        // Build entity (Correlative assigned race-safely below via AddWithCorrelativeAsync)
         var retention = new RetentionDocument
         {
             TenantId = tenantId,
             Serie = request.Serie,
-            Correlative = correlative,
             IssueDate = request.IssueDate ?? RecurringScheduleCalculator.TodayInLima(),
             SupplierDocType = request.SupplierDocType,
             SupplierDocNumber = request.SupplierDocNumber,
@@ -113,7 +113,7 @@ public class RetentionsController : ControllerBase
         retention.TotalRetained = totalRetained;
         retention.TotalPaid = totalPaid;
 
-        await _retentionRepo.AddAsync(retention, ct);
+        await _retentionRepo.AddWithCorrelativeAsync(retention, request.Serie, ct);
         _logger.LogInformation("Retention created: {FullNumber}", retention.FullNumber);
 
         // Build XML (UBL 2.0)
@@ -150,6 +150,9 @@ public class RetentionsController : ControllerBase
         retention.XmlUrl = await _storageService.UploadXmlAsync(tenantId,
             $"{retention.FullNumber}.xml", xmlBytes, ct);
 
+        // Atomic materialization checkpoint (C7): persist HashCode + XmlUrl + Status=Signed BEFORE SUNAT.
+        await _retentionRepo.UpdateAsync(retention, ct);
+
         // Send to SUNAT — credentials per tenant (NO global fallback)
         if (string.IsNullOrEmpty(tenant.SunatUser) || string.IsNullOrEmpty(tenant.SunatPasswordEncrypted))
         {
@@ -180,6 +183,35 @@ public class RetentionsController : ControllerBase
         }
 
         await _retentionRepo.UpdateAsync(retention, ct);
+
+        // Notify downstream handlers (email, webhooks, in-app) when SUNAT accepted the retention.
+        if (retention.Status == DocumentStatus.Accepted)
+        {
+            try
+            {
+                await _eventPublisher.PublishAsync("retention.created", new TukiFact.Infrastructure.Services.EventHandlers.TukiFactEvent
+                {
+                    TenantId = tenant.Id,
+                    EntityId = retention.Id,
+                    EntityType = "Retention",
+                    EventType = "retention.created",
+                    DocumentType = "20",
+                    Serie = retention.Serie,
+                    Correlative = retention.Correlative,
+                    FullNumber = retention.FullNumber,
+                    Total = retention.TotalRetained,
+                    Currency = retention.Currency,
+                    Status = retention.Status,
+                    SunatResponseCode = retention.SunatResponseCode,
+                    SunatResponseDescription = retention.SunatResponseDescription
+                }, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Publish retention.created failed for {FullNumber}", retention.FullNumber);
+            }
+        }
+
         return CreatedAtAction(nameof(GetById), new { id = retention.Id }, MapToResponse(retention));
     }
 

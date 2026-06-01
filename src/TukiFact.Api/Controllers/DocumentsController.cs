@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TukiFact.Application.DTOs.Documents;
+using TukiFact.Application.Exceptions;
 using TukiFact.Application.Interfaces;
 using TukiFact.Application.Validation;
 using TukiFact.Domain.Interfaces;
@@ -46,6 +47,17 @@ public class DocumentsController : ControllerBase
                 result.FullNumber, result.Status);
 
             return Created($"/v1/documents/{result.Id}", result);
+        }
+        catch (PlanLimitExceededException ex)
+        {
+            return StatusCode(402, new
+            {
+                error = ex.Message,
+                code = "plan_limit_exceeded",
+                plan = ex.PlanName,
+                monthlyLimit = ex.MonthlyLimit,
+                currentCount = ex.CurrentCount,
+            });
         }
         catch (ArgumentException ex)
         {
@@ -144,6 +156,17 @@ public class DocumentsController : ControllerBase
             _logger.LogInformation("Credit note emitted: {FullNumber}", result.FullNumber);
             return Created($"/v1/documents/{result.Id}", result);
         }
+        catch (PlanLimitExceededException ex)
+        {
+            return StatusCode(402, new
+            {
+                error = ex.Message,
+                code = "plan_limit_exceeded",
+                plan = ex.PlanName,
+                monthlyLimit = ex.MonthlyLimit,
+                currentCount = ex.CurrentCount,
+            });
+        }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { error = ex.Message });
@@ -168,6 +191,17 @@ public class DocumentsController : ControllerBase
             _logger.LogInformation("Debit note emitted: {FullNumber}", result.FullNumber);
             return Created($"/v1/documents/{result.Id}", result);
         }
+        catch (PlanLimitExceededException ex)
+        {
+            return StatusCode(402, new
+            {
+                error = ex.Message,
+                code = "plan_limit_exceeded",
+                plan = ex.PlanName,
+                monthlyLimit = ex.MonthlyLimit,
+                currentCount = ex.CurrentCount,
+            });
+        }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { error = ex.Message });
@@ -181,6 +215,7 @@ public class DocumentsController : ControllerBase
     public async Task<IActionResult> DownloadPdf(
         Guid id,
         [FromServices] IPdfGenerator pdfGenerator,
+        [FromServices] IStorageService storage,
         CancellationToken ct)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
@@ -195,6 +230,21 @@ public class DocumentsController : ControllerBase
         var document = await documentRepo.GetByIdWithItemsAsync(id, tenantId, ct);
         var tenant = await tenantRepo.GetByIdAsync(tenantId, ct);
         if (document is null || tenant is null) return NotFound();
+
+        // Prefer persisted PDF from MinIO (avoids re-rendering on every request).
+        // Falls back to on-demand render for legacy docs emitted before PDF-on-accept.
+        if (!string.IsNullOrEmpty(document.PdfUrl))
+        {
+            var slash = document.PdfUrl.IndexOf('/');
+            if (slash > 0)
+            {
+                var bucket = document.PdfUrl[..slash];
+                var objectName = document.PdfUrl[(slash + 1)..];
+                var stored = await storage.DownloadAsync(bucket, objectName, ct);
+                if (stored is not null)
+                    return File(stored, "application/pdf", $"{doc.FullNumber}.pdf");
+            }
+        }
 
         var pdfBytes = pdfGenerator.GenerateInvoicePdf(document, tenant);
         return File(pdfBytes, "application/pdf", $"{doc.FullNumber}.pdf");

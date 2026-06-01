@@ -61,4 +61,22 @@ public class DocumentRepository : IDocumentRepository
         _context.Documents.Update(document);
         await _context.SaveChangesAsync(ct);
     }
+
+    public async Task<int> CountForCurrentMonthAsync(Guid tenantId, CancellationToken ct = default)
+    {
+        // Calendar month aligned to Lima time so the user's "este mes" matches what
+        // appears in their dashboard — without this a doc emitted at 23:00 Lima on the
+        // last day of the month could roll into next month in UTC.
+        var limaTz = TimeZoneInfo.FindSystemTimeZoneById("America/Lima");
+        var nowLima = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, limaTz);
+        var firstDay = new DateOnly(nowLima.Year, nowLima.Month, 1);
+        var firstDayNextMonth = firstDay.AddMonths(1);
+
+        return await _context.Documents
+            .Where(d =>
+                d.TenantId == tenantId &&
+                d.IssueDate >= firstDay &&
+                d.IssueDate < firstDayNextMonth)
+            .CountAsync(ct);
+    }
 }

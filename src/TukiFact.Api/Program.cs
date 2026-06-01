@@ -9,6 +9,9 @@ using TukiFact.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Sentry — no-op when Dsn is empty; honors Sentry:* config in appsettings + env (Sentry__Dsn).
+builder.WebHost.UseSentry();
+
 // === Services ===
 
 // Infrastructure (EF Core + PostgreSQL + Tenant Provider)
@@ -46,13 +49,16 @@ builder.Services.AddHttpClient(); // For external service proxy (lookup, AI)
 // OpenAPI / Swagger
 builder.Services.AddOpenApi();
 
-// CORS
+// CORS — Cors:FrontendUrl accepts a comma-separated list to allow multiple front-end hosts
+// (e.g. marketing host + portal host calling the same API).
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-                builder.Configuration.GetValue<string>("Cors:FrontendUrl") ?? "http://localhost:3000")
+        var raw = builder.Configuration.GetValue<string>("Cors:FrontendUrl") ?? "http://localhost:3000";
+        var origins = raw
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        policy.WithOrigins(origins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -110,6 +116,8 @@ if (app.Environment.IsDevelopment())
 
 // HTTPS redirect handled by nginx in prod; dev uses http directly
 app.UseCors("AllowFrontend");
+
+app.UseSentryTracing();
 
 app.UseAuthentication();
 
@@ -170,3 +178,6 @@ app.MapGet("/metrics", async (TukiFact.Infrastructure.Persistence.AppDbContext d
 });
 
 app.Run();
+
+// Exposed for WebApplicationFactory<Program> in tests.
+public partial class Program;

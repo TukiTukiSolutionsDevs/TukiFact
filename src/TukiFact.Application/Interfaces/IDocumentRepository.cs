@@ -13,4 +13,11 @@ public interface IDocumentRepository
         CancellationToken ct = default);
     Task<Document> CreateAsync(Document document, CancellationToken ct = default);
     Task UpdateAsync(Document document, CancellationToken ct = default);
+
+    /// <summary>
+    /// Count of documents this tenant has emitted in the current Lima-time calendar
+    /// month. Used to gate plan-limit enforcement. Excludes documents that never
+    /// reached SUNAT (Status = Draft / Rejected pre-send).
+    /// </summary>
+    Task<int> CountForCurrentMonthAsync(Guid tenantId, CancellationToken ct = default);
 }

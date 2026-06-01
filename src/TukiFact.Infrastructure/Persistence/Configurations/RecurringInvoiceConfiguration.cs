@@ -35,6 +35,11 @@ public class RecurringInvoiceConfiguration : IEntityTypeConfiguration<RecurringI
         // Status
         builder.Property(r => r.Status).HasMaxLength(20).HasDefaultValue("active");
 
+        // Failure tracking + lease
+        builder.Property(r => r.ConsecutiveFailures).HasDefaultValue(0);
+        builder.Property(r => r.LastError).HasMaxLength(2000);
+        builder.Property(r => r.ProcessingLockUntil);
+
         // Notes
         builder.Property(r => r.Notes).HasMaxLength(500);
 

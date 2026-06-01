@@ -46,6 +46,39 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("google")]
+    public async Task<IActionResult> LoginWithGoogle([FromBody] LoginWithGoogleRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _authService.LoginWithGoogleAsync(request, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("google/register")]
+    public async Task<IActionResult> RegisterWithGoogle([FromBody] RegisterWithGoogleRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _authService.RegisterWithGoogleAsync(request, ct);
+            _logger.LogInformation("New tenant registered via Google: RUC {Ruc}", request.Ruc);
+            return Created("/v1/company", result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { error = ex.Message });
+        }
+    }
+
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshRequest request, CancellationToken ct)
     {

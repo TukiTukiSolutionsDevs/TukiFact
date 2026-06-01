@@ -19,6 +19,13 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByEmailGlobalAsync(string email, CancellationToken ct = default)
         => await _context.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
 
+    public async Task<IReadOnlyList<User>> GetActiveByEmailWithTenantsAsync(string email, CancellationToken ct = default)
+        => await _context.Users
+            .Include(u => u.Tenant)
+            .Where(u => u.Email == email && u.IsActive && u.Tenant.IsActive)
+            .OrderBy(u => u.Tenant.RazonSocial)
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<User>> GetByTenantAsync(Guid tenantId, CancellationToken ct = default)
         => await _context.Users.Where(u => u.TenantId == tenantId).OrderBy(u => u.CreatedAt).ToListAsync(ct);
 

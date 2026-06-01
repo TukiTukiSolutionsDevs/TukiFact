@@ -11,11 +11,19 @@ public class VoidedDocument
 
     // SUNAT async processing
     public string? SunatTicket { get; set; }    // Ticket number from SUNAT
-    public string Status { get; set; } = "pending"; // pending, processing, accepted, rejected
+    // Status: pending → signing → sent → accepted | rejected | failed
+    public string Status { get; set; } = "pending";
     public string? SunatResponseCode { get; set; }
     public string? SunatResponseDescription { get; set; }
 
     public string ItemsJson { get; set; } = "[]"; // JSON array of voided/summary items
+
+    // Worker tracking
+    public string? XmlUrl { get; set; }          // MinIO path of signed XML
+    public string? CdrUrl { get; set; }          // MinIO path of CDR returned by SUNAT
+    public int RetryCount { get; set; }
+    public string? LastError { get; set; }
+    public DateTimeOffset? LastPolledAt { get; set; }  // Backoff for getStatus polling
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;

@@ -11,27 +11,39 @@ namespace TukiFact.Infrastructure.Services;
 /// REST client for SUNAT GRE (Guía de Remisión Electrónica).
 /// GRE uses REST API with OAuth2 — NOT SOAP like invoices.
 /// Reference: thegreenter/gre-api openapi.yaml, SUNAT Manual GRE.
+///
+/// Three modes:
+///   "beta"        — hits SUNAT's beta gateway (real round-trip, safe to test with).
+///   "production"  — hits SUNAT's prod gateway.
+///   "stub"        — local-only stubbed responses (no network). Used by unit tests.
 /// </summary>
 public class GreSunatClient : IGreSunatClient
 {
+    // SUNAT GRE REST endpoints. Beta and production share the same hosts — what changes is
+    // the credentials/RUC used and the OSE designation in the tenant's SUNAT profile.
+    // Override via config (Sunat:Gre:TokenUrl / SendUrl / StatusUrl) when SUNAT publishes new URLs.
+    private const string DefaultTokenUrl = "https://api-seguridad.sunat.gob.pe/v1/clientessol/{0}/oauth2/token/";
+    private const string DefaultSendUrl = "https://api-cpe.sunat.gob.pe/v1/contribuyente/gem/comprobantes/{0}";
+    private const string DefaultStatusUrl = "https://api-cpe.sunat.gob.pe/v1/contribuyente/gem/comprobantes/envios/{0}";
+
     private readonly ILogger<GreSunatClient> _logger;
     private readonly HttpClient _httpClient;
     private readonly string _environment;
-
-    // GRE REST endpoints
-    private const string BetaTokenUrl = "https://gre-beta.sunat.gob.pe/v1/clientessol/{0}/oauth2/token/";
-    private const string BetaSendUrl = "https://gre-beta.sunat.gob.pe/v1/contribuyente/gem/comprobantes/{0}";
-    private const string BetaStatusUrl = "https://gre-beta.sunat.gob.pe/v1/contribuyente/gem/comprobantes/envios/{0}";
-
-    private const string ProdTokenUrl = "https://api-seguridad.sunat.gob.pe/v1/clientessol/{0}/oauth2/token/";
-    private const string ProdSendUrl = "https://api-cpe.sunat.gob.pe/v1/contribuyente/gem/comprobantes/{0}";
-    private const string ProdStatusUrl = "https://api-cpe.sunat.gob.pe/v1/contribuyente/gem/comprobantes/envios/{0}";
+    private readonly string _tokenUrlTemplate;
+    private readonly string _sendUrlTemplate;
+    private readonly string _statusUrlTemplate;
+    private readonly string _scope;
 
     public GreSunatClient(IConfiguration configuration, ILogger<GreSunatClient> logger, IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
-        _environment = configuration["Sunat:Environment"] ?? "beta";
+        _environment = (configuration["Sunat:Environment"] ?? "beta").ToLowerInvariant();
         _httpClient = httpClientFactory.CreateClient("SunatGre");
+
+        _tokenUrlTemplate = configuration["Sunat:Gre:TokenUrl"] ?? DefaultTokenUrl;
+        _sendUrlTemplate = configuration["Sunat:Gre:SendUrl"] ?? DefaultSendUrl;
+        _statusUrlTemplate = configuration["Sunat:Gre:StatusUrl"] ?? DefaultStatusUrl;
+        _scope = configuration["Sunat:Gre:Scope"] ?? "https://api-cpe.sunat.gob.pe";
     }
 
     public async Task<string> GetTokenAsync(string clientId, string clientSecret,
@@ -39,17 +51,19 @@ public class GreSunatClient : IGreSunatClient
     {
         _logger.LogInformation("Getting GRE OAuth2 token for RUC {Ruc} ({Env})", ruc, _environment);
 
-        if (_environment == "beta")
+        // Pure-local stub mode (unit tests).
+        if (_environment == "stub")
         {
-            _logger.LogInformation("GRE BETA: returning stub token");
-            return "beta-stub-token-gre";
+            _logger.LogWarning("GRE STUB MODE — returning fake token. Set Sunat:Environment to 'beta' or 'production' for real calls.");
+            return "stub-token-gre";
         }
 
-        var tokenUrl = string.Format(ProdTokenUrl, clientId);
+        var tokenUrl = string.Format(_tokenUrlTemplate, clientId);
+
         var content = new FormUrlEncodedContent(new[]
         {
             new KeyValuePair<string, string>("grant_type", "password"),
-            new KeyValuePair<string, string>("scope", "https://api-cpe.sunat.gob.pe"),
+            new KeyValuePair<string, string>("scope", _scope),
             new KeyValuePair<string, string>("client_id", clientId),
             new KeyValuePair<string, string>("client_secret", clientSecret),
             new KeyValuePair<string, string>("username", $"{ruc}{solUser}"),
@@ -61,16 +75,18 @@ public class GreSunatClient : IGreSunatClient
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("GRE OAuth2 token failed: {Status} {Body}", response.StatusCode, body);
-            throw new InvalidOperationException($"Error obteniendo token GRE: {response.StatusCode} - {body}");
+            _logger.LogError("GRE OAuth2 token failed ({Env}): {Status} {Body}", _environment, response.StatusCode, body);
+            throw new InvalidOperationException(
+                $"Error obteniendo token GRE ({_environment}): {(int)response.StatusCode} - {body}");
         }
 
         var json = JsonDocument.Parse(body);
         var token = json.RootElement.GetProperty("access_token").GetString()
             ?? throw new InvalidOperationException("Token vacío en respuesta GRE OAuth2");
 
-        _logger.LogInformation("GRE OAuth2 token obtained, expires_in: {Expires}s",
-            json.RootElement.GetProperty("expires_in").GetInt32());
+        _logger.LogInformation("GRE OAuth2 token obtained ({Env}), expires_in: {Expires}s",
+            _environment,
+            json.RootElement.TryGetProperty("expires_in", out var exp) ? exp.GetInt32() : -1);
 
         return token;
     }
@@ -82,14 +98,14 @@ public class GreSunatClient : IGreSunatClient
         var fileName = $"{ruc}-{documentType}-{serie}-{correlative:D8}";
         _logger.LogInformation("Sending GRE {FileName} to SUNAT ({Env})", fileName, _environment);
 
-        if (_environment == "beta")
+        if (_environment == "stub")
         {
-            return await SendBetaStubAsync(fileName, ct);
+            return await SendStubAsync(fileName, ct);
         }
 
-        var sendUrl = string.Format(ProdSendUrl, fileName);
-        var base64Zip = Convert.ToBase64String(signedXmlZip);
+        var sendUrl = string.Format(_sendUrlTemplate, fileName);
 
+        var base64Zip = Convert.ToBase64String(signedXmlZip);
         var requestBody = JsonSerializer.Serialize(new
         {
             archivo = new
@@ -113,15 +129,15 @@ public class GreSunatClient : IGreSunatClient
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("GRE send failed: {Status} {Body}", response.StatusCode, body);
-                return new GreSunatResponse(false, null, null, null, null,
-                    $"Error enviando GRE: {response.StatusCode} - {body}");
+                _logger.LogError("GRE send failed ({Env}): {Status} {Body}", _environment, response.StatusCode, body);
+                return new GreSunatResponse(false, null, ((int)response.StatusCode).ToString(), null, null,
+                    $"Error enviando GRE ({_environment}): {(int)response.StatusCode} - {body}");
             }
 
             var json = JsonDocument.Parse(body);
-            var ticket = json.RootElement.GetProperty("numTicket").GetString();
+            var ticket = json.RootElement.TryGetProperty("numTicket", out var tProp) ? tProp.GetString() : null;
 
-            _logger.LogInformation("GRE sent successfully, ticket: {Ticket}", ticket);
+            _logger.LogInformation("GRE sent successfully ({Env}), ticket: {Ticket}", _environment, ticket);
             return new GreSunatResponse(true, ticket, null, "GRE enviada, procesando", null, null);
         }
         catch (Exception ex)
@@ -136,13 +152,14 @@ public class GreSunatClient : IGreSunatClient
     {
         _logger.LogInformation("Checking GRE ticket {Ticket} ({Env})", ticket, _environment);
 
-        if (_environment == "beta")
+        if (_environment == "stub")
         {
             await Task.Delay(100, ct);
-            return new GreSunatResponse(true, ticket, "0", "GRE aceptada por SUNAT (beta)", null, null);
+            return new GreSunatResponse(true, ticket, "0", "GRE aceptada por SUNAT (stub)", null, null);
         }
 
-        var statusUrl = string.Format(ProdStatusUrl, ticket);
+        var statusUrl = string.Format(_statusUrlTemplate, ticket);
+
         var request = new HttpRequestMessage(HttpMethod.Get, statusUrl);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -151,21 +168,26 @@ public class GreSunatClient : IGreSunatClient
             var response = await _httpClient.SendAsync(request, ct);
             var body = await response.Content.ReadAsStringAsync(ct);
 
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("GRE getTicket HTTP {Status} ({Env}): {Body}", response.StatusCode, _environment, body);
+                return new GreSunatResponse(false, ticket, ((int)response.StatusCode).ToString(), null, null,
+                    $"Error consultando ticket: {(int)response.StatusCode} - {body}");
+            }
+
             var json = JsonDocument.Parse(body);
             var codRespuesta = json.RootElement.TryGetProperty("codRespuesta", out var codProp)
                 ? codProp.GetString() : null;
             var arcCdr = json.RootElement.TryGetProperty("arcCdr", out var cdrProp)
                 ? cdrProp.GetString() : null;
-            var indCdrGenerado = json.RootElement.TryGetProperty("indCdrGenerado", out var indProp)
-                && indProp.GetBoolean();
 
-            byte[]? cdrZip = arcCdr is not null ? Convert.FromBase64String(arcCdr) : null;
+            byte[]? cdrZip = !string.IsNullOrEmpty(arcCdr) ? Convert.FromBase64String(arcCdr) : null;
             var success = codRespuesta == "0" || codRespuesta?.StartsWith("0") == true;
             var description = json.RootElement.TryGetProperty("desRespuesta", out var desProp)
                 ? desProp.GetString() : null;
 
-            _logger.LogInformation("GRE ticket {Ticket} status: {Code} {Desc}",
-                ticket, codRespuesta, description);
+            _logger.LogInformation("GRE ticket {Ticket} status ({Env}): {Code} {Desc}",
+                ticket, _environment, codRespuesta, description);
 
             return new GreSunatResponse(success, ticket, codRespuesta, description, cdrZip, null);
         }
@@ -176,13 +198,12 @@ public class GreSunatClient : IGreSunatClient
         }
     }
 
-    private async Task<GreSunatResponse> SendBetaStubAsync(string fileName, CancellationToken ct)
+    private static async Task<GreSunatResponse> SendStubAsync(string fileName, CancellationToken ct)
     {
         await Task.Delay(200, ct);
-        var stubTicket = $"BETA-{Guid.NewGuid():N}"[..20];
-        _logger.LogInformation("GRE BETA STUB: {FileName} accepted, ticket: {Ticket}", fileName, stubTicket);
+        var stubTicket = $"STUB-{Guid.NewGuid():N}"[..20];
         return new GreSunatResponse(true, stubTicket, "0",
-            $"GRE {fileName} ha sido aceptada (beta)", null, null);
+            $"GRE {fileName} aceptada (stub local)", null, null);
     }
 
     private static string ComputeSha256(byte[] data)

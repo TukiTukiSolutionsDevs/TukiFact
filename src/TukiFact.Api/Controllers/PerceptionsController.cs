@@ -24,6 +24,7 @@ public class PerceptionsController : ControllerBase
     private readonly ISunatClient _sunatClient;
     private readonly IStorageService _storageService;
     private readonly ISecretProtector _secrets;
+    private readonly IEventPublisher _eventPublisher;
     private readonly ILogger<PerceptionsController> _logger;
 
     public PerceptionsController(
@@ -34,6 +35,7 @@ public class PerceptionsController : ControllerBase
         ISunatClient sunatClient,
         IStorageService storageService,
         ISecretProtector secrets,
+        IEventPublisher eventPublisher,
         ILogger<PerceptionsController> logger)
     {
         _perceptionRepo = perceptionRepo;
@@ -43,6 +45,7 @@ public class PerceptionsController : ControllerBase
         _sunatClient = sunatClient;
         _storageService = storageService;
         _secrets = secrets;
+        _eventPublisher = eventPublisher;
         _logger = logger;
     }
 
@@ -60,13 +63,11 @@ public class PerceptionsController : ControllerBase
         var tenant = await _tenantRepo.GetByIdAsync(tenantId, ct)
             ?? throw new InvalidOperationException("Tenant no encontrado");
 
-        var correlative = await _perceptionRepo.GetNextCorrelativeAsync(tenantId, request.Serie, ct);
-
         var perception = new PerceptionDocument
         {
             TenantId = tenantId,
             Serie = request.Serie,
-            Correlative = correlative,
+            // Correlative assigned race-safely below via AddWithCorrelativeAsync (advisory lock).
             IssueDate = request.IssueDate ?? RecurringScheduleCalculator.TodayInLima(),
             CustomerDocType = request.CustomerDocType,
             CustomerDocNumber = request.CustomerDocNumber,
@@ -111,7 +112,7 @@ public class PerceptionsController : ControllerBase
         perception.TotalPerceived = totalPerceived;
         perception.TotalCollected = totalCollected;
 
-        await _perceptionRepo.AddAsync(perception, ct);
+        await _perceptionRepo.AddWithCorrelativeAsync(perception, request.Serie, ct);
         _logger.LogInformation("Perception created: {FullNumber}", perception.FullNumber);
 
         // Build XML (UBL 2.0)
@@ -148,6 +149,9 @@ public class PerceptionsController : ControllerBase
         perception.XmlUrl = await _storageService.UploadXmlAsync(tenantId,
             $"{perception.FullNumber}.xml", xmlBytes, ct);
 
+        // Atomic materialization checkpoint (C7): persist HashCode + XmlUrl + Status=Signed BEFORE SUNAT.
+        await _perceptionRepo.UpdateAsync(perception, ct);
+
         // Send to SUNAT — credentials per tenant (NO global fallback; cada tenant tiene su SOL user/pass)
         if (string.IsNullOrEmpty(tenant.SunatUser) || string.IsNullOrEmpty(tenant.SunatPasswordEncrypted))
         {
@@ -178,6 +182,35 @@ public class PerceptionsController : ControllerBase
         }
 
         await _perceptionRepo.UpdateAsync(perception, ct);
+
+        // Notify downstream handlers (email, webhooks, in-app) when SUNAT accepted the perception.
+        if (perception.Status == DocumentStatus.Accepted)
+        {
+            try
+            {
+                await _eventPublisher.PublishAsync("perception.created", new TukiFact.Infrastructure.Services.EventHandlers.TukiFactEvent
+                {
+                    TenantId = tenant.Id,
+                    EntityId = perception.Id,
+                    EntityType = "Perception",
+                    EventType = "perception.created",
+                    DocumentType = "40",
+                    Serie = perception.Serie,
+                    Correlative = perception.Correlative,
+                    FullNumber = perception.FullNumber,
+                    Total = perception.TotalCollected,
+                    Currency = perception.Currency,
+                    Status = perception.Status,
+                    SunatResponseCode = perception.SunatResponseCode,
+                    SunatResponseDescription = perception.SunatResponseDescription
+                }, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Publish perception.created failed for {FullNumber}", perception.FullNumber);
+            }
+        }
+
         return CreatedAtAction(nameof(GetById), new { id = perception.Id }, MapToResponse(perception));
     }
 

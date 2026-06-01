@@ -12,4 +12,12 @@ public interface IPerceptionRepository
     Task<long> GetNextCorrelativeAsync(Guid tenantId, string serie, CancellationToken ct = default);
     Task AddAsync(PerceptionDocument entity, CancellationToken ct = default);
     Task UpdateAsync(PerceptionDocument entity, CancellationToken ct = default);
+
+    /// <summary>
+    /// Race-safe: acquires pg_advisory_xact_lock(hash(tenantId, serie)) inside a single
+    /// transaction, computes MAX(Correlative)+1, assigns it to the entity, inserts. Two
+    /// concurrent POSTs for the same (tenant, serie) are serialized instead of colliding
+    /// on the unique index.
+    /// </summary>
+    Task<long> AddWithCorrelativeAsync(PerceptionDocument entity, string serie, CancellationToken ct = default);
 }

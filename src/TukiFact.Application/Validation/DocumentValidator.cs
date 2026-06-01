@@ -16,6 +16,15 @@ public static class DocumentValidator
 
     private static readonly HashSet<string> ValidDocumentTypes = new() { "01", "03", "07", "08" };
 
+    // Catálogo 09 SUNAT — motivos válidos de Nota de Crédito.
+    private static readonly HashSet<string> ValidCreditNoteReasons = new()
+    {
+        "01", "02", "03", "04", "05", "06", "07", "08", "09", "10"
+    };
+
+    // Catálogo 10 SUNAT — motivos válidos de Nota de Débito.
+    private static readonly HashSet<string> ValidDebitNoteReasons = new() { "01", "02", "03" };
+
     // Series shape per type (Catálogo 01).
     private static readonly Regex SerieFactura = new("^F[A-Z0-9]{3}$", RegexOptions.Compiled);
     private static readonly Regex SerieBoleta = new("^B[A-Z0-9]{3}$", RegexOptions.Compiled);
@@ -64,6 +73,13 @@ public static class DocumentValidator
 
         if (string.IsNullOrWhiteSpace(req.CreditNoteReason))
             errors.Add("El código de motivo (Catálogo SUNAT 09) es obligatorio.");
+        else if (!ValidCreditNoteReasons.Contains(req.CreditNoteReason))
+            errors.Add($"El motivo '{req.CreditNoteReason}' no pertenece al Catálogo 09 SUNAT (válidos: 01–10).");
+
+        if (string.IsNullOrWhiteSpace(req.Description) || req.Description.Trim().Length < 3)
+            errors.Add("El sustento o descripción del motivo es obligatorio y debe tener al menos 3 caracteres (SUNAT lo exige en el UBL).");
+        else if (req.Description.Length > 500)
+            errors.Add("El sustento no debe exceder 500 caracteres.");
 
         if (!SunatIdentity.ValidCurrencies.Contains(req.Currency))
             errors.Add($"Moneda '{req.Currency}' no soportada. Usa PEN o USD.");
@@ -85,6 +101,8 @@ public static class DocumentValidator
 
         if (string.IsNullOrWhiteSpace(req.DebitNoteReason))
             errors.Add("El código de motivo (Catálogo SUNAT 10) es obligatorio.");
+        else if (!ValidDebitNoteReasons.Contains(req.DebitNoteReason))
+            errors.Add($"El motivo '{req.DebitNoteReason}' no pertenece al Catálogo 10 SUNAT (válidos: 01–03).");
 
         if (!SunatIdentity.ValidCurrencies.Contains(req.Currency))
             errors.Add($"Moneda '{req.Currency}' no soportada. Usa PEN o USD.");

@@ -17,6 +17,7 @@ public class AuthService : IAuthService
     private readonly IJwtService _jwtService;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailService _emailService;
+    private readonly IGoogleAuthService _googleAuth;
     private readonly AppDbContext _dbContext;
     private readonly ILogger<AuthService> _logger;
     private readonly string _frontendUrl;
@@ -29,6 +30,7 @@ public class AuthService : IAuthService
         IJwtService jwtService,
         IPasswordHasher passwordHasher,
         IEmailService emailService,
+        IGoogleAuthService googleAuth,
         AppDbContext dbContext,
         ILogger<AuthService> logger,
         IConfiguration configuration)
@@ -40,9 +42,117 @@ public class AuthService : IAuthService
         _jwtService = jwtService;
         _passwordHasher = passwordHasher;
         _emailService = emailService;
+        _googleAuth = googleAuth;
         _dbContext = dbContext;
         _logger = logger;
         _frontendUrl = configuration["Frontend:Url"] ?? "http://localhost:3000";
+    }
+
+    public async Task<GoogleLoginResult> LoginWithGoogleAsync(LoginWithGoogleRequest request, CancellationToken ct = default)
+    {
+        var googleUser = await _googleAuth.ValidateIdTokenAsync(request.IdToken, ct);
+
+        // If client already picked a tenant → log into it directly.
+        if (request.TenantId is Guid tid)
+        {
+            var picked = await _userRepo.GetByEmailAsync(googleUser.Email, tid, ct)
+                ?? throw new UnauthorizedAccessException("Tu cuenta de Google no está registrada en esa empresa");
+
+            if (!picked.IsActive)
+                throw new UnauthorizedAccessException("Usuario desactivado");
+
+            var auth = await IssueTokensAsync(picked, ct);
+            return new GoogleLoginResult(auth, null);
+        }
+
+        // No tenant chosen → list active matches across tenants.
+        var matches = await _userRepo.GetActiveByEmailWithTenantsAsync(googleUser.Email, ct);
+
+        if (matches.Count == 0)
+            throw new UnauthorizedAccessException(
+                "Tu correo no está registrado en ninguna empresa. Pide a tu administrador que te invite, o registra una nueva empresa.");
+
+        if (matches.Count == 1)
+        {
+            var auth = await IssueTokensAsync(matches[0], ct);
+            return new GoogleLoginResult(auth, null);
+        }
+
+        // Multiple → user must pick.
+        var options = matches
+            .Select(u => new TenantChoice(u.Tenant.Id, u.Tenant.Ruc, u.Tenant.RazonSocial))
+            .ToList();
+        return new GoogleLoginResult(null, options);
+    }
+
+    public async Task<AuthResponse> RegisterWithGoogleAsync(RegisterWithGoogleRequest request, CancellationToken ct = default)
+    {
+        var googleUser = await _googleAuth.ValidateIdTokenAsync(request.IdToken, ct);
+
+        var existingTenant = await _tenantRepo.GetByRucAsync(request.Ruc, ct);
+        if (existingTenant is not null)
+            throw new InvalidOperationException($"RUC {request.Ruc} ya está registrado");
+
+        // If a User already exists with this Google email anywhere, prevent collisions.
+        var alreadyUser = await _userRepo.GetByEmailGlobalAsync(googleUser.Email, ct);
+        if (alreadyUser is not null)
+            throw new InvalidOperationException(
+                "Tu cuenta de Google ya está vinculada a otra empresa. Inicia sesión en su lugar.");
+
+        var freePlan = await _planRepo.GetByNameAsync("Free", ct);
+
+        var tenant = new Tenant
+        {
+            Ruc = request.Ruc,
+            RazonSocial = request.RazonSocial,
+            NombreComercial = request.NombreComercial,
+            Direccion = request.Direccion,
+            PlanId = freePlan?.Id,
+            Environment = "beta"
+        };
+        await _tenantRepo.CreateAsync(tenant, ct);
+
+        // No password — Google is the source of truth. Store a structurally-valid but
+        // unusable BCrypt hash so password verification can never succeed.
+        var disabledHash = $"$2a$11${Guid.NewGuid():N}{Guid.NewGuid():N}".Substring(0, 60);
+
+        var user = new User
+        {
+            TenantId = tenant.Id,
+            Email = googleUser.Email,
+            PasswordHash = disabledHash,
+            FullName = googleUser.Name ?? googleUser.Email,
+            Role = "admin"
+        };
+        await _userRepo.CreateAsync(user, ct);
+
+        var auth = await IssueTokensAsync(user, ct);
+        _logger.LogInformation("Google register: tenant={Ruc} admin={Email}", tenant.Ruc, user.Email);
+        return auth;
+    }
+
+    private async Task<AuthResponse> IssueTokensAsync(User user, CancellationToken ct)
+    {
+        user.LastLoginAt = DateTimeOffset.UtcNow;
+        await _userRepo.UpdateAsync(user, ct);
+
+        var accessToken = _jwtService.GenerateAccessToken(user);
+        var refreshTokenValue = _jwtService.GenerateRefreshToken();
+
+        var refreshToken = new RefreshToken
+        {
+            UserId = user.Id,
+            TenantId = user.TenantId,
+            Token = refreshTokenValue,
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(7)
+        };
+        await _refreshTokenRepo.CreateAsync(refreshToken, ct);
+
+        return new AuthResponse(
+            accessToken,
+            refreshTokenValue,
+            DateTimeOffset.UtcNow.AddMinutes(60),
+            new UserInfo(user.Id, user.TenantId, user.Email, user.FullName, user.Role));
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default)

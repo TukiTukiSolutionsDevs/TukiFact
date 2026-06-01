@@ -39,4 +39,48 @@ public class VoidedDocumentRepository : IVoidedDocumentRepository
             .CountAsync(v => v.TenantId == tenantId && v.TicketType == ticketType && v.IssueDate == date, ct);
         return count + 1;
     }
+
+    public async Task CreateWithTicketAsync(VoidedDocument entity, CancellationToken ct = default)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await _context.Database.BeginTransactionAsync(ct);
+
+            var lockSource = $"{entity.TenantId}:{entity.TicketType}:{entity.IssueDate:yyyyMMdd}";
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtext({lockSource}))", ct);
+
+            var count = await _context.VoidedDocuments
+                .CountAsync(v => v.TenantId == entity.TenantId
+                                 && v.TicketType == entity.TicketType
+                                 && v.IssueDate == entity.IssueDate, ct);
+            var seq = count + 1;
+            entity.TicketNumber = $"{entity.TicketType}-{entity.IssueDate:yyyyMMdd}-{seq:D3}";
+
+            await _context.VoidedDocuments.AddAsync(entity, ct);
+            await _context.SaveChangesAsync(ct);
+
+            await tx.CommitAsync(ct);
+        });
+    }
+
+    public async Task<IReadOnlyList<VoidedDocument>> GetPendingForWorkerAsync(int maxRetries, int batchSize, CancellationToken ct = default)
+        => await _context.VoidedDocuments
+            .Where(v => v.Status == "pending" && v.RetryCount < maxRetries)
+            .OrderBy(v => v.CreatedAt)
+            .Take(batchSize)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<VoidedDocument>> GetSentForPollAsync(int pollEverySeconds, int batchSize, CancellationToken ct = default)
+    {
+        var threshold = DateTimeOffset.UtcNow.AddSeconds(-pollEverySeconds);
+        return await _context.VoidedDocuments
+            .Where(v => v.Status == "sent"
+                        && v.SunatTicket != null
+                        && (v.LastPolledAt == null || v.LastPolledAt < threshold))
+            .OrderBy(v => v.LastPolledAt ?? v.CreatedAt)
+            .Take(batchSize)
+            .ToListAsync(ct);
+    }
 }

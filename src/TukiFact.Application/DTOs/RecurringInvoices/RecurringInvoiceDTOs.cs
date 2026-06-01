@@ -33,6 +33,7 @@ public record RecurringInvoiceResponse(
     string CustomerDocType,
     string CustomerDocNumber,
     string CustomerName,
+    string? CustomerAddress,
     string? CustomerEmail,
     string Currency,
     string Frequency,
@@ -44,6 +45,8 @@ public record RecurringInvoiceResponse(
     string Status,
     int EmittedCount,
     DateOnly? LastEmittedDate,
+    int ConsecutiveFailures,
+    string? LastError,
     string? Notes,
     DateTimeOffset CreatedAt
 );

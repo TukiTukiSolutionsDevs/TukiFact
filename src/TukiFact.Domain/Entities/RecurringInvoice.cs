@@ -37,6 +37,14 @@ public class RecurringInvoice
     public int EmittedCount { get; set; }
     public DateOnly? LastEmittedDate { get; set; }
 
+    // Failure tracking — surfaces SUNAT rejections / network errors back to the user
+    // and drives the auto-pause-after-N-failures policy in the scheduler.
+    public int ConsecutiveFailures { get; set; }
+    public string? LastError { get; set; }
+
+    // Optimistic lease — only one worker processes a row at a time during the lock window.
+    public DateTimeOffset? ProcessingLockUntil { get; set; }
+
     // Notes
     public string? Notes { get; set; }
 
