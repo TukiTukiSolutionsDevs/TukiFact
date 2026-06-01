@@ -37,36 +37,53 @@ function startsWithAny(pathname: string, prefixes: string[]): boolean {
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+/**
+ * Build an absolute redirect URL anchored at the requested public host.
+ *
+ * `request.nextUrl` is derived from the Next server's internal binding
+ * (HOSTNAME=0.0.0.0, PORT=3000), so cloning it and just tweaking the path
+ * leaks `0.0.0.0:3000` into the Location header. We always set hostname,
+ * port and protocol explicitly so the value we emit is what the user sees.
+ */
+function buildRedirectUrl(request: NextRequest, targetHost: string, targetPath: string): URL {
+  const url = request.nextUrl.clone();
+  url.protocol = 'https:';
+  url.hostname = targetHost;
+  url.port = '';
+  url.pathname = targetPath;
+  return url;
+}
+
 export function middleware(request: NextRequest) {
-  const host = (request.headers.get('host') ?? '').toLowerCase();
+  // Prefer x-forwarded-host (nginx-proxy sets it from the original Host) and
+  // strip any container port that leaks through Host (e.g. `:3000`).
+  const rawHost = (request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '')
+    .toLowerCase()
+    .split(',')[0]
+    .trim();
+  const host = rawHost.replace(/:\d+$/, '');
   const pathname = request.nextUrl.pathname;
 
   if (isLocalHost(host)) return NextResponse.next();
   if (startsWithAny(pathname, SHARED_PATHS)) return NextResponse.next();
 
   const isAppHost = host.startsWith('app.');
-  const rootDomain = host.replace(/^app\./, '');
+  // Strip BOTH `app.` and `www.` so the rootDomain is always the apex.
+  const rootDomain = host.replace(/^(?:app|www)\./, '');
+  const appHost = `app.${rootDomain}`;
 
   if (isAppHost) {
     // On app.tukifact.pe — only auth + portal + shared allowed.
     if (pathname === '/') {
-      const url = request.nextUrl.clone();
-      url.pathname = '/dashboard';
-      return NextResponse.redirect(url, 307);
+      return NextResponse.redirect(buildRedirectUrl(request, appHost, '/dashboard'), 307);
     }
     if (startsWithAny(pathname, PUBLIC_ONLY_PATHS)) {
-      const url = request.nextUrl.clone();
-      url.hostname = rootDomain;
-      url.port = '';
-      return NextResponse.redirect(url, 301);
+      return NextResponse.redirect(buildRedirectUrl(request, rootDomain, pathname), 301);
     }
   } else {
-    // On tukifact.pe — only marketing + shared. Auth + portal → app.
+    // On tukifact.pe (or www.) — only marketing + shared. Auth + portal → app.
     if (startsWithAny(pathname, APP_PORTAL_PREFIXES) || startsWithAny(pathname, APP_AUTH_PATHS)) {
-      const url = request.nextUrl.clone();
-      url.hostname = `app.${rootDomain}`;
-      url.port = '';
-      return NextResponse.redirect(url, 301);
+      return NextResponse.redirect(buildRedirectUrl(request, appHost, pathname), 301);
     }
   }
 

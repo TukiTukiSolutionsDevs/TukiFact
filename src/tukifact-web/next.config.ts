@@ -12,14 +12,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  async rewrites() {
-    return [
-      {
-        source: "/v1/:path*",
-        destination: "http://localhost/v1/:path*",
-      },
-    ];
-  },
 };
 
 export default withSentryConfig(nextConfig, {
