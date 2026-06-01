@@ -10,7 +10,9 @@ public static class DataSeeder
     public static async Task SeedAsync(AppDbContext context, IPasswordHasher passwordHasher)
     {
         await SeedPlansAsync(context);
-        await SeedAdminTenantAsync(context, passwordHasher);
+        // SeedAdminTenantAsync removed intentionally: the platform admin account
+        // (administrations@tukisolutions.com) is a PlatformUser only, not a tenant
+        // user. Tenants are created by real customers via /register.
         await SeedSuperAdminAsync(context, passwordHasher);
     }
 
