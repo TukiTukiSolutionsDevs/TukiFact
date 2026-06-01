@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TukiFact.Application.DTOs.Auth;
@@ -48,6 +49,22 @@ public class AuthService : IAuthService
         _frontendUrl = configuration["Frontend:Url"] ?? "http://localhost:3000";
     }
 
+    /// <summary>
+    /// Block tenant-portal registration when the email belongs to a platform admin
+    /// (backoffice user). Platform identities and tenant identities must never overlap —
+    /// otherwise the same login lands in both surfaces and an admin can accidentally
+    /// fabricate a tenant for their own email.
+    /// </summary>
+    private async Task EnsureEmailNotPlatformAdminAsync(string email, CancellationToken ct)
+    {
+        var isPlatformAdmin = await _dbContext.PlatformUsers
+            .AsNoTracking()
+            .AnyAsync(p => p.Email == email && p.IsActive, ct);
+        if (isPlatformAdmin)
+            throw new InvalidOperationException(
+                "Esta cuenta es de administrador de la plataforma. Iniciá sesión en /backoffice/login en lugar de registrar una nueva empresa.");
+    }
+
     public async Task<GoogleLoginResult> LoginWithGoogleAsync(LoginWithGoogleRequest request, CancellationToken ct = default)
     {
         var googleUser = await _googleAuth.ValidateIdTokenAsync(request.IdToken, ct);
@@ -88,6 +105,8 @@ public class AuthService : IAuthService
     public async Task<AuthResponse> RegisterWithGoogleAsync(RegisterWithGoogleRequest request, CancellationToken ct = default)
     {
         var googleUser = await _googleAuth.ValidateIdTokenAsync(request.IdToken, ct);
+
+        await EnsureEmailNotPlatformAdminAsync(googleUser.Email, ct);
 
         var existingTenant = await _tenantRepo.GetByRucAsync(request.Ruc, ct);
         if (existingTenant is not null)
@@ -157,10 +176,18 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
     {
+        await EnsureEmailNotPlatformAdminAsync(request.AdminEmail, ct);
+
         // Check if RUC already exists
         var existing = await _tenantRepo.GetByRucAsync(request.Ruc, ct);
         if (existing is not null)
             throw new InvalidOperationException($"RUC {request.Ruc} ya está registrado");
+
+        // Check if email is already registered as a tenant user anywhere.
+        var emailTaken = await _userRepo.GetByEmailGlobalAsync(request.AdminEmail, ct);
+        if (emailTaken is not null)
+            throw new InvalidOperationException(
+                "Ese correo ya está registrado. Inicia sesión o usa un correo distinto.");
 
         // Get free plan
         var freePlan = await _planRepo.GetByNameAsync("Gratis", ct);
