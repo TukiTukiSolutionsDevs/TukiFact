@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
+import { api } from '@/lib/api';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -264,11 +265,28 @@ function NavRow({
   );
 }
 
+interface TenantUsage {
+  planName: string;
+  planMaxDocs: number;
+  documentsUsedThisMonth: number;
+}
+
 export function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+
+  const [usage, setUsage] = useState<TenantUsage | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    api
+      .get<TenantUsage>('/v1/tenant')
+      .then((data) => { if (active) setUsage(data); })
+      .catch(() => { /* sidebar widget is non-critical, fail silently */ });
+    return () => { active = false; };
+  }, [user]);
 
   const groups = isAdmin ? [...NAV, ADMIN_GROUP] : NAV;
 
@@ -437,10 +455,12 @@ export function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }: 
               <div className="flex items-center justify-between mb-2">
                 <span className="t-label inline-flex items-center gap-1.5">
                   <Crown className="h-3.5 w-3.5" style={{ color: 'var(--brand-toucan-orange)' }} />
-                  Plan Pro
+                  Plan {usage?.planName ?? '—'}
                 </span>
                 <span className="t-caption tnum" style={{ color: 'var(--muted-foreground)' }}>
-                  1,284 / 3,000
+                  {usage
+                    ? `${usage.documentsUsedThisMonth.toLocaleString('es-PE')} / ${usage.planMaxDocs.toLocaleString('es-PE')}`
+                    : '— / —'}
                 </span>
               </div>
               <div
@@ -450,7 +470,9 @@ export function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }: 
                 <div
                   className="h-full rounded-full"
                   style={{
-                    width: `${Math.min(100, (1284 / 3000) * 100)}%`,
+                    width: usage && usage.planMaxDocs > 0
+                      ? `${Math.min(100, (usage.documentsUsedThisMonth / usage.planMaxDocs) * 100)}%`
+                      : '0%',
                     background: 'var(--accent)',
                     transition: 'width 400ms var(--ease-out)',
                   }}

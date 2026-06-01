@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TukiFact.Application.Interfaces;
 using TukiFact.Domain.Interfaces;
+using TukiFact.Infrastructure.Persistence;
 
 namespace TukiFact.Api.Controllers;
 
@@ -13,13 +15,15 @@ public class TenantController : ControllerBase
     private readonly ITenantRepository _tenantRepo;
     private readonly ITenantProvider _tenantProvider;
     private readonly ISecretProtector _secrets;
+    private readonly AppDbContext _db;
     private readonly ILogger<TenantController> _logger;
 
-    public TenantController(ITenantRepository tenantRepo, ITenantProvider tenantProvider, ISecretProtector secrets, ILogger<TenantController> logger)
+    public TenantController(ITenantRepository tenantRepo, ITenantProvider tenantProvider, ISecretProtector secrets, AppDbContext db, ILogger<TenantController> logger)
     {
         _tenantRepo = tenantRepo;
         _tenantProvider = tenantProvider;
         _secrets = secrets;
+        _db = db;
         _logger = logger;
     }
 
@@ -32,6 +36,14 @@ public class TenantController : ControllerBase
         var tenantId = _tenantProvider.GetCurrentTenantId();
         var tenant = await _tenantRepo.GetByIdAsync(tenantId, ct);
         if (tenant is null) return NotFound();
+
+        // Documents emitted (any state) since the start of the current month — used by
+        // the portal sidebar to show "N / max" plan usage.
+        var monthStart = new DateTimeOffset(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, TimeSpan.Zero);
+        var docsThisMonth = await _db.Documents
+            .AsNoTracking()
+            .Where(d => d.TenantId == tenantId && d.CreatedAt >= monthStart)
+            .CountAsync(ct);
 
         return Ok(new
         {
@@ -49,7 +61,8 @@ public class TenantController : ControllerBase
             tenant.Environment,
             tenant.IsActive,
             PlanName = tenant.Plan?.Name ?? "Gratis",
-            PlanMaxDocs = tenant.Plan?.MaxDocumentsPerMonth ?? 50,
+            PlanMaxDocs = tenant.Plan?.MaxDocumentsPerMonth ?? 10,
+            DocumentsUsedThisMonth = docsThisMonth,
             HasCertificate = tenant.CertificateData is not null,
             CertificateExpiresAt = tenant.CertificateExpiresAt,
             HasSunatCredentials = tenant.SunatUser is not null,
