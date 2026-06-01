@@ -14,7 +14,7 @@ const PILLARS = [
   {
     icon: ShieldCheck,
     title: 'Cumplimiento SUNAT',
-    body: 'OSE autorizado. Firma XML conforme XAdES-BES y envío SOAP a producción SUNAT con tu RUC + SOL.',
+    body: 'Certificación OSE en proceso ante SUNAT. Firma XML conforme XAdES-BES y envío SOAP con tu RUC + SOL.',
   },
   {
     icon: KeyRound,

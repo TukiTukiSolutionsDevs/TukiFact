@@ -56,14 +56,16 @@ export function middleware(request: NextRequest) {
     }
     if (startsWithAny(pathname, PUBLIC_ONLY_PATHS)) {
       const url = request.nextUrl.clone();
-      url.host = rootDomain;
+      url.hostname = rootDomain;
+      url.port = '';
       return NextResponse.redirect(url, 301);
     }
   } else {
     // On tukifact.pe — only marketing + shared. Auth + portal → app.
     if (startsWithAny(pathname, APP_PORTAL_PREFIXES) || startsWithAny(pathname, APP_AUTH_PATHS)) {
       const url = request.nextUrl.clone();
-      url.host = `app.${rootDomain}`;
+      url.hostname = `app.${rootDomain}`;
+      url.port = '';
       return NextResponse.redirect(url, 301);
     }
   }

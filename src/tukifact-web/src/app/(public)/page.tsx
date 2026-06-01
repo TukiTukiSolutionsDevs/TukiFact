@@ -78,7 +78,7 @@ const STATS = [
   { value: '< 3s', label: 'Tiempo promedio de emisión' },
   { value: '99.9%', label: 'Uptime de la plataforma' },
   { value: '24/7', label: 'Soporte en Lima' },
-  { value: 'SUNAT', label: 'OSE autorizado' },
+  { value: 'En trámite', label: 'Certificación OSE SUNAT' },
 ];
 
 export default function HomePage() {
@@ -94,7 +94,7 @@ export default function HomePage() {
             <div>
               <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-slate-700 shadow-xs">
                 <span className="inline-block h-2 w-2 rounded-full bg-[var(--brand-toucan-orange)]" />
-                Hecho en Perú · OSE autorizado por SUNAT
+                Hecho en Perú · Certificación OSE en proceso ante SUNAT
               </span>
               <h1 className="t-display-2xl mt-6 text-foreground">
                 Facturación electrónica

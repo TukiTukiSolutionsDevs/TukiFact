@@ -2,21 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api, type SeriesResponse } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-  CheckCircle,
-  Circle,
   ArrowRight,
-  Building,
+  Building2,
   ListOrdered,
   FileText,
-  Settings,
+  Shield,
+  CheckCircle2,
+  Loader2,
 } from 'lucide-react';
 
 interface Step {
@@ -37,16 +34,31 @@ export default function WelcomePage() {
   const steps: Step[] = [
     {
       id: 'company',
-      title: 'Registrar Empresa',
-      description: 'Tu empresa ya está registrada con su RUC',
-      icon: Building,
+      title: 'Registrar empresa',
+      description: 'Tu empresa ya está registrada con su RUC.',
+      icon: Building2,
       href: '/settings',
       check: async () => !!user?.tenantId,
     },
     {
+      id: 'certificate',
+      title: 'Configurar certificado digital',
+      description: 'Sube tu certificado .pfx para firmar comprobantes ante SUNAT.',
+      icon: Shield,
+      href: '/certificate',
+      check: async () => {
+        try {
+          const res = await api.get<{ hasCertificate: boolean }>('/v1/certificate/status');
+          return res.hasCertificate;
+        } catch {
+          return false;
+        }
+      },
+    },
+    {
       id: 'series',
-      title: 'Crear Series',
-      description: 'Agrega al menos una serie (ej: F001 para Facturas)',
+      title: 'Crear series',
+      description: 'Define al menos una serie (ej. F001 para facturas, B001 para boletas).',
       icon: ListOrdered,
       href: '/series',
       check: async () => {
@@ -60,8 +72,8 @@ export default function WelcomePage() {
     },
     {
       id: 'document',
-      title: 'Emitir Primer Comprobante',
-      description: 'Emite tu primera factura o boleta electrónica',
+      title: 'Emitir primer comprobante',
+      description: 'Emite tu primera factura o boleta electrónica.',
       icon: FileText,
       href: '/documents/new',
       check: async () => {
@@ -75,14 +87,6 @@ export default function WelcomePage() {
         }
       },
     },
-    {
-      id: 'certificate',
-      title: 'Configurar Certificado Digital',
-      description: 'Sube tu certificado para firmar comprobantes (opcional en beta)',
-      icon: Settings,
-      href: '/settings',
-      check: async () => false,
-    },
   ];
 
   useEffect(() => {
@@ -95,93 +99,128 @@ export default function WelcomePage() {
       setIsLoading(false);
     };
     runChecks();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const completedCount = Object.values(checks).filter(Boolean).length;
   const progress = Math.round((completedCount / steps.length) * 100);
+  const allDone = completedCount === steps.length;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-white font-bold text-2xl">
-          T
+    <div className="max-w-2xl mx-auto">
+      {/* Hero */}
+      <div className="text-center mb-8">
+        <div
+          className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl"
+          style={{
+            background: 'color-mix(in oklch, var(--accent) 16%, transparent)',
+          }}
+        >
+          <CheckCircle2 className="h-10 w-10" style={{ color: 'var(--brand-ink)' }} />
         </div>
-        <h1 className="text-3xl font-bold">Bienvenido a TukiFact</h1>
-        <p className="text-muted-foreground mt-2">
-          Completa estos pasos para empezar a emitir comprobantes electrónicos
+        <h1 className="t-display-lg m-0">Bienvenido a TukiFact</h1>
+        <p className="t-body mt-2 mb-0" style={{ color: 'var(--muted-foreground)' }}>
+          Completa estos pasos para empezar a emitir comprobantes electrónicos en SUNAT.
         </p>
       </div>
 
       {/* Progress */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Progreso</span>
-            <span className="text-sm text-muted-foreground">
-              {completedCount}/{steps.length} completados
-            </span>
-          </div>
-          <div className="w-full bg-muted rounded-full h-2.5">
-            <div
-              className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <div
+        className="rounded-[var(--radius-lg)] border bg-card p-5 mb-[var(--gap-cards)]"
+        style={{ boxShadow: 'var(--shadow-xs)' }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <span className="t-body-sm font-semibold">Progreso de configuración</span>
+          <span className="t-body-sm mono tnum">
+            <strong>{completedCount}</strong>
+            <span style={{ color: 'var(--muted-foreground)' }}> / {steps.length} completados</span>
+          </span>
+        </div>
+        <div
+          className="w-full rounded-full overflow-hidden"
+          style={{ height: 6, background: 'var(--muted)' }}
+        >
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: `${progress}%`,
+              background: 'var(--accent)',
+              transition: 'width 400ms var(--ease-out)',
+            }}
+          />
+        </div>
+        {isLoading && (
+          <p
+            className="t-caption mt-3 m-0 inline-flex items-center gap-1.5"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Verificando…
+          </p>
+        )}
+      </div>
 
       {/* Steps */}
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3 mb-[var(--gap-cards)]">
         {steps.map((step) => {
           const isDone = checks[step.id];
           const Icon = step.icon;
           return (
-            <Card
+            <div
               key={step.id}
-              className={`transition-colors ${
-                isDone
-                  ? 'border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20'
-                  : ''
-              }`}
+              className="rounded-[var(--radius-lg)] border bg-card p-5 flex items-center gap-4 transition-colors"
+              style={{
+                boxShadow: 'var(--shadow-xs)',
+                borderColor: isDone ? 'var(--success)' : 'var(--border)',
+                background: isDone
+                  ? 'color-mix(in oklch, var(--success) 4%, var(--card))'
+                  : 'var(--card)',
+              }}
             >
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`p-2 rounded-lg ${
-                      isDone
-                        ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{step.title}</h3>
-                      {isDone ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Circle className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">{step.description}</p>
-                  </div>
-                  {!isDone && !isLoading && (
-                    <Button variant="outline" size="sm" onClick={() => router.push(step.href)}>
-                      Ir <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+              <div
+                className="h-11 w-11 rounded-xl shrink-0 flex items-center justify-center"
+                style={{
+                  background: isDone
+                    ? 'color-mix(in oklch, var(--success) 16%, transparent)'
+                    : 'var(--muted)',
+                  color: isDone ? 'var(--success)' : 'var(--muted-foreground)',
+                }}
+              >
+                {isDone ? <CheckCircle2 className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="t-body font-semibold m-0">{step.title}</h3>
+                <p
+                  className="t-body-sm m-0 mt-0.5"
+                  style={{ color: 'var(--muted-foreground)' }}
+                >
+                  {step.description}
+                </p>
+              </div>
+              {!isDone && !isLoading && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={step.href}>
+                    Ir <ArrowRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </Button>
+              )}
+            </div>
           );
         })}
       </div>
 
-      {completedCount >= 3 && (
+      {(allDone || completedCount >= 3) && (
         <div className="text-center">
-          <Button size="lg" onClick={() => router.push('/dashboard')}>
-            Ir al Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+          <Button
+            size="lg"
+            onClick={() => router.push('/dashboard')}
+            style={{
+              background: 'var(--accent)',
+              color: 'var(--accent-foreground)',
+              fontWeight: 600,
+            }}
+          >
+            Ir al dashboard <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
       )}

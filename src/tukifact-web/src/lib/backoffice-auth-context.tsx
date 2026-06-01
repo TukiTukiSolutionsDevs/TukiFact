@@ -22,6 +22,7 @@ interface BackofficeAuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -61,6 +62,15 @@ export function BackofficeAuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
   }, []);
 
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    const res = await api.post<BackofficeAuthResponse>('/v1/backoffice/auth/google', { idToken });
+    api.setToken(res.accessToken);
+    localStorage.setItem(STORAGE_KEY_TOKEN, res.accessToken);
+    localStorage.setItem(STORAGE_KEY_REFRESH, res.refreshToken);
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(res.user));
+    setUser(res.user);
+  }, []);
+
   const logout = useCallback(() => {
     api.setToken(null);
     setUser(null);
@@ -73,7 +83,7 @@ export function BackofficeAuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <BackofficeAuthContext.Provider
-      value={{ user, isLoading, isAuthenticated: !!user, login, logout }}
+      value={{ user, isLoading, isAuthenticated: !!user, login, loginWithGoogle, logout }}
     >
       {children}
     </BackofficeAuthContext.Provider>

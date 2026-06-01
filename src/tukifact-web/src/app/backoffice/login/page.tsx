@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useBackofficeAuth } from '@/lib/backoffice-auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Shield, Loader2, AlertCircle } from 'lucide-react';
 
 export default function BackofficeLoginPage() {
-  const { login } = useBackofficeAuth();
+  const { login, loginWithGoogle } = useBackofficeAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,6 +27,23 @@ export default function BackofficeLoginPage() {
       router.push('/backoffice/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error de autenticación');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (cred: CredentialResponse) => {
+    if (!cred.credential) {
+      setError('No se recibió el token de Google');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await loginWithGoogle(cred.credential);
+      router.push('/backoffice/dashboard');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Tu cuenta no está autorizada para el backoffice');
     } finally {
       setLoading(false);
     }
@@ -93,6 +111,28 @@ export default function BackofficeLoginPage() {
               )}
             </Button>
           </form>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-slate-700" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-slate-900 px-2 text-slate-500">o</span>
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError('No se pudo iniciar sesión con Google')}
+              useOneTap={false}
+              text="continue_with"
+              shape="rectangular"
+              theme="filled_black"
+              locale="es"
+              width="320"
+            />
+          </div>
 
           <p className="mt-6 text-center text-xs text-slate-500">
             Acceso exclusivo para personal de TukiFact

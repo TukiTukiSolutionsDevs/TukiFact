@@ -4,35 +4,82 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, type RetentionResponse } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
-import { Plus, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
+  Plus,
+  ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Inbox,
+  Filter,
+} from 'lucide-react';
 
-const formatCurrency = (amount: number, currency = 'PEN') =>
+const fmt = (amount: number, currency = 'PEN') =>
   new Intl.NumberFormat('es-PE', { style: 'currency', currency }).format(amount);
 
-const formatDate = (date: string) =>
+const fmtDate = (date: string) =>
   new Date(date + 'T00:00:00').toLocaleDateString('es-PE', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
   });
 
-const statusBadge = (status: string) => {
-  const map: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-    accepted: { label: 'Aceptado', variant: 'default' },
-    rejected: { label: 'Rechazado', variant: 'destructive' },
-    draft: { label: 'Borrador', variant: 'outline' },
-    signed: { label: 'Firmado', variant: 'outline' },
-    sent: { label: 'Enviado', variant: 'secondary' },
-  };
-  const s = map[status] || { label: status, variant: 'outline' as const };
-  return <Badge variant={s.variant}>{s.label}</Badge>;
+interface StatusInfo {
+  label: string;
+  fg: string;
+  bg: string;
+}
+
+const STATUS_MAP: Record<string, StatusInfo> = {
+  accepted: {
+    label: 'Aceptado',
+    fg: 'var(--success)',
+    bg: 'color-mix(in oklch, var(--success) 14%, transparent)',
+  },
+  rejected: {
+    label: 'Rechazado',
+    fg: 'var(--danger)',
+    bg: 'color-mix(in oklch, var(--danger) 14%, transparent)',
+  },
+  sent: {
+    label: 'Enviado',
+    fg: 'var(--info)',
+    bg: 'color-mix(in oklch, var(--info) 14%, transparent)',
+  },
+  signed: {
+    label: 'Firmado',
+    fg: 'var(--info)',
+    bg: 'color-mix(in oklch, var(--info) 14%, transparent)',
+  },
+  draft: {
+    label: 'Borrador',
+    fg: 'var(--muted-foreground)',
+    bg: 'var(--muted)',
+  },
 };
+
+function StatusPill({ status }: { status: string }) {
+  const info = STATUS_MAP[status] ?? {
+    label: status,
+    fg: 'var(--muted-foreground)',
+    bg: 'var(--muted)',
+  };
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2.5 py-0.5 t-caption font-semibold"
+      style={{ background: info.bg, color: info.fg }}
+    >
+      {info.label}
+    </span>
+  );
+}
 
 interface ListResponse {
   items: RetentionResponse[];
@@ -41,18 +88,23 @@ interface ListResponse {
   pageSize: number;
 }
 
+const PAGE_SIZE = 15;
+
 export default function RetentionsPage() {
   const router = useRouter();
   const [data, setData] = useState<ListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(page), pageSize: '15' });
-      if (statusFilter) params.set('status', statusFilter);
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(PAGE_SIZE),
+      });
+      if (statusFilter !== 'all') params.set('status', statusFilter);
       const res = await api.get<ListResponse>(`/v1/retentions?${params}`);
       setData(res);
     } catch (err) {
@@ -62,103 +114,233 @@ export default function RetentionsPage() {
     }
   }, [page, statusFilter]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  const totalPages = data ? Math.ceil(data.totalCount / 15) : 0;
+  const totalPages = data ? Math.ceil(data.totalCount / PAGE_SIZE) : 0;
+  const hasFilter = statusFilter !== 'all';
+  const hasNoResults = !isLoading && !data?.items.length && !hasFilter;
+  const hasFilteredNoResults = !isLoading && !data?.items.length && hasFilter;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Retenciones</h1>
-          <p className="text-muted-foreground">
-            {data ? `${data.totalCount} comprobantes de retención` : 'Cargando...'}
+    <div>
+      {/* Page header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
+        <div className="min-w-0">
+          <h1 className="t-display-lg m-0">Retenciones</h1>
+          <p
+            className="t-body mt-1.5 mb-0"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            {data
+              ? data.totalCount === 1
+                ? '1 comprobante de retención emitido.'
+                : `${data.totalCount} comprobantes de retención emitidos.`
+              : 'Cargando…'}
           </p>
         </div>
-        <Button onClick={() => router.push('/retentions/new')}>
-          <Plus className="mr-2 h-4 w-4" /> Nueva Retención
+        <Button
+          onClick={() => router.push('/retentions/new')}
+          style={{
+            background: 'var(--accent)',
+            color: 'var(--accent-foreground)',
+            fontWeight: 600,
+          }}
+        >
+          <Plus className="h-4 w-4 mr-2" /> Nueva retención
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="pt-4">
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => { if (!v) return; setStatusFilter(v === 'all' ? '' : v); setPage(1); }}
+      {/* Filter toolbar */}
+      <div
+        className="rounded-[var(--radius-lg)] border bg-card p-4 mb-[var(--gap-cards)] flex items-center gap-3 flex-wrap"
+        style={{ boxShadow: 'var(--shadow-xs)' }}
+      >
+        <div className="flex items-center gap-2">
+          <Filter
+            className="h-4 w-4"
+            style={{ color: 'var(--muted-foreground)' }}
+          />
+          <span
+            className="t-body-sm font-medium"
+            style={{ color: 'var(--muted-foreground)' }}
           >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="accepted">Aceptado</SelectItem>
-              <SelectItem value="rejected">Rechazado</SelectItem>
-              <SelectItem value="draft">Borrador</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
+            Estado
+          </span>
+        </div>
+        <Select
+          value={statusFilter}
+          onValueChange={(v) => {
+            if (!v) return;
+            setStatusFilter(v);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los estados</SelectItem>
+            <SelectItem value="accepted">Aceptado</SelectItem>
+            <SelectItem value="rejected">Rechazado</SelectItem>
+            <SelectItem value="sent">Enviado</SelectItem>
+            <SelectItem value="signed">Firmado</SelectItem>
+            <SelectItem value="draft">Borrador</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Número</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Proveedor</TableHead>
-                <TableHead>Régimen</TableHead>
-                <TableHead className="text-right">Total Retenido</TableHead>
-                <TableHead>Estado</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 6 }).map((_, j) => (
-                      <TableCell key={j}>
-                        <div className="h-4 bg-muted animate-pulse rounded w-20" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : !data?.items.length ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    <ShieldCheck className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                    No hay retenciones
-                  </TableCell>
-                </TableRow>
-              ) : (
-                data.items.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-mono font-medium">{r.fullNumber}</TableCell>
-                    <TableCell>{formatDate(r.issueDate)}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{r.supplierName}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{r.retentionPercent}%</Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(r.totalRetained, r.currency)}
-                    </TableCell>
-                    <TableCell>{statusBadge(r.status)}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Table / empty / loading */}
+      <section
+        className="rounded-[var(--radius-lg)] border bg-card overflow-hidden mb-[var(--gap-cards)]"
+        style={{ boxShadow: 'var(--shadow-xs)' }}
+      >
+        {isLoading ? (
+          <div className="flex items-center gap-3 p-6 text-[var(--muted-foreground)]">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="t-body-sm">Cargando retenciones…</span>
+          </div>
+        ) : hasNoResults ? (
+          <div className="p-10 text-center">
+            <div
+              className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
+              style={{
+                background: 'color-mix(in oklch, var(--accent) 14%, transparent)',
+              }}
+            >
+              <ShieldCheck
+                className="h-8 w-8"
+                style={{ color: 'var(--brand-ink)' }}
+              />
+            </div>
+            <h2 className="t-h1 m-0">Aún no emitiste retenciones</h2>
+            <p
+              className="t-body mt-2 mb-4 max-w-[480px] mx-auto"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
+              Los comprobantes de retención los emites como agente retenedor
+              cuando pagas a un proveedor sujeto al régimen de retenciones SUNAT.
+            </p>
+            <Button
+              onClick={() => router.push('/retentions/new')}
+              style={{
+                background: 'var(--accent)',
+                color: 'var(--accent-foreground)',
+                fontWeight: 600,
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" /> Emitir primera retención
+            </Button>
+          </div>
+        ) : hasFilteredNoResults ? (
+          <div className="p-10 text-center">
+            <Inbox
+              className="h-10 w-10 mx-auto mb-3"
+              style={{ color: 'var(--slate-400)' }}
+            />
+            <p className="t-body m-0 font-semibold">
+              Sin retenciones con ese estado
+            </p>
+            <p
+              className="t-body-sm mt-1 mb-4"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
+              Prueba quitando el filtro.
+            </p>
+            <Button variant="outline" onClick={() => setStatusFilter('all')}>
+              Ver todos los estados
+            </Button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr
+                  className="t-overline"
+                  style={{
+                    color: 'var(--muted-foreground)',
+                    background: 'var(--muted)',
+                  }}
+                >
+                  <th className="text-left py-2.5 pl-6 pr-2 w-44">Número</th>
+                  <th className="text-left py-2.5 px-2 w-28">Fecha</th>
+                  <th className="text-left py-2.5 px-2">Proveedor</th>
+                  <th className="text-left py-2.5 px-2 w-24">Régimen</th>
+                  <th className="text-right py-2.5 px-2 w-40">Total retenido</th>
+                  <th className="text-left py-2.5 pr-6 pl-2 w-28">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data!.items.map((r) => (
+                  <tr
+                    key={r.id}
+                    className="cursor-pointer transition-colors hover:bg-[var(--muted)]"
+                    style={{ borderTop: '1px solid var(--border)' }}
+                    onClick={() => router.push(`/retentions/${r.id}`)}
+                  >
+                    <td className="py-3 pl-6 pr-2 mono t-body-sm font-semibold">
+                      {r.fullNumber}
+                    </td>
+                    <td
+                      className="py-3 px-2 t-body-sm mono tnum"
+                      style={{ color: 'var(--muted-foreground)' }}
+                    >
+                      {fmtDate(r.issueDate)}
+                    </td>
+                    <td className="py-3 px-2 max-w-[340px] t-body-sm truncate">
+                      {r.supplierName}
+                    </td>
+                    <td className="py-3 px-2">
+                      <span
+                        className="inline-flex items-center rounded-md px-1.5 py-0.5 t-caption font-semibold mono tnum"
+                        style={{
+                          background: 'var(--muted)',
+                          color: 'var(--muted-foreground)',
+                        }}
+                      >
+                        {r.retentionPercent}%
+                      </span>
+                    </td>
+                    <td className="py-3 px-2 text-right mono tnum t-body-sm font-semibold">
+                      {fmt(r.totalRetained, r.currency)}
+                    </td>
+                    <td className="py-3 pr-6 pl-2">
+                      <StatusPill status={r.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">Página {page} de {totalPages}</p>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <p
+            className="t-body-sm"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            Página <span className="mono tnum font-semibold">{page}</span> de{' '}
+            <span className="mono tnum font-semibold">{totalPages}</span> ·{' '}
+            <span className="mono tnum">{data!.totalCount}</span> total
+          </p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
               <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
             </Button>
-            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
               Siguiente <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>

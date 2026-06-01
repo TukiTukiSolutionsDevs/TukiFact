@@ -102,6 +102,9 @@ class ApiClient {
   put<T>(path: string, body: unknown) {
     return this.request<T>(path, { method: 'PUT', body: JSON.stringify(body) });
   }
+  patch<T>(path: string, body: unknown) {
+    return this.request<T>(path, { method: 'PATCH', body: JSON.stringify(body) });
+  }
   delete<T>(path: string) {
     return this.request<T>(path, { method: 'DELETE' });
   }
@@ -385,6 +388,7 @@ export interface RecurringInvoiceResponse {
   customerDocType: string;
   customerDocNumber: string;
   customerName: string;
+  customerAddress: string | null;
   customerEmail: string | null;
   currency: string;
   frequency: string;
@@ -396,6 +400,8 @@ export interface RecurringInvoiceResponse {
   status: string;
   emittedCount: number;
   lastEmittedDate: string | null;
+  consecutiveFailures: number;
+  lastError: string | null;
   notes: string | null;
   createdAt: string;
 }

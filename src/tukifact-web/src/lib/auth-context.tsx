@@ -1,14 +1,40 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, startTransition, type ReactNode } from 'react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { api, type UserInfo, type AuthResponse } from './api';
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
+
+export interface TenantChoice {
+  tenantId: string;
+  ruc: string;
+  razonSocial: string;
+}
+
+export interface GoogleLoginResult {
+  auth: AuthResponse | null;
+  tenants: TenantChoice[] | null;
+}
+
+export interface RegisterWithGoogleData {
+  ruc: string;
+  razonSocial: string;
+  nombreComercial?: string;
+  direccion?: string;
+}
 
 interface AuthState {
   user: UserInfo | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string, tenantId: string) => Promise<void>;
+  /** Returns the list of tenants to pick from, or null if already logged in. */
+  loginWithGoogle: (idToken: string) => Promise<TenantChoice[] | null>;
+  /** Logs in with a specific tenant after the user picked one. */
+  loginWithGoogleAtTenant: (idToken: string, tenantId: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
+  registerWithGoogle: (idToken: string, data: RegisterWithGoogleData) => Promise<void>;
   logout: () => void;
 }
 
@@ -50,6 +76,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
   }, []);
 
+  const storeAuth = useCallback((res: AuthResponse) => {
+    api.setToken(res.accessToken);
+    localStorage.setItem('refresh_token', res.refreshToken);
+    localStorage.setItem('user', JSON.stringify(res.user));
+    setUser(res.user);
+  }, []);
+
+  const loginWithGoogle = useCallback(async (idToken: string): Promise<TenantChoice[] | null> => {
+    const res = await api.post<GoogleLoginResult>('/v1/auth/google', { idToken });
+    if (res.auth) {
+      storeAuth(res.auth);
+      return null;
+    }
+    return res.tenants ?? [];
+  }, [storeAuth]);
+
+  const loginWithGoogleAtTenant = useCallback(async (idToken: string, tenantId: string) => {
+    const res = await api.post<GoogleLoginResult>('/v1/auth/google', { idToken, tenantId });
+    if (!res.auth) throw new Error('No se recibió respuesta de autenticación');
+    storeAuth(res.auth);
+  }, [storeAuth]);
+
+  const registerWithGoogle = useCallback(async (idToken: string, data: RegisterWithGoogleData) => {
+    const res = await api.post<AuthResponse>('/v1/auth/google/register', { idToken, ...data });
+    storeAuth(res);
+  }, [storeAuth]);
+
   const register = useCallback(async (data: RegisterData) => {
     const res = await api.post<AuthResponse>('/v1/auth/register', data);
     api.setToken(res.accessToken);
@@ -64,9 +117,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, register, logout }}>
-      {children}
-    </AuthContext.Provider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <AuthContext.Provider
+        value={{
+          user,
+          isLoading,
+          isAuthenticated: !!user,
+          login,
+          loginWithGoogle,
+          loginWithGoogleAtTenant,
+          register,
+          registerWithGoogle,
+          logout,
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    </GoogleOAuthProvider>
   );
 }
 

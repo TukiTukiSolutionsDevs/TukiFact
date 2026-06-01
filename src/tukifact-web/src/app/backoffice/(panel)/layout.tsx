@@ -23,11 +23,13 @@ import {
   Menu,
   X,
   Settings,
+  Inbox,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/backoffice/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/backoffice/leads', label: 'Leads', icon: Inbox },
   { href: '/backoffice/tenants', label: 'Tenants', icon: Building2 },
   { href: '/backoffice/documents', label: 'Documentos', icon: FileSearch },
   { href: '/backoffice/employees', label: 'Empleados', icon: Users },
