@@ -23,9 +23,10 @@ docker/minio_data/
 .env
 docker/.env
 docker/.env.prod
-docker/.env.*
+docker/.env.local
 *.env.local
 appsettings.*.local.json
+# (docker/.env.prod.example IS tracked as the template)
 
 # Local-only docs / scratch
 .atl/
