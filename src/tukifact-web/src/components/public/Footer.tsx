@@ -15,7 +15,8 @@ const COLUMNS = [
     title: 'Empresa',
     links: [
       { href: '/contacto', label: 'Contacto' },
-      { href: 'mailto:hola@tukifact.com.pe', label: 'hola@tukifact.com.pe' },
+      { href: 'mailto:administration@tukisolutions.com', label: 'administration@tukisolutions.com' },
+      { href: 'https://wa.me/51966388258', label: '+51 966 388 258' },
     ],
   },
   {
@@ -23,6 +24,8 @@ const COLUMNS = [
     links: [
       { href: '/terms', label: 'Términos del servicio' },
       { href: '/privacy', label: 'Política de privacidad' },
+      { href: '/devoluciones', label: 'Devoluciones y reembolsos' },
+      { href: '/reclamaciones', label: 'Libro de reclamaciones' },
     ],
   },
 ];

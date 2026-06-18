@@ -35,7 +35,7 @@ export default function TermsPage() {
           <h2>2. Quiénes somos</h2>
           <p>
             La Plataforma es operada por <strong>Tukituki Solution S.A.C.</strong> (RUC 20613614509), una sociedad
-            constituida en el Perú, con domicilio en la República del Perú y correo de contacto{' '}
+            constituida en el Perú, con domicilio fiscal en Pasaje Carabaya 105, Urb. Alto Libertad, Cerro Colorado, Arequipa, Perú, y correo de contacto{' '}
             <a href="mailto:soporte@tukifact.com.pe">soporte@tukifact.com.pe</a>.
           </p>
 

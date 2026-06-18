@@ -29,6 +29,11 @@ export default function ContactoPage() {
               <Mail className="h-5 w-5 text-[var(--brand-toucan-orange)]" />
               <h3 className="mt-3 font-semibold text-foreground">Email</h3>
               <p className="mt-1 text-sm text-slate-600">
+                <a href="mailto:administration@tukisolutions.com" className="hover:text-foreground">
+                  administration@tukisolutions.com
+                </a>
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
                 <a href="mailto:hola@tukifact.com.pe" className="hover:text-foreground">
                   hola@tukifact.com.pe
                 </a>
@@ -43,14 +48,27 @@ export default function ContactoPage() {
             <div className="rounded-2xl border border-border bg-card p-6">
               <MessageCircle className="h-5 w-5 text-[var(--brand-toucan-orange)]" />
               <h3 className="mt-3 font-semibold text-foreground">WhatsApp</h3>
-              <p className="mt-1 text-sm text-slate-600">+51 999 999 999</p>
+              <p className="mt-1 text-sm text-slate-600">
+                <a
+                  href="https://wa.me/51966388258"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground"
+                >
+                  +51 966 388 258
+                </a>
+              </p>
               <p className="mt-1 text-xs text-slate-500">L–V 9:00 a 18:00 PET</p>
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-6">
               <MapPin className="h-5 w-5 text-[var(--brand-toucan-orange)]" />
-              <h3 className="mt-3 font-semibold text-foreground">Oficina</h3>
-              <p className="mt-1 text-sm text-slate-600">Lima, Perú</p>
+              <h3 className="mt-3 font-semibold text-foreground">Domicilio fiscal</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Pasaje Carabaya 105, Urb. Alto Libertad
+                <br />
+                Cerro Colorado, Arequipa, Perú
+              </p>
               <p className="mt-1 text-xs text-slate-500">Atención solo con cita previa</p>
             </div>
           </aside>

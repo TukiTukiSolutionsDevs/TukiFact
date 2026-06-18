@@ -211,7 +211,7 @@ export default async function PlanesPage() {
                         : 'bg-foreground text-background hover:bg-foreground/90',
                     )}
                   >
-                    {plan.priceMonthly === 0 ? 'Empezar gratis' : 'Probar 14 días'}
+                    {plan.priceMonthly === 0 ? 'Empezar gratis' : 'Suscribirme'}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
