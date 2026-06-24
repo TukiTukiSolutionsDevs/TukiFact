@@ -52,7 +52,8 @@ public class CulqiService : ICulqiService
     }
 
     public async Task<string> CreateCustomerAsync(string email, string firstName, string lastName,
-        string? phoneNumber, string countryCode, CancellationToken ct = default)
+        string? phoneNumber, string countryCode,
+        string? address, string? addressCity, CancellationToken ct = default)
     {
         var client = BuildClient();
         var payload = new
@@ -62,10 +63,18 @@ public class CulqiService : ICulqiService
             email,
             country_code = countryCode,
             phone_number = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber,
-            address = "N/D",
-            address_city = "Lima",
+            // Culqi requires address 5-100 chars and a non-empty address_city.
+            address = SanitizeAddress(address),
+            address_city = string.IsNullOrWhiteSpace(addressCity) ? "Lima" : addressCity!.Trim(),
         };
         return await PostAndReadIdAsync(client, CustomersPath, payload, ct);
+    }
+
+    private static string SanitizeAddress(string? raw)
+    {
+        var trimmed = (raw ?? string.Empty).Trim();
+        if (trimmed.Length < 5) return "Direccion no especificada";
+        return trimmed.Length > 100 ? trimmed[..100] : trimmed;
     }
 
     public async Task<string> CreateCardAsync(string customerId, string token, CancellationToken ct = default)

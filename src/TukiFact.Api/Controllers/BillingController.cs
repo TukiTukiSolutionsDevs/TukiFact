@@ -75,11 +75,14 @@ public class BillingController : ControllerBase
         if (existing is not null)
             return Conflict(new { error = "Ya tenés una suscripción activa. Cancelala antes de cambiar de plan." });
 
+        var tenant = await _db.Tenants.FirstAsync(t => t.Id == tenantId, ct);
+
         try
         {
             var customerId = await _culqi.CreateCustomerAsync(
                 request.Email, request.FirstName, request.LastName,
-                request.PhoneNumber, request.CountryCode, ct);
+                request.PhoneNumber, request.CountryCode,
+                tenant.Direccion, tenant.Distrito, ct);
 
             var cardId = await _culqi.CreateCardAsync(customerId, request.Token, ct);
             var culqiPlanId = await _culqi.EnsurePlanAsync(plan.Name, plan.PriceMonthly, ct);
@@ -107,7 +110,6 @@ public class BillingController : ControllerBase
             };
             await _db.Subscriptions.AddAsync(sub, ct);
 
-            var tenant = await _db.Tenants.FirstAsync(t => t.Id == tenantId, ct);
             tenant.PlanId = plan.Id;
 
             await _db.SaveChangesAsync(ct);

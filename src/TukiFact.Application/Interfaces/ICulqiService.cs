@@ -8,7 +8,8 @@ namespace TukiFact.Application.Interfaces;
 public interface ICulqiService
 {
     Task<string> CreateCustomerAsync(string email, string firstName, string lastName,
-        string? phoneNumber, string countryCode, CancellationToken ct = default);
+        string? phoneNumber, string countryCode,
+        string? address, string? addressCity, CancellationToken ct = default);
 
     Task<string> CreateCardAsync(string customerId, string token, CancellationToken ct = default);
 
