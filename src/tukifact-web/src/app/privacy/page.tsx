@@ -189,12 +189,10 @@ export default function PrivacyPage() {
 
       <footer className="border-t mt-12">
         <div className="container mx-auto max-w-4xl px-6 py-6 text-sm text-muted-foreground flex flex-wrap gap-4">
-          <Link href="/privacy" className="hover:text-foreground">
-            Política de Privacidad
-          </Link>
-          <Link href="/terms" className="hover:text-foreground">
-            Términos del Servicio
-          </Link>
+          <Link href="/privacy" className="hover:text-foreground">Política de Privacidad</Link>
+          <Link href="/terms" className="hover:text-foreground">Términos del Servicio</Link>
+          <Link href="/devoluciones" className="hover:text-foreground">Devoluciones</Link>
+          <Link href="/reclamaciones" className="hover:text-foreground">Libro de Reclamaciones</Link>
           <span className="ml-auto">© {new Date().getFullYear()} Tukituki Solution S.A.C.</span>
         </div>
       </footer>
