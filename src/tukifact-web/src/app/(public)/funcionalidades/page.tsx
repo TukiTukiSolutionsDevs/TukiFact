@@ -24,12 +24,6 @@ export const metadata: Metadata = {
   description:
     'Todo lo que TukiFact emite y maneja: facturas, boletas, notas de crédito y débito, guías de remisión 2.0, percepciones, retenciones, facturación recurrente, IA y API REST.',
   alternates: { canonical: '/funcionalidades' },
-  openGraph: {
-    title: 'Funcionalidades de TukiFact',
-    description:
-      'Comprobantes electrónicos SUNAT, asistente IA, API REST, webhooks firmados y multi-usuario en una sola plataforma.',
-    url: '/funcionalidades',
-  },
 };
 
 const SECTIONS = [

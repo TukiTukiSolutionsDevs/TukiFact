@@ -8,12 +8,6 @@ export const metadata: Metadata = {
   description:
     'Conversemos. Resolvemos tus dudas sobre TukiFact, planes empresariales o integración con tu ERP. Email, WhatsApp y formulario directo. Respuesta en <24h hábiles.',
   alternates: { canonical: '/contacto' },
-  openGraph: {
-    title: 'Contacto — TukiFact',
-    description:
-      'Email, WhatsApp y formulario directo. Te respondemos en menos de un día hábil.',
-    url: '/contacto',
-  },
 };
 
 export default function ContactoPage() {

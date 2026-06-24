@@ -10,12 +10,6 @@ export const metadata: Metadata = {
   description:
     'Cómo TukiFact protege tu data fiscal: certificado digital encriptado AES-256, aislamiento multi-tenant, TLS 1.3, audit log inmutable y backups diarios.',
   alternates: { canonical: '/seguridad' },
-  openGraph: {
-    title: 'Seguridad y cumplimiento — TukiFact',
-    description:
-      'Encriptación AES-256, aislamiento por tenant, TLS 1.3, audit log inmutable y backups cifrados con retención 30 días.',
-    url: '/seguridad',
-  },
 };
 
 const PILLARS = [

@@ -11,12 +11,6 @@ export const metadata: Metadata = {
   description:
     'Planes flexibles para empresas peruanas: Gratis, Emprendedor, Negocio, Profesional y Empresa. API, IA y webhooks incluidos sin sobreprecio. Sin permanencia.',
   alternates: { canonical: '/planes' },
-  openGraph: {
-    title: 'Planes y precios de TukiFact',
-    description:
-      'Desde S/0 hasta S/349. Facturación electrónica SUNAT con API REST, IA y webhooks incluidos. Sin tarjeta, sin permanencia.',
-    url: '/planes',
-  },
 };
 
 const FAQS = [

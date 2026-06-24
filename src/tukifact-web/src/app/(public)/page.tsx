@@ -18,17 +18,10 @@ import { cn } from '@/lib/utils';
 import { SoftwareApplicationJsonLd } from '@/components/seo/jsonld';
 
 export const metadata: Metadata = {
-  title: 'TukiFact: Facturación electrónica SUNAT en Perú',
+  title: { absolute: 'TukiFact: Facturación electrónica SUNAT en Perú' },
   description:
     'TukiFact emite facturas, boletas, notas y guías electrónicas a SUNAT. Certificado digital, SOL, IA y API REST incluidos. Empieza gratis.',
   alternates: { canonical: '/' },
-  openGraph: {
-    title: 'TukiFact: Facturación electrónica SUNAT en Perú',
-    description:
-      'Emite facturas, boletas, notas y guías electrónicas SUNAT en segundos. Certificado digital, IA y API REST incluidos. Plan gratis.',
-    url: '/',
-    type: 'website',
-  },
 };
 
 const FEATURES = [
