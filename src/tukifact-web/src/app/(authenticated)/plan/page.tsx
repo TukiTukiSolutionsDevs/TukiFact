@@ -60,7 +60,7 @@ const FEATURE_LABELS: Record<string, string> = {
 };
 
 interface TenantInfo {
-  currentPlanId?: string;
+  planId?: string;
   planName?: string;
 }
 
@@ -112,10 +112,10 @@ export default function PlanPage() {
         toast.error(err instanceof Error ? err.message : 'Error al cargar planes');
       }
       try {
-        const t = await api.get<TenantInfo>('/v1/tenants/me');
+        const t = await api.get<TenantInfo>('/v1/tenant');
         setTenant(t);
       } catch {
-        // optional endpoint
+        // optional — fall back to plans[0] for display
       }
       await reloadSubscription();
       setIsLoading(false);
@@ -123,9 +123,9 @@ export default function PlanPage() {
     load();
   }, [reloadSubscription]);
 
-  const currentPlan = tenant?.currentPlanId
-    ? plans.find((p) => p.id === tenant.currentPlanId)
-    : (plans[0] ?? null);
+  const currentPlan = tenant?.planId
+    ? (plans.find((p) => p.id === tenant.planId) ?? plans[0] ?? null)
+    : (plans.find((p) => p.name === tenant?.planName) ?? plans[0] ?? null);
 
   const handleSubscribe = (plan: Plan) => {
     if (!CULQI_PUBLIC_KEY) {
@@ -179,7 +179,7 @@ export default function PlanPage() {
         });
         toast.success(`Suscripción al plan ${plan.name} activa.`);
         await reloadSubscription();
-        const t = await api.get<TenantInfo>('/v1/tenants/me').catch(() => null);
+        const t = await api.get<TenantInfo>('/v1/tenant').catch(() => null);
         if (t) setTenant(t);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'No se pudo registrar la suscripción.');
@@ -198,7 +198,7 @@ export default function PlanPage() {
       await api.post('/v1/billing/cancel', { reason: 'user_initiated' });
       toast.success('Suscripción cancelada.');
       await reloadSubscription();
-      const t = await api.get<TenantInfo>('/v1/tenants/me').catch(() => null);
+      const t = await api.get<TenantInfo>('/v1/tenant').catch(() => null);
       if (t) setTenant(t);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'No se pudo cancelar la suscripción.');

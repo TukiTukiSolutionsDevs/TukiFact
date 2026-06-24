@@ -60,6 +60,7 @@ public class TenantController : ControllerBase
             tenant.PrimaryColor,
             tenant.Environment,
             tenant.IsActive,
+            PlanId = tenant.PlanId,
             PlanName = tenant.Plan?.Name ?? "Gratis",
             PlanMaxDocs = tenant.Plan?.MaxDocumentsPerMonth ?? 10,
             DocumentsUsedThisMonth = docsThisMonth,

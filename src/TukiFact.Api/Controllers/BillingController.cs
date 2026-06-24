@@ -129,6 +129,54 @@ public class BillingController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Idempotently push all active paid plans to Culqi as recurrent plans. Safe to re-run —
+    /// EnsurePlanAsync no-ops when Plan.CulqiPlanId is already set. Backoffice superadmin only.
+    /// </summary>
+    [HttpPost("~/v1/admin/billing/sync-plans")]
+    [Authorize(Roles = "superadmin")]
+    public async Task<IActionResult> SyncPlans(CancellationToken ct)
+    {
+        if (User.FindFirstValue("platform_user") != "true")
+            return Forbid();
+
+        var plans = await _db.Plans
+            .Where(p => p.IsActive && p.PriceMonthly > 0m)
+            .OrderBy(p => p.PriceMonthly)
+            .ToListAsync(ct);
+
+        var results = new List<object>();
+        foreach (var plan in plans)
+        {
+            var alreadySynced = !string.IsNullOrEmpty(plan.CulqiPlanId);
+            try
+            {
+                var culqiPlanId = await _culqi.EnsurePlanAsync(plan.Name, plan.PriceMonthly, ct);
+                results.Add(new
+                {
+                    plan = plan.Name,
+                    priceMonthly = plan.PriceMonthly,
+                    culqiPlanId,
+                    status = alreadySynced ? "already_synced" : "created",
+                });
+            }
+            catch (CulqiApiException ex)
+            {
+                _logger.LogWarning(ex, "Culqi EnsurePlan failed for {Plan}", plan.Name);
+                results.Add(new
+                {
+                    plan = plan.Name,
+                    priceMonthly = plan.PriceMonthly,
+                    culqiPlanId = (string?)null,
+                    status = "error",
+                    error = ex.Message,
+                });
+            }
+        }
+
+        return Ok(new { count = plans.Count, plans = results });
+    }
+
     [HttpPost("cancel")]
     [Authorize]
     public async Task<ActionResult> Cancel([FromBody] CancelSubscriptionRequest request, CancellationToken ct)
