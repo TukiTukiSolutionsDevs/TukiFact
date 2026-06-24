@@ -17,7 +17,10 @@ export const TUKIFACT_BRAND = {
     addressRegion: 'Arequipa',
     addressCountry: 'PE',
   },
-  sameAs: [] as string[],
+  sameAs: [
+    'https://www.linkedin.com/company/119484308',
+    'https://www.instagram.com/tuki_tuki_solutions/',
+  ] as string[],
   foundingDate: '2026',
 } as const;
 
