@@ -3,11 +3,19 @@ import Link from 'next/link';
 import { ShieldCheck, KeyRound, Database, Lock, FileCheck2, Server, Eye, RefreshCcw } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { BreadcrumbJsonLd, TUKIFACT_BRAND } from '@/components/seo/jsonld';
 
 export const metadata: Metadata = {
-  title: 'Seguridad y cumplimiento',
-  description: 'Cómo TukiFact protege tu data fiscal: cumplimiento SUNAT, encriptación, RLS multi-tenant, audit log y backups.',
+  title: 'Seguridad y cumplimiento SUNAT',
+  description:
+    'Cómo TukiFact protege tu data fiscal: certificado digital encriptado AES-256, aislamiento multi-tenant, TLS 1.3, audit log inmutable y backups diarios.',
   alternates: { canonical: '/seguridad' },
+  openGraph: {
+    title: 'Seguridad y cumplimiento — TukiFact',
+    description:
+      'Encriptación AES-256, aislamiento por tenant, TLS 1.3, audit log inmutable y backups cifrados con retención 30 días.',
+    url: '/seguridad',
+  },
 };
 
 const PILLARS = [
@@ -56,6 +64,12 @@ const PILLARS = [
 export default function SeguridadPage() {
   return (
     <>
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Inicio', url: `${TUKIFACT_BRAND.url}/` },
+          { name: 'Seguridad', url: `${TUKIFACT_BRAND.url}/seguridad` },
+        ]}
+      />
       <section className="border-b border-border bg-gradient-to-br from-background to-slate-50 py-20">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <ShieldCheck className="mx-auto h-12 w-12 text-[var(--brand-toucan-orange)]" />

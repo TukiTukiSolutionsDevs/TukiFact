@@ -1,16 +1,31 @@
 import type { Metadata } from 'next';
 import { Mail, MessageCircle, MapPin } from 'lucide-react';
 import { ContactForm } from './ContactForm';
+import { BreadcrumbJsonLd, ContactPageJsonLd, TUKIFACT_BRAND } from '@/components/seo/jsonld';
 
 export const metadata: Metadata = {
-  title: 'Contacto',
-  description: 'Conversemos. Resolvemos tus dudas sobre TukiFact, planes empresariales o integración con tu ERP.',
+  title: 'Contacto — Conversemos',
+  description:
+    'Conversemos. Resolvemos tus dudas sobre TukiFact, planes empresariales o integración con tu ERP. Email, WhatsApp y formulario directo. Respuesta en <24h hábiles.',
   alternates: { canonical: '/contacto' },
+  openGraph: {
+    title: 'Contacto — TukiFact',
+    description:
+      'Email, WhatsApp y formulario directo. Te respondemos en menos de un día hábil.',
+    url: '/contacto',
+  },
 };
 
 export default function ContactoPage() {
   return (
     <>
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Inicio', url: `${TUKIFACT_BRAND.url}/` },
+          { name: 'Contacto', url: `${TUKIFACT_BRAND.url}/contacto` },
+        ]}
+      />
+      <ContactPageJsonLd />
       <section className="border-b border-border bg-gradient-to-br from-background to-slate-50 py-20">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <h1 className="t-display-xl text-foreground">Hablemos</h1>

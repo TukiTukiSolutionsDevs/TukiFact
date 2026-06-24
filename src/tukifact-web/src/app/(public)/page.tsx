@@ -15,12 +15,20 @@ import {
 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { SoftwareApplicationJsonLd } from '@/components/seo/jsonld';
 
 export const metadata: Metadata = {
-  title: 'Facturación electrónica inteligente para Perú',
+  title: 'TukiFact: Facturación electrónica SUNAT en Perú',
   description:
-    'TukiFact emite facturas, boletas, notas y guías electrónicas a SUNAT. Incluye certificado digital, SOL, IA y API REST. Empieza gratis.',
+    'TukiFact emite facturas, boletas, notas y guías electrónicas a SUNAT. Certificado digital, SOL, IA y API REST incluidos. Empieza gratis.',
   alternates: { canonical: '/' },
+  openGraph: {
+    title: 'TukiFact: Facturación electrónica SUNAT en Perú',
+    description:
+      'Emite facturas, boletas, notas y guías electrónicas SUNAT en segundos. Certificado digital, IA y API REST incluidos. Plan gratis.',
+    url: '/',
+    type: 'website',
+  },
 };
 
 const FEATURES = [
@@ -77,13 +85,14 @@ const STEPS = [
 const STATS = [
   { value: '< 3s', label: 'Tiempo promedio de emisión' },
   { value: '99.9%', label: 'Uptime de la plataforma' },
-  { value: '24/7', label: 'Soporte en Lima' },
+  { value: '24/7', label: 'Soporte en español' },
   { value: 'En trámite', label: 'Certificación OSE SUNAT' },
 ];
 
 export default function HomePage() {
   return (
     <>
+      <SoftwareApplicationJsonLd />
       <section className="relative overflow-hidden border-b border-border bg-gradient-to-br from-background via-background to-slate-50">
         <div className="absolute inset-x-0 top-0 -z-10 h-[600px] opacity-30 [mask-image:radial-gradient(closest-side,white,transparent)]">
           <div className="absolute left-1/2 top-0 h-[400px] w-[800px] -translate-x-1/2 rounded-full bg-[var(--brand-toucan-yellow)] blur-3xl" />
@@ -119,7 +128,7 @@ export default function HomePage() {
                 </Link>
               </div>
               <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">
-                {['Hasta 100 comprobantes gratis al mes', 'Sin tarjeta para empezar', 'Soporte en Lima'].map((t) => (
+                {['Hasta 10 comprobantes gratis al mes', 'Sin tarjeta para empezar', 'Soporte en español'].map((t) => (
                   <li key={t} className="inline-flex items-center gap-1.5">
                     <CheckCircle2 className="h-4 w-4 text-[var(--success,oklch(0.66_0.14_152))]" />
                     {t}

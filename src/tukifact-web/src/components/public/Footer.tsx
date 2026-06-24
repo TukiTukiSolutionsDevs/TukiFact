@@ -60,8 +60,10 @@ export function PublicFooter() {
           ))}
         </div>
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-border pt-6 text-xs text-slate-500 md:flex-row md:items-center">
-          <p>© {year} TukiFact. Hecho en Lima, Perú.</p>
-          <p>Plataforma autorizada por SUNAT como OSE (Operador de Servicios Electrónicos).</p>
+          <p>
+            © {year} <span className="font-medium text-slate-700">TukiFact</span> · Tukituki Solution S.A.C. · Hecho en Arequipa, Perú.
+          </p>
+          <p>Plataforma de facturación electrónica · OSE en trámite ante SUNAT.</p>
         </div>
       </div>
     </footer>

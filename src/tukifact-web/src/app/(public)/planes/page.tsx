@@ -4,12 +4,39 @@ import type { LucideIcon } from 'lucide-react';
 import { Check, ArrowRight, Sparkles, Rocket, Briefcase, Crown, Building2 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { BreadcrumbJsonLd, FAQPageJsonLd, TUKIFACT_BRAND } from '@/components/seo/jsonld';
 
 export const metadata: Metadata = {
-  title: 'Planes y precios',
-  description: 'Planes flexibles para empresas peruanas. Desde Gratis hasta Empresa, con API, IA y webhooks incluidos sin sobreprecio.',
+  title: 'Planes y precios de facturación electrónica',
+  description:
+    'Planes flexibles para empresas peruanas: Gratis, Emprendedor, Negocio, Profesional y Empresa. API, IA y webhooks incluidos sin sobreprecio. Sin permanencia.',
   alternates: { canonical: '/planes' },
+  openGraph: {
+    title: 'Planes y precios de TukiFact',
+    description:
+      'Desde S/0 hasta S/349. Facturación electrónica SUNAT con API REST, IA y webhooks incluidos. Sin tarjeta, sin permanencia.',
+    url: '/planes',
+  },
 };
+
+const FAQS = [
+  {
+    q: '¿Puedo cambiar de plan en cualquier momento?',
+    a: 'Sí. Sube o baja de plan cuando quieras desde tu panel — el cobro se prorratea automáticamente.',
+  },
+  {
+    q: '¿Qué pasa si me paso del límite de comprobantes?',
+    a: 'Te avisamos antes de llegar al límite. Si lo superas, cobramos por comprobante adicional al precio del tier siguiente.',
+  },
+  {
+    q: '¿Incluye soporte para producción SUNAT?',
+    a: 'Sí, todos los planes emiten contra producción SUNAT con tu certificado digital y credenciales SOL.',
+  },
+  {
+    q: '¿Hay permanencia o contratos?',
+    a: 'No. Pagas mes a mes y puedes darte de baja cuando quieras. Tu data te pertenece y puedes exportarla siempre.',
+  },
+];
 
 type FeatureMap = Record<string, string | number | boolean>;
 
@@ -153,6 +180,13 @@ export default async function PlanesPage() {
 
   return (
     <>
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Inicio', url: `${TUKIFACT_BRAND.url}/` },
+          { name: 'Planes', url: `${TUKIFACT_BRAND.url}/planes` },
+        ]}
+      />
+      <FAQPageJsonLd items={FAQS} />
       <section className="border-b border-border bg-gradient-to-br from-background to-slate-50 py-20">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <h1 className="t-display-xl text-foreground">Planes pensados para crecer contigo</h1>
@@ -259,24 +293,7 @@ export default async function PlanesPage() {
         <div className="mx-auto max-w-3xl px-6">
           <h2 className="t-display-lg text-center text-foreground">Preguntas frecuentes</h2>
           <dl className="mt-12 space-y-8">
-            {[
-              {
-                q: '¿Puedo cambiar de plan en cualquier momento?',
-                a: 'Sí. Sube o baja de plan cuando quieras desde tu panel — el cobro se prorratea automáticamente.',
-              },
-              {
-                q: '¿Qué pasa si me paso del límite de comprobantes?',
-                a: 'Te avisamos antes de llegar al límite. Si lo superas, cobramos por comprobante adicional al precio del tier siguiente.',
-              },
-              {
-                q: '¿Incluye soporte para producción SUNAT?',
-                a: 'Sí, todos los planes emiten contra producción SUNAT con tu certificado digital y credenciales SOL.',
-              },
-              {
-                q: '¿Hay permanencia o contratos?',
-                a: 'No. Pagas mes a mes y puedes darte de baja cuando quieras. Tu data te pertenece y puedes exportarla siempre.',
-              },
-            ].map((item) => (
+            {FAQS.map((item) => (
               <div key={item.q}>
                 <dt className="font-semibold text-foreground">{item.q}</dt>
                 <dd className="mt-2 text-slate-600">{item.a}</dd>

@@ -17,11 +17,19 @@ import {
 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { BreadcrumbJsonLd, TUKIFACT_BRAND } from '@/components/seo/jsonld';
 
 export const metadata: Metadata = {
-  title: 'Funcionalidades',
-  description: 'Todo lo que TukiFact emite y maneja: facturas, boletas, notas, guías, percepciones, retenciones, recurrentes y más.',
+  title: 'Funcionalidades del facturador electrónico',
+  description:
+    'Todo lo que TukiFact emite y maneja: facturas, boletas, notas de crédito y débito, guías de remisión 2.0, percepciones, retenciones, facturación recurrente, IA y API REST.',
   alternates: { canonical: '/funcionalidades' },
+  openGraph: {
+    title: 'Funcionalidades de TukiFact',
+    description:
+      'Comprobantes electrónicos SUNAT, asistente IA, API REST, webhooks firmados y multi-usuario en una sola plataforma.',
+    url: '/funcionalidades',
+  },
 };
 
 const SECTIONS = [
@@ -90,6 +98,12 @@ const SECTIONS = [
 export default function FuncionalidadesPage() {
   return (
     <>
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Inicio', url: `${TUKIFACT_BRAND.url}/` },
+          { name: 'Funcionalidades', url: `${TUKIFACT_BRAND.url}/funcionalidades` },
+        ]}
+      />
       <section className="border-b border-border bg-gradient-to-br from-background to-slate-50 py-20">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <h1 className="t-display-xl text-foreground">Todo lo que necesitas, en una plataforma</h1>
