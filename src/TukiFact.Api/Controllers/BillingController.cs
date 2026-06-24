@@ -177,6 +177,105 @@ public class BillingController : ControllerBase
         return Ok(new { count = plans.Count, plans = results });
     }
 
+    /// <summary>
+    /// Upgrade or downgrade to a different paid plan using the card already on file.
+    /// Creates the new Culqi subscription first (so the tenant is never unsubscribed),
+    /// then cancels the old one. The old/new are persisted atomically in DB.
+    /// </summary>
+    [HttpPost("change-plan")]
+    [Authorize]
+    public async Task<ActionResult<SubscriptionResponse>> ChangePlan(
+        [FromBody] ChangePlanRequest request, CancellationToken ct)
+    {
+        var tenantId = GetTenantId();
+
+        var currentSub = await _db.Subscriptions
+            .Include(s => s.Plan)
+            .Where(s => s.TenantId == tenantId && ActiveStatuses.Contains(s.Status))
+            .OrderByDescending(s => s.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+        if (currentSub is null)
+            return BadRequest(new { error = "No tenés una suscripción activa. Usá /subscribe en lugar de /change-plan." });
+
+        if (string.IsNullOrEmpty(currentSub.CulqiCardId))
+            return BadRequest(new { error = "Tu suscripción actual no tiene tarjeta guardada. Cancelala y volvé a suscribirte." });
+
+        var newPlan = await _db.Plans.FirstOrDefaultAsync(p => p.Id == request.NewPlanId && p.IsActive, ct);
+        if (newPlan is null) return BadRequest(new { error = "Plan no encontrado." });
+        if (newPlan.Id == currentSub.PlanId)
+            return BadRequest(new { error = "Ya estás en ese plan." });
+        if (newPlan.PriceMonthly <= 0)
+            return BadRequest(new { error = "Para cambiar al plan Gratis, cancelá tu suscripción actual." });
+
+        string newCulqiSubId;
+        string newCulqiPlanId;
+        try
+        {
+            newCulqiPlanId = await _culqi.EnsurePlanAsync(newPlan.Name, newPlan.PriceMonthly, ct);
+            newCulqiSubId = await _culqi.CreateSubscriptionAsync(
+                currentSub.CulqiCardId, newCulqiPlanId,
+                new Dictionary<string, string>
+                {
+                    ["tenant_id"] = tenantId.ToString(),
+                    ["plan_id"] = newPlan.Id.ToString(),
+                    ["previous_subscription"] = currentSub.CulqiSubscriptionId ?? "",
+                }, ct);
+        }
+        catch (CulqiApiException ex)
+        {
+            _logger.LogWarning(ex,
+                "Culqi change-plan create failed for tenant {TenantId} old plan {OldPlanId} new plan {NewPlanId}",
+                tenantId, currentSub.PlanId, newPlan.Id);
+            return StatusCode(502, new { error = "No se pudo crear la nueva suscripción. Tu plan actual sigue activo.", detail = ex.Message });
+        }
+
+        // New sub is live in Culqi. Now cancel the old. If this fails we still commit
+        // the DB swap — the cron / next webhook will reconcile the orphaned sub.
+        if (!string.IsNullOrEmpty(currentSub.CulqiSubscriptionId))
+        {
+            try { await _culqi.CancelSubscriptionAsync(currentSub.CulqiSubscriptionId, ct); }
+            catch (CulqiApiException ex) when (ex.StatusCode != 404)
+            {
+                _logger.LogError(ex,
+                    "Culqi cancel of OLD sub {OldSubId} failed after creating new sub {NewSubId} for tenant {TenantId} — manual reconcile required",
+                    currentSub.CulqiSubscriptionId, newCulqiSubId, tenantId);
+            }
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        currentSub.Status = "cancelled";
+        currentSub.EndDate = now;
+        currentSub.CancellationReason = "plan_change";
+        currentSub.UpdatedAt = now;
+
+        var newSub = new Subscription
+        {
+            TenantId = tenantId,
+            PlanId = newPlan.Id,
+            Status = "active",
+            StartDate = now,
+            NextBillingDate = now.AddMonths(1),
+            MonthlyAmount = newPlan.PriceMonthly,
+            DocumentsLimit = newPlan.MaxDocumentsPerMonth,
+            // Carry usage over so the user can't game the upgrade to reset the counter.
+            DocumentsUsedThisMonth = currentSub.DocumentsUsedThisMonth,
+            CulqiCustomerId = currentSub.CulqiCustomerId,
+            CulqiCardId = currentSub.CulqiCardId,
+            CulqiSubscriptionId = newCulqiSubId,
+        };
+        await _db.Subscriptions.AddAsync(newSub, ct);
+
+        var tenant = await _db.Tenants.FirstAsync(t => t.Id == tenantId, ct);
+        tenant.PlanId = newPlan.Id;
+
+        await _db.SaveChangesAsync(ct);
+
+        await TryPublishAsync("subscription.changed", newSub, newPlan.Name, ct);
+
+        newSub.Plan = newPlan;
+        return Ok(MapToResponse(newSub));
+    }
+
     [HttpPost("cancel")]
     [Authorize]
     public async Task<ActionResult> Cancel([FromBody] CancelSubscriptionRequest request, CancellationToken ct)

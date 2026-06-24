@@ -6,6 +6,7 @@ import { api, type Plan } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { Section } from '@/components/ui/section';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/ui/status-badge';
 import {
   CheckCircle2,
@@ -14,6 +15,10 @@ import {
   Loader2,
   X,
   Sparkles,
+  ArrowUpRight,
+  ArrowDownRight,
+  AlertTriangle,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -94,6 +99,9 @@ export default function PlanPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
   const [welcomePlan, setWelcomePlan] = useState<Plan | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [changePlanTarget, setChangePlanTarget] = useState<Plan | null>(null);
+  const [isChangingPlan, setIsChangingPlan] = useState(false);
 
   const reloadSubscription = useCallback(async () => {
     try {
@@ -198,17 +206,33 @@ export default function PlanPage() {
     window.Culqi.open();
   };
 
-  const handleCancel = async () => {
+  const performCancel = async () => {
     if (!subscription) return;
-    if (!confirm(`¿Cancelar la suscripción al plan ${subscription.planName}? Vas a volver al plan Free.`)) return;
     try {
       await api.post('/v1/billing/cancel', { reason: 'user_initiated' });
-      toast.success('Suscripción cancelada.');
+      toast.success('Suscripción cancelada. Volviste al plan Gratis.');
       await reloadSubscription();
       const t = await api.get<TenantInfo>('/v1/tenant').catch(() => null);
       if (t) setTenant(t);
+      setCancelOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'No se pudo cancelar la suscripción.');
+    }
+  };
+
+  const performChangePlan = async (target: Plan) => {
+    setIsChangingPlan(true);
+    try {
+      await api.post('/v1/billing/change-plan', { newPlanId: target.id });
+      await reloadSubscription();
+      const t = await api.get<TenantInfo>('/v1/tenant').catch(() => null);
+      if (t) setTenant(t);
+      setChangePlanTarget(null);
+      setWelcomePlan(target);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo cambiar de plan.');
+    } finally {
+      setIsChangingPlan(false);
     }
   };
 
@@ -229,6 +253,22 @@ export default function PlanPage() {
       {welcomePlan && (
         <WelcomeModal plan={welcomePlan} onClose={() => setWelcomePlan(null)} />
       )}
+      {cancelOpen && subscription && (
+        <CancelSubscriptionModal
+          planName={subscription.planName}
+          onCancel={() => setCancelOpen(false)}
+          onConfirm={performCancel}
+        />
+      )}
+      {changePlanTarget && currentPlan && (
+        <ChangePlanModal
+          currentPlan={currentPlan}
+          targetPlan={changePlanTarget}
+          isLoading={isChangingPlan}
+          onCancel={() => setChangePlanTarget(null)}
+          onConfirm={() => performChangePlan(changePlanTarget)}
+        />
+      )}
       {/* Page header */}
       <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
         <div className="min-w-0">
@@ -238,7 +278,7 @@ export default function PlanPage() {
           </p>
         </div>
         {subscription?.isCulqiManaged && subscription.status !== 'cancelled' && (
-          <Button variant="outline" onClick={handleCancel}>
+          <Button variant="outline" onClick={() => setCancelOpen(true)}>
             <X className="h-4 w-4 mr-2" /> Cancelar suscripción
           </Button>
         )}
@@ -299,22 +339,49 @@ export default function PlanPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[var(--gap-cards)]">
           {plans.map((plan, idx) => {
             const isCurrent = plan.id === currentPlan?.id;
-            const isFeatured = idx === 1 && plans.length >= 3;
+            const isFeatured = idx === 1 && plans.length >= 3 && !isCurrent;
             const features = plan.features as Record<string, unknown>;
+            const hasPaidSub = !!subscription?.isCulqiManaged && subscription.status !== 'cancelled';
+            const isUpgrade = !!currentPlan && plan.priceMonthly > currentPlan.priceMonthly;
 
             return (
               <div
                 key={plan.id}
                 className={cn(
-                  'relative rounded-[var(--radius-lg)] border bg-card p-6 flex flex-col gap-4'
+                  'relative rounded-[var(--radius-lg)] border p-6 flex flex-col gap-4 transition-colors'
                 )}
                 style={{
-                  boxShadow: isFeatured ? 'var(--shadow-md)' : 'var(--shadow-xs)',
-                  borderColor: isFeatured ? 'var(--accent)' : 'var(--border)',
-                  borderWidth: isFeatured ? '1.5px' : '1px',
+                  background: isCurrent
+                    ? 'color-mix(in oklch, var(--success) 6%, var(--card))'
+                    : 'var(--card)',
+                  boxShadow: isCurrent
+                    ? 'var(--shadow-md), 0 0 0 1px color-mix(in oklch, var(--success) 30%, transparent)'
+                    : isFeatured
+                      ? 'var(--shadow-md)'
+                      : 'var(--shadow-xs)',
+                  borderColor: isCurrent
+                    ? 'var(--success)'
+                    : isFeatured
+                      ? 'var(--accent)'
+                      : 'var(--border)',
+                  borderWidth: isCurrent || isFeatured ? '2px' : '1px',
                 }}
               >
-                {isFeatured && (
+                {isCurrent && (
+                  <span
+                    className="absolute t-caption font-bold px-2.5 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1"
+                    style={{
+                      top: -12,
+                      left: 24,
+                      background: 'var(--success)',
+                      color: 'white',
+                      fontSize: 11,
+                    }}
+                  >
+                    <Crown className="h-3 w-3" /> Tu plan actual
+                  </span>
+                )}
+                {!isCurrent && isFeatured && (
                   <span
                     className="absolute t-caption font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"
                     style={{
@@ -331,8 +398,17 @@ export default function PlanPage() {
 
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="t-h3 m-0">{plan.name}</span>
-                    {isCurrent && <StatusBadge status="active" label="Plan actual" />}
+                    <span className="t-h3 m-0 inline-flex items-center gap-2">
+                      {plan.name}
+                      {isCurrent && (
+                        <Crown
+                          className="h-4 w-4"
+                          style={{ color: 'var(--success)' }}
+                          aria-hidden
+                        />
+                      )}
+                    </span>
+                    {isCurrent && <StatusBadge status="active" label="Activo" />}
                   </div>
                   <div className="flex items-baseline gap-1.5 mt-1">
                     <span className="t-body-sm font-semibold" style={{ color: 'var(--muted-foreground)' }}>
@@ -350,12 +426,39 @@ export default function PlanPage() {
                 </div>
 
                 {isCurrent ? (
-                  <Button variant="outline" disabled>
-                    Plan actual
+                  <Button
+                    variant="outline"
+                    disabled
+                    style={{
+                      borderColor: 'var(--success)',
+                      color: 'var(--success)',
+                      background: 'color-mix(in oklch, var(--success) 10%, transparent)',
+                      opacity: 1,
+                    }}
+                  >
+                    <Check className="h-4 w-4 mr-2" /> Plan actual
                   </Button>
                 ) : plan.priceMonthly === 0 ? (
-                  <Button variant="outline" disabled>
-                    <Mail className="h-4 w-4 mr-2" /> Solo por cancelación
+                  hasPaidSub ? (
+                    <Button variant="outline" onClick={() => setCancelOpen(true)}>
+                      <ArrowDownRight className="h-4 w-4 mr-2" /> Bajar a Gratis
+                    </Button>
+                  ) : (
+                    <Button variant="outline" disabled>
+                      <Mail className="h-4 w-4 mr-2" /> Solo por cancelación
+                    </Button>
+                  )
+                ) : hasPaidSub ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setChangePlanTarget(plan)}
+                    disabled={pendingPlanId === plan.id || isChangingPlan}
+                  >
+                    {isUpgrade ? (
+                      <><ArrowUpRight className="h-4 w-4 mr-2" /> Subir a {plan.name}</>
+                    ) : (
+                      <><ArrowDownRight className="h-4 w-4 mr-2" /> Cambiar a {plan.name}</>
+                    )}
                   </Button>
                 ) : (
                   <Button
@@ -431,6 +534,226 @@ export default function PlanPage() {
       >
         Los precios están en PEN (soles peruanos). Para facturación personalizada, contacta al equipo de ventas.
       </p>
+    </div>
+  );
+}
+
+function CancelSubscriptionModal({
+  planName,
+  onCancel,
+  onConfirm,
+}: {
+  planName: string;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [typed, setTyped] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const CONFIRM_PHRASE = 'CANCELAR';
+  const matches = typed.trim().toUpperCase() === CONFIRM_PHRASE;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !submitting) onCancel();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onCancel, submitting]);
+
+  const handleConfirm = async () => {
+    if (!matches || submitting) return;
+    setSubmitting(true);
+    try {
+      await onConfirm();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancel-sub-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'color-mix(in oklch, var(--foreground) 50%, transparent)' }}
+      onClick={() => !submitting && onCancel()}
+    >
+      <div
+        className="relative w-full max-w-md rounded-[var(--radius-lg)] bg-card border p-6 flex flex-col gap-4"
+        style={{ borderColor: 'var(--border)', boxShadow: 'var(--shadow-md)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <span
+            className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center"
+            style={{
+              background: 'color-mix(in oklch, var(--danger) 14%, transparent)',
+              color: 'var(--danger)',
+            }}
+          >
+            <AlertTriangle className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <h2 id="cancel-sub-title" className="t-h3 m-0">
+              ¿Cancelar tu plan {planName}?
+            </h2>
+            <p className="t-body-sm mt-1 mb-0" style={{ color: 'var(--muted-foreground)' }}>
+              Esta acción es <strong style={{ color: 'var(--foreground)' }}>inmediata</strong> y vas a:
+            </p>
+          </div>
+        </div>
+
+        <ul className="t-body-sm space-y-1.5 list-disc pl-5" style={{ color: 'var(--muted-foreground)' }}>
+          <li>Perder el acceso a todos los beneficios del plan {planName}.</li>
+          <li>Volver al plan <strong style={{ color: 'var(--foreground)' }}>Gratis</strong> (10 documentos/mes).</li>
+          <li>No recibir reembolso de lo ya pagado por el mes en curso.</li>
+        </ul>
+
+        <div>
+          <label className="t-body-sm font-medium block mb-1.5">
+            Para confirmar, escribí{' '}
+            <span
+              className="mono font-bold px-1.5 py-0.5 rounded"
+              style={{
+                background: 'color-mix(in oklch, var(--danger) 12%, transparent)',
+                color: 'var(--danger)',
+              }}
+            >
+              {CONFIRM_PHRASE}
+            </span>
+          </label>
+          <Input
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            placeholder={CONFIRM_PHRASE}
+            autoFocus
+            disabled={submitting}
+            autoComplete="off"
+            className="mono"
+          />
+        </div>
+
+        <div className="flex gap-2 justify-end pt-1">
+          <Button variant="outline" onClick={onCancel} disabled={submitting}>
+            No, mantener mi plan
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={!matches || submitting}
+            style={{
+              background: matches ? 'var(--danger)' : undefined,
+              color: matches ? 'white' : undefined,
+              opacity: matches ? 1 : 0.5,
+            }}
+          >
+            {submitting ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Cancelando…</>
+            ) : (
+              <>Sí, cancelar suscripción</>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChangePlanModal({
+  currentPlan,
+  targetPlan,
+  isLoading,
+  onCancel,
+  onConfirm,
+}: {
+  currentPlan: Plan;
+  targetPlan: Plan;
+  isLoading: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const isUpgrade = targetPlan.priceMonthly > currentPlan.priceMonthly;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isLoading) onCancel();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onCancel, isLoading]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="change-plan-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'color-mix(in oklch, var(--foreground) 50%, transparent)' }}
+      onClick={() => !isLoading && onCancel()}
+    >
+      <div
+        className="relative w-full max-w-md rounded-[var(--radius-lg)] bg-card border p-6 flex flex-col gap-4"
+        style={{ borderColor: 'var(--border)', boxShadow: 'var(--shadow-md)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <span
+            className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center"
+            style={{
+              background: 'color-mix(in oklch, var(--accent) 18%, transparent)',
+              color: 'var(--brand-ink)',
+            }}
+          >
+            {isUpgrade ? <ArrowUpRight className="h-5 w-5" /> : <ArrowDownRight className="h-5 w-5" />}
+          </span>
+          <div className="min-w-0">
+            <h2 id="change-plan-title" className="t-h3 m-0">
+              {isUpgrade ? 'Subir' : 'Cambiar'} al plan {targetPlan.name}
+            </h2>
+            <p className="t-body-sm mt-1 mb-0" style={{ color: 'var(--muted-foreground)' }}>
+              {currentPlan.name} → <strong style={{ color: 'var(--foreground)' }}>{targetPlan.name}</strong>
+            </p>
+          </div>
+        </div>
+
+        <div
+          className="rounded-[var(--radius-md)] p-3 t-body-sm space-y-1.5"
+          style={{
+            background: 'color-mix(in oklch, var(--muted) 50%, transparent)',
+          }}
+        >
+          <div className="flex justify-between">
+            <span style={{ color: 'var(--muted-foreground)' }}>Cobro a partir de hoy</span>
+            <span className="mono tnum font-semibold">S/ {targetPlan.priceMonthly} / mes</span>
+          </div>
+          <div className="flex justify-between">
+            <span style={{ color: 'var(--muted-foreground)' }}>Documentos / mes</span>
+            <span className="mono tnum">{formatDocs(targetPlan.maxDocumentsPerMonth)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span style={{ color: 'var(--muted-foreground)' }}>Método de pago</span>
+            <span className="t-body-sm">Tarjeta guardada</span>
+          </div>
+        </div>
+
+        <p className="t-caption m-0" style={{ color: 'var(--muted-foreground)' }}>
+          Vamos a usar la tarjeta que ya tenés registrada. La suscripción a {currentPlan.name} se cancela
+          automáticamente. {isUpgrade ? 'Ya quedás con la nueva quota mensual disponible.' : 'Conservás los documentos que ya emitiste este mes.'}
+        </p>
+
+        <div className="flex gap-2 justify-end pt-1">
+          <Button variant="outline" onClick={onCancel} disabled={isLoading}>
+            Cancelar
+          </Button>
+          <Button onClick={onConfirm} disabled={isLoading}>
+            {isLoading ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Cambiando…</>
+            ) : (
+              <>Confirmar cambio a {targetPlan.name}</>
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

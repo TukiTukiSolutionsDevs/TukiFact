@@ -14,6 +14,10 @@ public record CancelSubscriptionRequest(
     string? Reason
 );
 
+public record ChangePlanRequest(
+    Guid NewPlanId
+);
+
 public record SubscriptionResponse(
     Guid Id,
     Guid TenantId,
