@@ -136,6 +136,9 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [certPassword, setCertPassword] = useState('');
+  const [sunatUser, setSunatUser] = useState('');
+  const [sunatPassword, setSunatPassword] = useState('');
+  const [isSavingSunat, setIsSavingSunat] = useState(false);
   const [serviceConfig, setServiceConfig] = useState<ServiceConfig | null>(null);
   const [providers, setProviders] = useState<ProvidersData | null>(null);
   const [serviceForm, setServiceForm] = useState({
@@ -225,6 +228,27 @@ export default function SettingsPage() {
       toast.error(err instanceof Error ? err.message : 'Error');
     } finally {
       setIsSavingAi(false);
+    }
+  };
+
+  const handleSaveSunatCredentials = async () => {
+    if (!sunatUser.trim() || !sunatPassword) {
+      toast.error('Ingresá usuario SOL y contraseña.');
+      return;
+    }
+    setIsSavingSunat(true);
+    try {
+      await api.put('/v1/certificate/sunat-credentials', {
+        sunatUser: sunatUser.trim(),
+        sunatPassword,
+      });
+      toast.success('Credenciales SUNAT guardadas.');
+      setSunatPassword('');
+      await fetchTenant();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudieron guardar las credenciales.');
+    } finally {
+      setIsSavingSunat(false);
     }
   };
 
@@ -516,6 +540,62 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      </Section>
+
+      <Section
+        title="Credenciales SUNAT (SOL)"
+        desc="Usuario secundario SOL que TukiFact usa para enviar los XML firmados a SUNAT."
+        right={tenant.hasSunatCredentials ? <StatusBadge status="active" label="Configuradas" /> : null}
+      >
+        <div className="flex items-start gap-3">
+          <SectionIcon icon={Shield} color="var(--info)" />
+          <div className="flex-1 space-y-3">
+            {tenant.hasSunatCredentials && (
+              <div
+                className="rounded-[var(--radius-md)] p-3 t-body-sm"
+                style={{
+                  background: 'color-mix(in oklch, var(--success) 10%, transparent)',
+                  border: '1px solid color-mix(in oklch, var(--success) 30%, transparent)',
+                  color: 'var(--success)',
+                }}
+              >
+                Credenciales configuradas. Para reemplazarlas, escribí las nuevas debajo y guardá.
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                {fieldLabel('Usuario SOL')}
+                <Input
+                  placeholder="MODDATOS o tu usuario secundario"
+                  value={sunatUser}
+                  onChange={(e) => setSunatUser(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                {fieldLabel('Contraseña SOL')}
+                <Input
+                  type="password"
+                  placeholder={tenant.hasSunatCredentials ? '••••••••' : 'Contraseña del usuario SOL'}
+                  value={sunatPassword}
+                  onChange={(e) => setSunatPassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+            <p className="t-caption m-0" style={{ color: 'var(--muted-foreground)' }}>
+              En entorno Beta podés usar <span className="mono">MODDATOS</span> /{' '}
+              <span className="mono">MODDATOS</span>. En Producción usá el usuario secundario que creaste en SUNAT.
+            </p>
+            <Button onClick={handleSaveSunatCredentials} disabled={isSavingSunat} size="sm">
+              {isSavingSunat ? (
+                <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Guardando…</>
+              ) : (
+                <><Save className="h-4 w-4 mr-1.5" /> Guardar credenciales</>
+              )}
+            </Button>
           </div>
         </div>
       </Section>
