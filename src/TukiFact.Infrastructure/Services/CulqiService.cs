@@ -16,8 +16,10 @@ public class CulqiService : ICulqiService
 {
     private const string CustomersPath = "v2/customers";
     private const string CardsPath = "v2/cards";
-    private const string PlansPath = "v2/recurrent/plans";
-    private const string SubscriptionsPath = "v2/recurrent/subscriptions";
+    // Recurrent endpoints: POST uses /create suffix; GET/PATCH/DELETE use the base path with id.
+    private const string PlansCreatePath = "v2/recurrent/plans/create";
+    private const string SubscriptionsCreatePath = "v2/recurrent/subscriptions/create";
+    private const string SubscriptionsBasePath = "v2/recurrent/subscriptions";
 
     // interval_unit_time per Culqi recurrent API: 1=day, 2=week, 3=month, 4=year.
     // If Culqi sandbox rejects this, only this constant needs to change.
@@ -62,12 +64,39 @@ public class CulqiService : ICulqiService
             last_name = lastName,
             email,
             country_code = countryCode,
-            phone_number = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber,
-            // Culqi requires address 5-100 chars and a non-empty address_city.
+            // Culqi requires phone_number 6-14 chars, address 5-100 chars, and a non-empty address_city.
+            phone_number = SanitizePhone(phoneNumber),
             address = SanitizeAddress(address),
             address_city = string.IsNullOrWhiteSpace(addressCity) ? "Lima" : addressCity!.Trim(),
         };
-        return await PostAndReadIdAsync(client, CustomersPath, payload, ct);
+
+        try
+        {
+            return await PostAndReadIdAsync(client, CustomersPath, payload, ct);
+        }
+        catch (CulqiApiException ex) when (ex.StatusCode == 400 &&
+            (ex.Message.Contains("registrado", StringComparison.OrdinalIgnoreCase) ||
+             ex.Message.Contains("already", StringComparison.OrdinalIgnoreCase)))
+        {
+            // Duplicate email — a previous (possibly failed) attempt already created the customer.
+            // Reuse it instead of failing forever.
+            var existing = await FindCustomerByEmailAsync(client, email, ct);
+            if (existing is not null) return existing;
+            throw;
+        }
+    }
+
+    private async Task<string?> FindCustomerByEmailAsync(HttpClient client, string email, CancellationToken ct)
+    {
+        var url = $"{CustomersPath}?email={Uri.EscapeDataString(email)}&limit=1";
+        using var resp = await client.GetAsync(url, ct);
+        if (!resp.IsSuccessStatusCode) return null;
+        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        if (!doc.RootElement.TryGetProperty("data", out var data) ||
+            data.ValueKind != JsonValueKind.Array || data.GetArrayLength() == 0)
+            return null;
+        return data[0].TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
     }
 
     private static string SanitizeAddress(string? raw)
@@ -75,6 +104,13 @@ public class CulqiService : ICulqiService
         var trimmed = (raw ?? string.Empty).Trim();
         if (trimmed.Length < 5) return "Direccion no especificada";
         return trimmed.Length > 100 ? trimmed[..100] : trimmed;
+    }
+
+    private static string SanitizePhone(string? raw)
+    {
+        var digits = new string((raw ?? string.Empty).Where(char.IsDigit).ToArray());
+        if (digits.Length < 6) return "999999999";
+        return digits.Length > 14 ? digits[..14] : digits;
     }
 
     public async Task<string> CreateCardAsync(string customerId, string token, CancellationToken ct = default)
@@ -101,19 +137,31 @@ public class CulqiService : ICulqiService
         var amountCents = (int)Math.Round(monthlyAmountPen * 100m, MidpointRounding.AwayFromZero);
 
         var client = BuildClient();
+        // /v2/recurrent/plans/create payload per Culqi API spec:
+        //   - currency: "PEN" or "USD" (NOT currency_code)
+        //   - interval_unit_time: 1=day, 2=week, 3=month, 4=year, 5=quarter, 6=semester
+        //   - interval_count: 0 = indefinido; we use 1 (every month)
+        //   - initial_cycles: required object; count=0 means no special intro period
+        //   - duration is NOT a valid field
         var payload = new
         {
             name = $"TukiFact {planName}",
-            short_name = planName.Length > 20 ? planName[..20] : planName,
+            short_name = planName.Length > 50 ? planName[..50] : planName,
             description = $"Plan mensual TukiFact {planName}",
             amount = amountCents,
-            currency_code = "PEN",
+            currency = "PEN",
             interval_unit_time = IntervalUnitMonthly,
             interval_count = 1,
-            duration = 0,  // 0 = open-ended; cancel from our side
+            initial_cycles = new
+            {
+                count = 0,
+                has_initial_charge = false,
+                amount = 0,
+                interval_unit_time = IntervalUnitMonthly,
+            },
             metadata = new { tukifact_plan_id = plan.Id.ToString() },
         };
-        var culqiPlanId = await PostAndReadIdAsync(client, PlansPath, payload, ct);
+        var culqiPlanId = await PostAndReadIdAsync(client, PlansCreatePath, payload, ct);
 
         plan.CulqiPlanId = culqiPlanId;
         await _db.SaveChangesAsync(ct);
@@ -128,16 +176,18 @@ public class CulqiService : ICulqiService
         {
             ["card_id"] = cardId,
             ["plan_id"] = culqiPlanId,
+            // Terms-and-conditions acceptance — implicit when user clicks Suscribirme on /plan.
+            ["tyc"] = true,
         };
         if (metadata is { Count: > 0 })
             payload["metadata"] = metadata;
-        return await PostAndReadIdAsync(client, SubscriptionsPath, payload, ct);
+        return await PostAndReadIdAsync(client, SubscriptionsCreatePath, payload, ct);
     }
 
     public async Task CancelSubscriptionAsync(string culqiSubscriptionId, CancellationToken ct = default)
     {
         var client = BuildClient();
-        using var response = await client.DeleteAsync($"{SubscriptionsPath}/{culqiSubscriptionId}", ct);
+        using var response = await client.DeleteAsync($"{SubscriptionsBasePath}/{culqiSubscriptionId}", ct);
         if (!response.IsSuccessStatusCode)
             throw await CreateExceptionAsync(response, ct);
     }
