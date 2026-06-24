@@ -139,13 +139,10 @@ export default function SettingsPage() {
   const [serviceConfig, setServiceConfig] = useState<ServiceConfig | null>(null);
   const [providers, setProviders] = useState<ProvidersData | null>(null);
   const [serviceForm, setServiceForm] = useState({
-    lookupProvider: 'none',
-    lookupApiKey: '',
     aiProvider: 'none',
     aiApiKey: '',
     aiModel: '',
   });
-  const [isSavingLookup, setIsSavingLookup] = useState(false);
   const [isSavingAi, setIsSavingAi] = useState(false);
   const [isTestingAi, setIsTestingAi] = useState(false);
   const [aiTestResults, setAiTestResults] = useState<ModelTestResult[] | null>(null);
@@ -184,8 +181,6 @@ export default function SettingsPage() {
       setServiceConfig(config);
       setProviders(provs);
       setServiceForm({
-        lookupProvider: config.lookupProvider,
-        lookupApiKey: '',
         aiProvider: config.aiProvider,
         aiApiKey: '',
         aiModel: config.aiModel || '',
@@ -199,23 +194,6 @@ export default function SettingsPage() {
     fetchTenant();
     fetchServiceConfig();
   }, []);
-
-  const handleSaveLookup = async () => {
-    setIsSavingLookup(true);
-    try {
-      await api.put('/v1/services/config', {
-        lookupProvider: serviceForm.lookupProvider,
-        ...(serviceForm.lookupApiKey ? { lookupApiKey: serviceForm.lookupApiKey } : {}),
-      });
-      toast.success('Proveedor de datos guardado');
-      setServiceForm((f) => ({ ...f, lookupApiKey: '' }));
-      fetchServiceConfig();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error');
-    } finally {
-      setIsSavingLookup(false);
-    }
-  };
 
   const handleTestAi = async () => {
     setIsTestingAi(true);
@@ -343,7 +321,6 @@ export default function SettingsPage() {
     );
   }
 
-  const lookupProviderInfo = providers?.lookup.find((p) => p.id === serviceForm.lookupProvider);
   const aiProviderInfo = providers?.ai.find((p) => p.id === serviceForm.aiProvider);
   const aiConfiguredInfo = providers?.ai.find((p) => p.id === serviceConfig?.aiProvider);
 
@@ -617,79 +594,22 @@ export default function SettingsPage() {
 
       <Section
         title="Consulta DNI / RUC"
-        desc="Autocompletá datos de clientes al emitir comprobantes con un proveedor externo."
+        desc="Autocompletá datos de clientes con un solo clic al emitir comprobantes."
+        right={<StatusBadge status="active" label="Incluido" />}
       >
         <div className="flex items-start gap-3">
           <SectionIcon icon={Search} color="var(--info)" />
-          <div className="flex-1 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                {fieldLabel('Proveedor de datos')}
-                <SelectField
-                  value={serviceForm.lookupProvider}
-                  onChange={(v) =>
-                    setServiceForm((f) => ({ ...f, lookupProvider: v }))
-                  }
-                >
-                  <option value="none">Seleccionar proveedor…</option>
-                  {providers?.lookup.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} — {p.freeTier}
-                      {serviceConfig?.lookupProvider === p.id &&
-                      serviceConfig?.lookupApiKeyConfigured
-                        ? ' ✓ Key cargada'
-                        : ''}
-                    </option>
-                  ))}
-                </SelectField>
-              </div>
-              <div>
-                {fieldLabel('API Key / Token')}
-                <Input
-                  type="password"
-                  placeholder={
-                    serviceConfig?.lookupApiKeyConfigured
-                      ? '••••••••• (ya configurada — escribí para cambiar)'
-                      : 'Pegá tu API key acá'
-                  }
-                  value={serviceForm.lookupApiKey}
-                  onChange={(e) =>
-                    setServiceForm((f) => ({ ...f, lookupApiKey: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-            {serviceForm.lookupProvider !== 'none' && lookupProviderInfo && (
-              <div
-                className="flex items-center justify-between rounded-[var(--radius-md)] p-3 gap-3"
-                style={{ background: 'var(--muted)' }}
-              >
-                <p
-                  className="t-caption m-0"
-                  style={{ color: 'var(--muted-foreground)' }}
-                >
-                  Obtené tu key en{' '}
-                  <a
-                    href={lookupProviderInfo.url}
-                    target="_blank"
-                    rel="noopener"
-                    className="underline font-medium"
-                    style={{ color: 'var(--info)' }}
-                  >
-                    {lookupProviderInfo.url}
-                  </a>{' '}
-                  — desde {lookupProviderInfo.paidFrom}
-                </p>
-                {serviceConfig?.lookupApiKeyConfigured &&
-                  serviceConfig?.lookupProvider === serviceForm.lookupProvider && (
-                    <StatusBadge status="active" />
-                  )}
-              </div>
-            )}
-            <Button onClick={handleSaveLookup} disabled={isSavingLookup} size="sm">
-              <Save className="h-4 w-4 mr-2" />
-              {isSavingLookup ? 'Guardando…' : 'Guardar proveedor de datos'}
-            </Button>
+          <div className="flex-1">
+            <p className="t-body-sm m-0" style={{ color: 'var(--foreground)' }}>
+              La búsqueda de DNI y RUC viene activa en tu plan, sin configurar nada.
+            </p>
+            <p
+              className="t-caption m-0 mt-1"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
+              Consultas ilimitadas para razón social, dirección y datos personales —
+              directo desde SUNAT y RENIEC.
+            </p>
           </div>
         </div>
       </Section>

@@ -40,8 +40,7 @@ public class UtilsController : ControllerBase
         if (ruc.Length != 11)
             return BadRequest(new { error = "RUC debe tener 11 dígitos" });
 
-        // TODO: Get apiKey from TenantServiceConfig.LookupApiKey
-        var result = await _rucService.ValidateRucAsync(ruc, null, ct);
+        var result = await _rucService.ValidateRucAsync(ruc, ct);
         return result is null
             ? NotFound(new { error = $"RUC {ruc} no encontrado" })
             : Ok(result);
@@ -56,8 +55,7 @@ public class UtilsController : ControllerBase
         if (dni.Length != 8)
             return BadRequest(new { error = "DNI debe tener 8 dígitos" });
 
-        // TODO: Get apiKey from TenantServiceConfig.LookupApiKey
-        var result = await _rucService.ValidateDniAsync(dni, null, ct);
+        var result = await _rucService.ValidateDniAsync(dni, ct);
         return result is null
             ? NotFound(new { error = $"DNI {dni} no encontrado" })
             : Ok(result);

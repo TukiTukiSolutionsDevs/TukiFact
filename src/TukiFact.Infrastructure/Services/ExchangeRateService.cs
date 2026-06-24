@@ -8,7 +8,7 @@ using TukiFact.Infrastructure.Persistence;
 namespace TukiFact.Infrastructure.Services;
 
 /// <summary>
-/// Fetches and caches exchange rates from apis.net.pe (SBS/SUNAT source).
+/// Fetches and caches exchange rates from decolecta.com (SBS/SUNAT source).
 /// Cache: 1 query per day per currency, stored in exchange_rates table.
 /// </summary>
 public class ExchangeRateService : IExchangeRateService
@@ -16,7 +16,7 @@ public class ExchangeRateService : IExchangeRateService
     private readonly ILogger<ExchangeRateService> _logger;
     private readonly HttpClient _httpClient;
     private readonly AppDbContext _db;
-    private const string BaseUrl = "https://api.apis.net.pe/v2/sunat/tipo-cambio";
+    private const string BaseUrl = "https://api.decolecta.com/v1/tipo-cambio/sunat";
 
     public ExchangeRateService(
         ILogger<ExchangeRateService> logger,
@@ -24,7 +24,7 @@ public class ExchangeRateService : IExchangeRateService
         AppDbContext db)
     {
         _logger = logger;
-        _httpClient = httpClientFactory.CreateClient("ApisNetPe");
+        _httpClient = httpClientFactory.CreateClient("Decolecta");
         _db = db;
     }
 
@@ -47,7 +47,7 @@ public class ExchangeRateService : IExchangeRateService
 
         try
         {
-            var url = $"{BaseUrl}?fecha={date:yyyy-MM-dd}";
+            var url = $"{BaseUrl}?date={date:yyyy-MM-dd}";
             var response = await _httpClient.GetAsync(url, ct);
             response.EnsureSuccessStatusCode();
 
@@ -55,11 +55,11 @@ public class ExchangeRateService : IExchangeRateService
             var json = JsonDocument.Parse(body);
             var root = json.RootElement;
 
-            var buyRate = root.TryGetProperty("compra", out var compra)
-                ? decimal.Parse(compra.GetString() ?? "0")
+            var buyRate = root.TryGetProperty("buy_price", out var buy)
+                ? decimal.Parse(buy.GetString() ?? "0", System.Globalization.CultureInfo.InvariantCulture)
                 : 0m;
-            var sellRate = root.TryGetProperty("venta", out var venta)
-                ? decimal.Parse(venta.GetString() ?? "0")
+            var sellRate = root.TryGetProperty("sell_price", out var sell)
+                ? decimal.Parse(sell.GetString() ?? "0", System.Globalization.CultureInfo.InvariantCulture)
                 : 0m;
 
             // Upsert

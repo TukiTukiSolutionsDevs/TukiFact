@@ -1,13 +1,14 @@
 namespace TukiFact.Application.Interfaces;
 
 /// <summary>
-/// Validates RUC/DNI against external APIs (apis.net.pe, peruapi.com).
-/// Provider is configured per-tenant in TenantServiceConfig.LookupProvider.
+/// Validates RUC/DNI against apis.net.pe (PeruDevs).
+/// Uses a single central API key configured in ApisNetPe:ApiKey — DNI/RUC lookup
+/// is a premium feature included in every plan, no BYOK.
 /// </summary>
 public interface IRucValidationService
 {
-    Task<RucInfo?> ValidateRucAsync(string ruc, string? apiKey = null, CancellationToken ct = default);
-    Task<DniInfo?> ValidateDniAsync(string dni, string? apiKey = null, CancellationToken ct = default);
+    Task<RucInfo?> ValidateRucAsync(string ruc, CancellationToken ct = default);
+    Task<DniInfo?> ValidateDniAsync(string dni, CancellationToken ct = default);
 }
 
 public record RucInfo(

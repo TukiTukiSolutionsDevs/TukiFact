@@ -105,6 +105,7 @@ services:
       AllowedHosts: ${ALLOWED_HOSTS:-api.tukifact.com.pe}
       Cors__FrontendUrl: ${CORS_FRONTEND_URL:-https://tukifact.com.pe,https://www.tukifact.com.pe,https://app.tukifact.com.pe}
       Sunat__Environment: ${SUNAT_ENV:-beta}
+      Decolecta__ApiKey: ${DECOLECTA_API_KEY:-}
       Culqi__SecretKey: ${CULQI_SECRET_KEY:-}
       Turnstile__SecretKey: ${TURNSTILE_SECRET_KEY:-}
       Sentry__Dsn: ${SENTRY_DSN:-}

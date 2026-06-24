@@ -136,11 +136,20 @@ public static class DependencyInjection
             client.DefaultRequestHeaders.Add("Accept", "application/json");
         });
 
-        // HttpClient for RUC/DNI validation (apis.net.pe)
-        services.AddHttpClient("ApisNetPe", client =>
+        // HttpClient for RUC validation + exchange rate (decolecta.com — sucesor de apis.net.pe).
+        // Key is centralized: configured via Decolecta:ApiKey (env DECOLECTA_API_KEY).
+        // No BYOK — RUC/tipo-cambio lookup is included in every plan.
+        // Note: DNI ya no es público en decolecta desde la ley peruana de protección de datos (2024).
+        var decolectaKey = configuration["Decolecta:ApiKey"];
+        services.AddHttpClient("Decolecta", client =>
         {
             client.Timeout = TimeSpan.FromSeconds(10);
             client.DefaultRequestHeaders.Add("Accept", "application/json");
+            if (!string.IsNullOrWhiteSpace(decolectaKey))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", decolectaKey);
+            }
         });
 
         // HttpClient for Webhook delivery

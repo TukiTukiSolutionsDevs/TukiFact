@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TukiFact.Application.Interfaces;
 using TukiFact.Domain.Entities;
 using TukiFact.Domain.Interfaces;
 using TukiFact.Infrastructure.Persistence;
@@ -22,17 +23,20 @@ public class ExternalServicesController : ControllerBase
     private readonly AppDbContext _db;
     private readonly ITenantProvider _tenantProvider;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IRucValidationService _rucValidationService;
     private readonly ILogger<ExternalServicesController> _logger;
 
     public ExternalServicesController(
         AppDbContext db,
         ITenantProvider tenantProvider,
         IHttpClientFactory httpClientFactory,
+        IRucValidationService rucValidationService,
         ILogger<ExternalServicesController> logger)
     {
         _db = db;
         _tenantProvider = tenantProvider;
         _httpClientFactory = httpClientFactory;
+        _rucValidationService = rucValidationService;
         _logger = logger;
     }
 
@@ -166,51 +170,66 @@ public class ExternalServicesController : ControllerBase
     // LOOKUP PROXY (DNI / RUC)
     // ====================================================
 
-    /// <summary>Lookup RUC data using tenant's configured provider</summary>
+    /// <summary>Lookup RUC data via central provider (decolecta).</summary>
     [HttpGet("lookup/ruc/{number}")]
     public async Task<IActionResult> LookupRuc(string number, CancellationToken ct)
     {
         if (number.Length != 11)
             return BadRequest(new { error = "RUC debe tener 11 dígitos" });
 
-        var (config, error) = await GetConfigOrError(ct);
-        if (error is not null) return error;
-        if (config!.LookupProvider == "none" || string.IsNullOrEmpty(config.LookupApiKey))
-            return BadRequest(new { error = "No hay proveedor de datos configurado. Ve a Configuración → Servicios Externos." });
-
         try
         {
-            var result = await CallLookupProvider(config.LookupProvider, config.LookupApiKey, "ruc", number, ct);
-            return Ok(result);
+            var info = await _rucValidationService.ValidateRucAsync(number, ct);
+            if (info is null)
+                return NotFound(new { error = $"RUC {number} no encontrado" });
+
+            var addressParts = new[] { info.Direccion, info.Distrito, info.Provincia, info.Departamento }
+                .Where(s => !string.IsNullOrWhiteSpace(s));
+            var address = string.Join(", ", addressParts);
+
+            return Ok(new
+            {
+                name = info.RazonSocial,
+                fullName = info.RazonSocial,
+                address = string.IsNullOrEmpty(address) ? null : address,
+                estado = info.Estado,
+                condicion = info.Condicion,
+                ubigeo = info.Ubigeo,
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Lookup RUC failed for {Number} with provider {Provider}", number, config.LookupProvider);
-            return StatusCode(502, new { error = $"Error consultando al proveedor: {ex.Message}" });
+            _logger.LogWarning(ex, "Lookup RUC failed for {Number}", number);
+            return StatusCode(502, new { error = "Error consultando RUC. Reintentá en unos segundos." });
         }
     }
 
-    /// <summary>Lookup DNI data using tenant's configured provider</summary>
+    /// <summary>Lookup DNI data via central provider (decolecta RENIEC).</summary>
     [HttpGet("lookup/dni/{number}")]
     public async Task<IActionResult> LookupDni(string number, CancellationToken ct)
     {
         if (number.Length != 8)
             return BadRequest(new { error = "DNI debe tener 8 dígitos" });
 
-        var (config, error) = await GetConfigOrError(ct);
-        if (error is not null) return error;
-        if (config!.LookupProvider == "none" || string.IsNullOrEmpty(config.LookupApiKey))
-            return BadRequest(new { error = "No hay proveedor de datos configurado. Ve a Configuración → Servicios Externos." });
-
         try
         {
-            var result = await CallLookupProvider(config.LookupProvider, config.LookupApiKey, "dni", number, ct);
-            return Ok(result);
+            var info = await _rucValidationService.ValidateDniAsync(number, ct);
+            if (info is null)
+                return NotFound(new { error = $"DNI {number} no encontrado" });
+
+            return Ok(new
+            {
+                name = info.NombreCompleto,
+                fullName = info.NombreCompleto,
+                firstName = info.Nombres,
+                lastName = info.ApellidoPaterno,
+                motherLastName = info.ApellidoMaterno,
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Lookup DNI failed for {Number} with provider {Provider}", number, config.LookupProvider);
-            return StatusCode(502, new { error = $"Error consultando al proveedor: {ex.Message}" });
+            _logger.LogWarning(ex, "Lookup DNI failed for {Number}", number);
+            return StatusCode(502, new { error = "Error consultando DNI. Reintentá en unos segundos." });
         }
     }
 
@@ -277,27 +296,21 @@ public class ExternalServicesController : ControllerBase
         return Ok(new { provider = config.AiProvider, models = results });
     }
 
-    /// <summary>Get current lookup config status</summary>
+    /// <summary>
+    /// Get current lookup config status.
+    /// La búsqueda DNI/RUC es centralizada (decolecta.com) e incluida en todo plan,
+    /// así que siempre devolvemos `configured: true`. La columna `TenantServiceConfig.LookupApiKey`
+    /// queda en DB para una eventual modalidad BYOK premium, pero hoy no se usa.
+    /// </summary>
     [HttpGet("lookup/status")]
-    public async Task<IActionResult> LookupStatus(CancellationToken ct)
+    public IActionResult LookupStatus()
     {
-        var tenantId = _tenantProvider.GetCurrentTenantId();
-        var config = await _db.TenantServiceConfigs
-            .FirstOrDefaultAsync(c => c.TenantId == tenantId, ct);
-
-        if (config is null || config.LookupProvider == "none" || string.IsNullOrEmpty(config.LookupApiKey))
-            return Ok(new { configured = false, provider = "none" });
-
-        var providerNames = new Dictionary<string, string>
+        return Ok(new
         {
-            ["apiperu"] = "ApiPeru.dev",
-            ["migo"] = "Migo API",
-            ["peruapi"] = "Perú API",
-            ["apis_net"] = "APIs.net.pe",
-        };
-        var name = providerNames.GetValueOrDefault(config.LookupProvider, config.LookupProvider);
-
-        return Ok(new { configured = true, provider = config.LookupProvider, providerName = name });
+            configured = true,
+            provider = "decolecta",
+            providerName = "Decolecta",
+        });
     }
 
     /// <summary>Get current AI config status for the floating chat widget</summary>
