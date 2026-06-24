@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Check, ArrowRight } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { Check, ArrowRight, Sparkles, Rocket, Briefcase, Crown, Building2 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +23,14 @@ type PlanDto = {
 };
 
 const FEATURED_NAME = 'Negocio';
+
+const PLAN_ICONS: Record<string, LucideIcon> = {
+  Gratis: Sparkles,
+  Emprendedor: Rocket,
+  Negocio: Briefcase,
+  Profesional: Crown,
+  Empresa: Building2,
+};
 
 const FALLBACK_PLANS: PlanDto[] = [
   {
@@ -159,6 +168,7 @@ export default async function PlanesPage() {
             {plans.map((plan, idx) => {
               const featured = idx === featuredIdx;
               const features = describeFeatures(plan.features ?? {});
+              const Icon = PLAN_ICONS[plan.name] ?? Sparkles;
               return (
                 <div
                   key={plan.id}
@@ -172,6 +182,17 @@ export default async function PlanesPage() {
                       Más elegido
                     </span>
                   )}
+                  <div
+                    aria-hidden
+                    className={cn(
+                      'mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl',
+                      featured
+                        ? 'bg-[var(--brand-toucan-yellow)] text-[var(--brand-ink)]'
+                        : 'bg-[var(--brand-toucan-yellow)]/15 text-[var(--brand-ink)]',
+                    )}
+                  >
+                    <Icon className="h-6 w-6" />
+                  </div>
                   <h3 className={cn('text-lg font-semibold', featured ? 'text-background' : 'text-foreground')}>
                     {plan.name}
                   </h3>

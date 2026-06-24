@@ -68,7 +68,7 @@ const formatPrice = (price: number) => {
   if (price === 0) return 'Gratis';
   return new Intl.NumberFormat('es-PE', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'PEN',
     minimumFractionDigits: 0,
   }).format(price);
 };
@@ -326,7 +326,7 @@ export default function PlanPage() {
                   </div>
                   <div className="flex items-baseline gap-1.5 mt-1">
                     <span className="t-body-sm font-semibold" style={{ color: 'var(--muted-foreground)' }}>
-                      {plan.priceMonthly === 0 ? '' : '$'}
+                      {plan.priceMonthly === 0 ? '' : 'S/'}
                     </span>
                     <span className="t-num-md mono">
                       {plan.priceMonthly === 0 ? 'Gratis' : plan.priceMonthly}
@@ -419,7 +419,7 @@ export default function PlanPage() {
         className="t-caption mt-6 text-center"
         style={{ color: 'var(--muted-foreground)' }}
       >
-        Los precios están en USD. Para facturación personalizada, contacta al equipo de ventas.
+        Los precios están en PEN (soles peruanos). Para facturación personalizada, contacta al equipo de ventas.
       </p>
     </div>
   );
