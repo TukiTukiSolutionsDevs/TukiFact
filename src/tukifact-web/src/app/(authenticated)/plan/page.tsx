@@ -41,6 +41,7 @@ declare global {
       settings: (config: Record<string, unknown>) => void;
       options: (opts: Record<string, unknown>) => void;
       open: () => void;
+      close?: () => void;
       token?: { id: string };
       error?: { user_message?: string; merchant_message?: string };
     };
@@ -92,6 +93,7 @@ export default function PlanPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
+  const [welcomePlan, setWelcomePlan] = useState<Plan | null>(null);
 
   const reloadSubscription = useCallback(async () => {
     try {
@@ -158,13 +160,18 @@ export default function PlanPage() {
     });
 
     window.culqi = async () => {
+      const token = window.Culqi?.token?.id;
+      if (!token) {
+        const err = window.Culqi?.error;
+        toast.error(err?.user_message ?? err?.merchant_message ?? 'No se pudo tokenizar la tarjeta.');
+        window.Culqi?.close?.();
+        setPendingPlanId(null);
+        return;
+      }
+      // Close the Culqi modal as soon as we have the token — the backend call
+      // can take a few seconds and the modal blocking the page is a bad UX.
+      window.Culqi?.close?.();
       try {
-        const token = window.Culqi?.token?.id;
-        if (!token) {
-          const err = window.Culqi?.error;
-          toast.error(err?.user_message ?? err?.merchant_message ?? 'No se pudo tokenizar la tarjeta.');
-          return;
-        }
         const fullName = (user.fullName ?? user.email).split(' ');
         const firstName = fullName[0] ?? user.email;
         const lastName = fullName.slice(1).join(' ') || 'TukiFact';
@@ -177,10 +184,10 @@ export default function PlanPage() {
           phoneNumber: null,
           countryCode: 'PE',
         });
-        toast.success(`Suscripción al plan ${plan.name} activa.`);
         await reloadSubscription();
         const t = await api.get<TenantInfo>('/v1/tenant').catch(() => null);
         if (t) setTenant(t);
+        setWelcomePlan(plan);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'No se pudo registrar la suscripción.');
       } finally {
@@ -218,6 +225,9 @@ export default function PlanPage() {
     <div>
       {CULQI_PUBLIC_KEY && (
         <Script src="https://checkout.culqi.com/js/v4" strategy="afterInteractive" />
+      )}
+      {welcomePlan && (
+        <WelcomeModal plan={welcomePlan} onClose={() => setWelcomePlan(null)} />
       )}
       {/* Page header */}
       <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
@@ -421,6 +431,100 @@ export default function PlanPage() {
       >
         Los precios están en PEN (soles peruanos). Para facturación personalizada, contacta al equipo de ventas.
       </p>
+    </div>
+  );
+}
+
+function WelcomeModal({ plan, onClose }: { plan: Plan; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const features = plan.features as Record<string, unknown>;
+  const highlightedFeatures = Object.entries(features)
+    .filter(([, val]) => val !== false && val !== 0 && val !== '0')
+    .slice(0, 6);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="welcome-plan-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'color-mix(in oklch, var(--foreground) 50%, transparent)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md rounded-[var(--radius-lg)] bg-card border p-7 flex flex-col items-center text-center"
+        style={{ borderColor: 'var(--border)', boxShadow: 'var(--shadow-md)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="absolute top-3 right-3 p-1.5 rounded-[var(--radius-md)] hover:bg-[color-mix(in_oklch,var(--foreground)_8%,transparent)]"
+          style={{ color: 'var(--muted-foreground)' }}
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <span
+          className="h-14 w-14 rounded-full flex items-center justify-center mb-4"
+          style={{
+            background: 'color-mix(in oklch, var(--success) 18%, transparent)',
+            color: 'var(--success)',
+          }}
+        >
+          <CheckCircle2 className="h-7 w-7" />
+        </span>
+
+        <h2 id="welcome-plan-title" className="t-h2 m-0">
+          ¡Bienvenido al plan {plan.name}!
+        </h2>
+        <p className="t-body mt-2 mb-0" style={{ color: 'var(--muted-foreground)' }}>
+          Tu suscripción está activa. Vas a poder emitir hasta{' '}
+          <strong style={{ color: 'var(--foreground)' }}>
+            {formatDocs(plan.maxDocumentsPerMonth)}
+          </strong>{' '}
+          documentos al mes y aprovechar todos los beneficios incluidos.
+        </p>
+
+        {highlightedFeatures.length > 0 && (
+          <div className="w-full mt-5 grid grid-cols-1 gap-2 text-left">
+            {highlightedFeatures.map(([key, val]) => {
+              const label = FEATURE_LABELS[key] ?? key;
+              return (
+                <FeatureRow
+                  key={key}
+                  enabled
+                  label={
+                    <>
+                      {label}
+                      {typeof val !== 'boolean' && val !== null && (
+                        <span
+                          className="ml-1 mono tnum"
+                          style={{ color: 'var(--muted-foreground)' }}
+                        >
+                          ({renderFeatureValue(val)})
+                        </span>
+                      )}
+                    </>
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
+
+        <Button onClick={onClose} className="mt-6 w-full">
+          <Sparkles className="h-4 w-4 mr-2" /> Empezar a usar TukiFact {plan.name}
+        </Button>
+      </div>
     </div>
   );
 }
