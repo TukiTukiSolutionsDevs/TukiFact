@@ -242,6 +242,11 @@ export default function NewDocumentPage() {
     customerAddress: '',
     customerEmail: '',
     notes: '',
+    // Convention used by every Peru invoicing tool (Nubefact, FactPe, Bsale, etc.):
+    // facturas default to "precio sin IGV" (B2B negotiations are in valor base);
+    // boletas default to "precio incluye IGV" (consumer-facing prices already include tax).
+    // The XML always reports the base SIN IGV; this only changes how the user types it.
+    priceIncludesIgv: false,
   });
   const [items, setItems] = useState<ItemRow[]>([{ ...emptyItem }]);
 
@@ -281,6 +286,7 @@ export default function NewDocumentPage() {
       documentType: v,
       serie: '',
       customerDocType: dt.defaultCustomerDoc,
+      priceIncludesIgv: v === '03',
     }));
   };
 
@@ -293,10 +299,21 @@ export default function NewDocumentPage() {
     );
   };
 
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+
   const calcItem = (item: ItemRow) => {
-    const subtotal = item.quantity * item.unitPrice;
-    const igvAmount = item.igvType === '10' ? Math.round(subtotal * IGV_RATE * 100) / 100 : 0;
-    return { subtotal, igvAmount, total: subtotal + igvAmount };
+    const lineGross = item.quantity * item.unitPrice;
+    // When the user typed a price that already includes IGV (boleta default),
+    // back-calculate the base. Only applies to gravado lines — exonerado/inafecto
+    // are tax-free regardless of mode.
+    if (form.priceIncludesIgv && item.igvType === '10') {
+      const subtotal = round2(lineGross / (1 + IGV_RATE));
+      const igvAmount = round2(lineGross - subtotal);
+      return { subtotal, igvAmount, total: round2(lineGross) };
+    }
+    const subtotal = round2(lineGross);
+    const igvAmount = item.igvType === '10' ? round2(subtotal * IGV_RATE) : 0;
+    return { subtotal, igvAmount, total: round2(subtotal + igvAmount) };
   };
 
   const totals = items.reduce(
@@ -343,14 +360,23 @@ export default function NewDocumentPage() {
         customerAddress: form.customerAddress || undefined,
         customerEmail: form.customerEmail || undefined,
         notes: form.notes || undefined,
-        items: items.map((i) => ({
-          productCode: i.productCode || undefined,
-          description: i.description,
-          quantity: i.quantity,
-          unitMeasure: i.unitMeasure,
-          unitPrice: i.unitPrice,
-          igvType: i.igvType,
-        })),
+        items: items.map((i) => {
+          // Backend always expects unitPrice as the base (sin IGV) — so when the
+          // user entered prices including IGV, back-calculate the base here.
+          // 6-decimal precision matches SUNAT UBL convention for unit prices.
+          const unitPriceBase =
+            form.priceIncludesIgv && i.igvType === '10'
+              ? Math.round((i.unitPrice / (1 + IGV_RATE)) * 1_000_000) / 1_000_000
+              : i.unitPrice;
+          return {
+            productCode: i.productCode || undefined,
+            description: i.description,
+            quantity: i.quantity,
+            unitMeasure: i.unitMeasure,
+            unitPrice: unitPriceBase,
+            igvType: i.igvType,
+          };
+        }),
       });
       toast.success(`${res.fullNumber} emitido — ${res.status}`);
       router.push(`/documents/${res.id}`);
@@ -592,9 +618,25 @@ export default function NewDocumentPage() {
             title="Productos y servicios"
             desc={`${items.length} ${items.length === 1 ? 'línea' : 'líneas'}`}
             right={
-              <Button variant="outline" size="sm" onClick={addItem}>
-                <Plus className="h-4 w-4 mr-1.5" /> Agregar línea
-              </Button>
+              <div className="flex items-center gap-3 flex-wrap">
+                <label
+                  className="flex items-center gap-2 cursor-pointer select-none t-body-sm"
+                  title="Cuando está activo, el precio que tipeás ya incluye el 18% de IGV — el sistema calcula la base imponible automáticamente."
+                >
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-[var(--accent)] cursor-pointer"
+                    checked={form.priceIncludesIgv}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, priceIncludesIgv: e.target.checked }))
+                    }
+                  />
+                  <span>Precio incluye IGV</span>
+                </label>
+                <Button variant="outline" size="sm" onClick={addItem}>
+                  <Plus className="h-4 w-4 mr-1.5" /> Agregar línea
+                </Button>
+              </div>
             }
           >
             <div className="-mx-6 overflow-x-auto">
