@@ -192,11 +192,16 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import httpx; httpx.get('http://localhost:8090/health').raise_for_status()\""]
-      interval: 30s
-      timeout: 5s
+      interval: 60s
+      timeout: 15s
       retries: 3
+      start_period: 30s
     networks:
       - internal
+    init: true
+    pids_limit: 256
+    cpus: "1.5"
+    mem_limit: 512m
 
 volumes:
   postgres_data:
