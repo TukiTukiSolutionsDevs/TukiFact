@@ -18,33 +18,57 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 -- Create a function that will be called after EF Core creates tables
--- to automatically apply RLS policies
+-- to automatically apply RLS policies.
+--
+-- IMPORTANT: this body is duplicated verbatim in the EF migration
+-- FixRlsPolicyDiscovery (src/TukiFact.Infrastructure/Persistence/Migrations).
+-- Keep both in sync: init SQL only runs on brand-new databases, the migration is
+-- what upgrades existing ones.
+--
+-- EF Core generates the tenant column as "TenantId" (quoted, mixed case) while
+-- table names are lowercase via ToTable(). Discovery therefore matches both
+-- spellings and the policy references the discovered column name, safely quoted.
 CREATE OR REPLACE FUNCTION apply_rls_to_tenant_tables() RETURNS void AS $$
 DECLARE
-    tbl TEXT;
+    rec RECORD;
 BEGIN
-    FOR tbl IN
-        SELECT table_name FROM information_schema.columns
-        WHERE column_name = 'tenant_id'
-        AND table_schema = 'public'
-        AND table_name != 'tenants'  -- tenants table doesn't filter by itself
+    -- Serializes concurrent app boots (several replicas call this at startup).
+    PERFORM pg_advisory_xact_lock(hashtext('apply_rls_to_tenant_tables'));
+
+    FOR rec IN
+        SELECT c.table_name, c.column_name
+        FROM information_schema.columns c
+        JOIN pg_namespace n ON n.nspname = c.table_schema
+        JOIN pg_class cl ON cl.relnamespace = n.oid AND cl.relname = c.table_name
+        WHERE c.table_schema = 'public'
+          AND cl.relkind = 'r'
+          AND c.column_name IN ('tenant_id', 'TenantId')
+          AND c.table_name <> 'tenants'  -- tenants table doesn't filter by itself
+        ORDER BY c.table_name
     LOOP
         -- Enable RLS
-        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
-        
+        EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', rec.table_name);
+
         -- Drop existing policy if any
-        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_%I ON %I', tbl, tbl);
-        
-        -- Create isolation policy
         EXECUTE format(
-            'CREATE POLICY tenant_isolation_%I ON %I
-             FOR ALL
-             USING (tenant_id = current_tenant_id())
-             WITH CHECK (tenant_id = current_tenant_id())',
-            tbl, tbl
+            'DROP POLICY IF EXISTS %I ON public.%I',
+            'tenant_isolation_' || rec.table_name, rec.table_name
         );
-        
-        RAISE NOTICE 'RLS applied to table: %', tbl;
+
+        -- Create isolation policy against the real column name
+        -- The policy uses plain equality, so rows with NULL TenantId (e.g. idempotency_keys.TenantId
+        -- is nullable) are invisible to non-bypass roles by design (fail-closed). Anonymous-row
+        -- semantics will be decided in the kernel RLS design.
+        EXECUTE format(
+            'CREATE POLICY %I ON public.%I
+             FOR ALL
+             USING (%I = current_tenant_id())
+             WITH CHECK (%I = current_tenant_id())',
+            'tenant_isolation_' || rec.table_name, rec.table_name,
+            rec.column_name, rec.column_name
+        );
+
+        RAISE NOTICE 'RLS applied to table: % (column: %)', rec.table_name, rec.column_name;
     END LOOP;
 END;
 $$ LANGUAGE plpgsql;

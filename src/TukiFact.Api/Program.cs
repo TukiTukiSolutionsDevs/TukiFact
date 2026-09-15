@@ -84,14 +84,37 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-// Seed data
+// Database bootstrap: migrations -> row level security -> seed data.
+// Any failure is fatal on purpose: RLS is a security control, so the API must not
+// start serving requests if the policies could not be applied.
 using (var scope = app.Services.CreateScope())
 {
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var dbContext = scope.ServiceProvider.GetRequiredService<TukiFact.Infrastructure.Persistence.AppDbContext>();
     var passwordHasher = scope.ServiceProvider.GetRequiredService<TukiFact.Application.Interfaces.IPasswordHasher>();
-    await dbContext.Database.MigrateAsync();
-    await dbContext.Database.ExecuteSqlRawAsync("SELECT apply_rls_to_tenant_tables();");
-    await TukiFact.Api.Data.DataSeeder.SeedAsync(dbContext, passwordHasher);
+
+    var step = "Applying database migrations";
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    try
+    {
+        logger.LogInformation("{Step}", step);
+        await dbContext.Database.MigrateAsync();
+
+        step = "Applying row level security policies";
+        logger.LogInformation("{Step}", step);
+        await dbContext.Database.ExecuteSqlRawAsync("SELECT apply_rls_to_tenant_tables();");
+
+        step = "Seeding data";
+        logger.LogInformation("{Step}", step);
+        await TukiFact.Api.Data.DataSeeder.SeedAsync(dbContext, passwordHasher);
+
+        logger.LogInformation("Database bootstrap completed in {ElapsedMs} ms", stopwatch.ElapsedMilliseconds);
+    }
+    catch (Exception ex)
+    {
+        logger.LogCritical(ex, "Database bootstrap failed at step '{Step}' after {ElapsedMs} ms", step, stopwatch.ElapsedMilliseconds);
+        throw;
+    }
 }
 
 // === Middleware Pipeline ===
