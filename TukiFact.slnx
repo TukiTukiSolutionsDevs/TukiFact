@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/src/Common/">
     <Project Path="src/Common/TukiFact.Common.Domain/TukiFact.Common.Domain.csproj" />
+    <Project Path="src/Common/TukiFact.Common.Application/TukiFact.Common.Application.csproj" />
   </Folder>
   <Folder Name="/src/BuildingBlocks/">
     <Project Path="src/BuildingBlocks/TukiFact.BuildingBlocks.Contracts/TukiFact.BuildingBlocks.Contracts.csproj" />

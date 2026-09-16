@@ -44,6 +44,15 @@
 
     <!-- xUnit v3 without Microsoft.Testing.Platform; rationale in tests/Directory.Build.props. -->
     <PackageVersion Include="xunit.v3.mtp-off" Version="4.0.1" />
+
+    <!-- Common.Application: custom mediator + FluentValidation pipeline behavior. -->
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <!-- Explicit pin of the transitive core so the DI extensions package cannot float it independently. -->
+    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+    <!-- Concrete DI container, needed only by TukiFact.Common.UnitTests to build a ServiceProvider in tests. -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
   </ItemGroup>
 
 </Project>
