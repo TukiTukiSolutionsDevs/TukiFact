@@ -1,0 +1,33 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+    Opt-in, not name-based: legacy `TukiFact.*.Tests` projects keep xUnit 2.9.3 + VSTest;
+    only a project that sets `KernelTestProject=true` picks up this wiring.
+
+    Why xunit.v3.mtp-off: the plain "xunit.v3" package pulls in
+    Microsoft.Testing.Platform.MSBuild, which errors when a project is run through the
+    classic VSTest `dotnet test` path on the .NET 10 SDK. The mtp-off variant keeps the
+    xUnit v3 framework on the same VSTest adapter (xunit.runner.visualstudio) as the legacy
+    projects, so one `dotnet test TukiFact.slnx` runs both without a global.json
+    `test.runner` override. Coverage stays on coverlet.collector for the same reason.
+  -->
+  <ItemGroup Condition="'$(KernelTestProject)' == 'true'">
+    <PackageReference Include="xunit.v3.mtp-off" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(KernelTestProject)' == 'true'">
+    <Using Include="Xunit" />
+    <Using Include="FluentAssertions" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(KernelTestProject)' == 'true'">
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

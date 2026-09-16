@@ -8,7 +8,7 @@ COPY src/TukiFact.Domain/TukiFact.Domain.csproj src/TukiFact.Domain/
 COPY src/TukiFact.Application/TukiFact.Application.csproj src/TukiFact.Application/
 COPY src/TukiFact.Infrastructure/TukiFact.Infrastructure.csproj src/TukiFact.Infrastructure/
 COPY src/TukiFact.Api/TukiFact.Api.csproj src/TukiFact.Api/
-COPY Directory.Build.props ./
+COPY Directory.Build.props Directory.Packages.props global.json ./
 
 # Restore
 RUN dotnet restore src/TukiFact.Api/TukiFact.Api.csproj
