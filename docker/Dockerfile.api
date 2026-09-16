@@ -10,6 +10,25 @@ COPY src/TukiFact.Infrastructure/TukiFact.Infrastructure.csproj src/TukiFact.Inf
 COPY src/TukiFact.Api/TukiFact.Api.csproj src/TukiFact.Api/
 COPY Directory.Build.props Directory.Packages.props global.json ./
 
+# Kernel (src/Common, src/BuildingBlocks): TukiFact.Api references these so their
+# csproj files and the nested Directory.Build.props that scope TreatWarningsAsErrors must be present
+# before restore. Explicit COPY lines (not a directory copy) keep the layer-caching intent of the
+# legacy lines above and fail loudly — a missing project here is a missing COPY line, not a runtime
+# restore surprise.
+COPY src/Common/Directory.Build.props src/Common/
+COPY src/Common/TukiFact.Common.Domain/TukiFact.Common.Domain.csproj src/Common/TukiFact.Common.Domain/
+COPY src/Common/TukiFact.Common.Application/TukiFact.Common.Application.csproj src/Common/TukiFact.Common.Application/
+COPY src/Common/TukiFact.Common.Infrastructure/TukiFact.Common.Infrastructure.csproj src/Common/TukiFact.Common.Infrastructure/
+COPY src/Common/TukiFact.Common.Presentation/TukiFact.Common.Presentation.csproj src/Common/TukiFact.Common.Presentation/
+COPY src/BuildingBlocks/Directory.Build.props src/BuildingBlocks/
+COPY src/BuildingBlocks/TukiFact.BuildingBlocks.Contracts/TukiFact.BuildingBlocks.Contracts.csproj src/BuildingBlocks/TukiFact.BuildingBlocks.Contracts/
+COPY src/BuildingBlocks/TukiFact.Contracts.Grpc/TukiFact.Contracts.Grpc.csproj src/BuildingBlocks/TukiFact.Contracts.Grpc/
+
+# TukiFact.Contracts.Grpc compiles contracts/tukifact/v1/cpe.proto via a relative ProtoRoot, so the
+# proto sources must exist at restore/build time too (Grpc.Tools resolves the Protobuf item during
+# restore-adjacent design-time builds, not only at publish).
+COPY contracts/ contracts/
+
 # Restore
 RUN dotnet restore src/TukiFact.Api/TukiFact.Api.csproj
 

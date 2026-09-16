@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TukiFact.Common.Application\TukiFact.Common.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- URL segment versioning of the module endpoint group (MapEndpoints). -->
+    <PackageReference Include="Asp.Versioning.Http" />
+    <!-- gRPC server surface: interceptors + Result/Error to google.rpc.Status mapping.
+         No ProjectReference to TukiFact.Contracts.Grpc — the kernel stays product-agnostic
+         (IRpcErrorDetailFactory seam). -->
+    <PackageReference Include="Grpc.AspNetCore.Server" />
+    <PackageReference Include="Grpc.StatusProto" />
+  </ItemGroup>
+
+</Project>

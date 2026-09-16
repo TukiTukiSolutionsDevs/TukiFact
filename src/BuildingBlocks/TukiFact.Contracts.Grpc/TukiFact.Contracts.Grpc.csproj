@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Generated gRPC contract project: compiles the published
+    contracts/tukifact/v1/*.proto contract-first, so a hand edit of the .proto becomes a build
+    error here instead of a phase-4 surprise. Unlike TukiFact.BuildingBlocks.Contracts (which stays
+    BCL-only), this project is allowed PackageReferences by design — it is explicitly allowlisted
+    in ArchitectureTests as generated code (ProjectNaming.GeneratedContractsName).
+
+    TreatWarningsAsErrors is re-disabled here (overriding the strict src/BuildingBlocks/Directory.Build.props
+    import) because Grpc.Tools-generated code is not nullable-annotated and routinely produces
+    CS86xx nullable warnings that have no hand-written fix available in this project — the noise is
+    in generated .g.cs files, not in code this PR owns. This is a project-scoped override, not a
+    repo-wide relaxation.
+  -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+    <PackageReference Include="Google.Protobuf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="../../../contracts/tukifact/v1/*.proto" GrpcServices="Both" ProtoRoot="../../../contracts" />
+  </ItemGroup>
+
+</Project>

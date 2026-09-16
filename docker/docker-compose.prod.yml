@@ -95,6 +95,9 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${PG_DATABASE:-tukifact};Username=${PG_USER:-tukifact};Password=${PG_PASSWORD};Include Error Detail=false"
+      # Kernel pool: same Postgres server as the legacy AppDbContext pool
+      # today, distinguished by Npgsql's Application Name (tukifact-kernel), not a separate database.
+      ConnectionStrings__Database: "Host=postgres;Port=5432;Database=${PG_DATABASE:-tukifact};Username=${PG_USER:-tukifact};Password=${PG_PASSWORD};Include Error Detail=false"
       Jwt__Secret: ${JWT_SECRET:?JWT_SECRET is required}
       Jwt__Issuer: "TukiFact"
       Jwt__Audience: "TukiFact"

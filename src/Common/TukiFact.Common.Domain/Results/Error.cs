@@ -27,6 +27,9 @@ public sealed record Error(string Code, string Description, ErrorType Type)
     /// <summary>For use cases that must return <see cref="ErrorType.Unauthorized"/> as a Result instead of relying on the host.</summary>
     public static Error Unauthorized(string code, string description) => new(code, description, ErrorType.Unauthorized);
 
+    /// <summary>An authenticated caller lacking the required permission, distinct from <see cref="Unauthorized"/>.</summary>
+    public static Error Forbidden(string code, string description) => new(code, description, ErrorType.Forbidden);
+
     public static Error Failure(string code, string description) => new(code, description, ErrorType.Failure);
 
     public bool Equals(Error? other) =>

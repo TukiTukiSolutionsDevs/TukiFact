@@ -6,6 +6,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <!--
+      dotnet build emits openapi/tukifact-api-v1.json, the single
+      committed document for the 33 legacy controllers plus any future kernel endpoint.
+      _IsPublishing mirrors the guard Marketjoya uses: `dotnet publish` does not need to
+      regenerate a file `dotnet build` already produced.
+    -->
+    <OpenApiGenerateDocumentsOnBuild Condition="'$(_IsPublishing)' != 'true'">true</OpenApiGenerateDocumentsOnBuild>
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/../../openapi</OpenApiDocumentsDirectory>
+    <OpenApiGenerateDocumentsOptions>--document-name v1 --file-name tukifact-api-v1</OpenApiGenerateDocumentsOptions>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,14 +33,20 @@
     <PackageReference Include="Minio" />
     <PackageReference Include="NATS.Net" />
     <PackageReference Include="Scalar.AspNetCore" />
+    <!-- Minimal-API versioning only (EndpointExtensions); no Asp.Versioning.Mvc.ApiExplorer / MVC
+         versioning — the 33 legacy controllers carry no [ApiVersion]. -->
     <PackageReference Include="Asp.Versioning.Http" />
-    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" PrivateAssets="all" />
     <PackageReference Include="Sentry.AspNetCore" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TukiFact.Application\TukiFact.Application.csproj" />
     <ProjectReference Include="..\TukiFact.Infrastructure\TukiFact.Infrastructure.csproj" />
+    <!-- Kernel: Common.Infrastructure for AddCommonPersistence/AddCurrentUser,
+         Common.Presentation for AddCommonPresentation/AddCommonGrpc/MapEndpoints. -->
+    <ProjectReference Include="..\Common\TukiFact.Common.Infrastructure\TukiFact.Common.Infrastructure.csproj" />
+    <ProjectReference Include="..\Common\TukiFact.Common.Presentation\TukiFact.Common.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

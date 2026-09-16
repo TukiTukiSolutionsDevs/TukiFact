@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -15,11 +16,16 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // PostgreSQL + EF Core
+        // PostgreSQL + EF Core. Legacy pool budget: legacy (Database:LegacyMaxPoolSize, default 60)
+        // + kernel (Database:KernelMaxPoolSize, default 20) must stay under Postgres max_connections
+        // (100 by default; docker-compose.prod.yml does not raise it). A Maximum Pool Size already
+        // present in the connection string wins. The connection string is read inside the options
+        // callback, not here: WebApplicationFactory (Api.Tests) overrides ConnectionStrings only
+        // when the host is built, so an eager read would see appsettings.json instead.
         services.AddDbContext<AppDbContext>(options =>
             options
                 .UseNpgsql(
-                    configuration.GetConnectionString("DefaultConnection"),
+                    BudgetedLegacyConnectionString(configuration),
                     npgsqlOptions =>
                     {
                         npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
@@ -175,4 +181,22 @@ public static class DependencyInjection
 
         return services;
     }
+
+    /// <summary><c>ConnectionStrings:DefaultConnection</c> with the pool budget applied; <see langword="null"/> when not configured.</summary>
+    private static string? BudgetedLegacyConnectionString(IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        return connectionString is null
+            ? null
+            : LegacyConnectionStrings.WithPoolBudget(connectionString, ResolveLegacyMaxPoolSize(configuration));
+    }
+
+    /// <summary>
+    /// <c>Database:LegacyMaxPoolSize</c> when set to a positive integer; otherwise
+    /// <see cref="LegacyConnectionStrings.DefaultMaxPoolSize"/>.
+    /// </summary>
+    private static int ResolveLegacyMaxPoolSize(IConfiguration configuration) =>
+        int.TryParse(configuration["Database:LegacyMaxPoolSize"], NumberStyles.Integer, CultureInfo.InvariantCulture, out var configured) && configured > 0
+            ? configured
+            : LegacyConnectionStrings.DefaultMaxPoolSize;
 }

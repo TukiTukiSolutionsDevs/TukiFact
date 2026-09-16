@@ -72,6 +72,16 @@ public sealed class ErrorTests
     }
 
     [Fact]
+    public void Forbidden_Always_HasForbiddenType()
+    {
+        // An authenticated caller lacking the required permission (distinct from Unauthorized
+        // so the gRPC side can tell 401 UNAUTHENTICATED apart from 403 PERMISSION_DENIED).
+        // Act & Assert
+        Error.Forbidden("Auth.MissingPermission", "You do not have permission to perform this action.")
+            .Type.Should().Be(ErrorType.Forbidden);
+    }
+
+    [Fact]
     public void Failure_Always_HasFailureType()
     {
         // Act & Assert

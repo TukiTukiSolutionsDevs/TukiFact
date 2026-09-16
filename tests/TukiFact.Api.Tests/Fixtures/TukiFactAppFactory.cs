@@ -28,6 +28,9 @@ public class TukiFactAppFactory : WebApplicationFactory<Program>
             cfg.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = _connectionString,
+                // Kernel pool (AddCommonPersistence): same Testcontainers
+                // Postgres as the legacy AppDbContext pool, distinguished only by Application Name.
+                ["ConnectionStrings:Database"] = _connectionString,
                 // Use a deterministic JWT secret across test runs so JwtTokenFactory can sign tokens
                 // that the API will accept. Must be at least 32 chars.
                 ["Jwt:Secret"] = "TukiFact-Test-Secret-Key-That-Is-Long-Enough-2026!",

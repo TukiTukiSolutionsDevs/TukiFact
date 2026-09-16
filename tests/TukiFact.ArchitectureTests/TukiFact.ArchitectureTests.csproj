@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <KernelTestProject>true</KernelTestProject>
+  </PropertyGroup>
+
+  <!--
+    Every production project is referenced through a glob, so a new module or kernel project is
+    scanned without editing this file. Solution/SolutionDiscoveryTests fails if a src/ project is
+    not loaded or not part of TukiFact.slnx.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/**/*.csproj" />
+    <!-- Not part of the src/ glob above: SolutionRoot.cs. -->
+    <ProjectReference Include="../TukiFact.TestSupport/TukiFact.TestSupport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NetArchTest.Rules" />
+  </ItemGroup>
+
+</Project>
