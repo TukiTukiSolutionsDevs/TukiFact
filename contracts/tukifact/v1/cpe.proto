@@ -1,0 +1,407 @@
+// TukiFact — contrato de emisión de comprobantes electrónicos (CPE) para proyectos partner.
+//
+// Estado: contrato v1 cerrado en su forma; implementación en curso en TukiFact
+// (ver docs/integracion/flujo-emision-partners.md). La copia autoritativa vive en
+// TukiFact/contracts/tukifact/v1/cpe.proto; Market Real y ToroLoco mantienen una copia
+// idéntica en la misma ruta relativa. Cualquier cambio entra primero en TukiFact.
+//
+// Consumidores: Market Real (.NET, backend intermediario de la caja) y ToroLoco (NestJS).
+// Ningún POS habla directo con TukiFact: siempre pasa por su backend.
+//
+// Convenciones
+//   - Los códigos de catálogo SUNAT viajan como `string` con su valor tal cual ("01", "10", "6"),
+//     no como enum de proto, para que el cable sea idéntico al REST y no haya capa de mapeo.
+//   - El dinero y las cantidades viajan como `string` decimal de punto fijo ("1234.56"), separador
+//     ".", sin separador de miles. Proto no tiene tipo decimal y `double` no sirve para importes.
+//   - Las fechas de negocio (emisión, vencimiento) son `string` "YYYY-MM-DD" (espejo de `DateOnly`).
+//     Los instantes técnicos son `google.protobuf.Timestamp` en UTC.
+//   - Metadata obligatoria en toda llamada: `authorization: ApiKey <tk_...>` (la key resuelve el
+//     tenant; no se envía `x-tenant-id`) y `x-correlation-id`. En las mutaciones, además
+//     `idempotency-key` igual a `client_document_id`. `traceparent` (W3C) es recomendado.
+//   - TLS obligatorio en gRPC. Rate limit por API key.
+//   - Errores: `google.rpc.Status` con `ErrorDetail` en `details` (ver mapeo abajo).
+//   - Versionado: paquete `tukifact.v1`, servicio `tukifact.v1.CpeService`, header `X-Schema-Version: 1`
+//     en cada evento. Dentro de v1 solo se agregan campos; una ruptura nace como `tukifact.v2` y
+//     convive con v1.
+//
+// DECISIONES (cierran los pendientes del borrador; detalle en docs/integracion/flujo-emision-partners.md)
+//   PENDING-1  Resuelto. Autenticación por API key de tenant en metadata `authorization: ApiKey <key>`.
+//              La key resuelve el tenant; no se envía `x-tenant-id`.
+//   PENDING-2  Resuelto. Firmar ahora, enviar después: `SignAndEnqueue` firma, numera y encola el
+//              envío a SUNAT en una sola transacción y devuelve hash y QR en milisegundos. El
+//              resultado de SUNAT llega por evento y se reconcilia por cursor.
+//   PENDING-3  Resuelto. Eventos `document.signed` | `document.accepted` | `document.observed` |
+//              `document.rejected` | `document.voided`.
+//   PENDING-4  Resuelto. Entrega de resultados por webhook firmado por partner: una URL y un secreto
+//              por partner, `POST` con `DocumentEvent` en JSON canónico y firma HMAC-SHA256 con marca
+//              de tiempo; reintentos durables hasta 72 h. NATS JetStream queda interno a TukiFact
+//              (outbox → NATS → handlers propios) y no forma parte del contrato público.
+//   PENDING-5  Resuelto. `ListResults(since_cursor)` con cursor monotónico por tenant asignado por
+//              el outbox de TukiFact: orden estable y sin huecos.
+//   PENDING-6  Resuelto. Header `X-Schema-Version` = "1" en cada evento; el consumidor rechaza
+//              versiones que no conoce.
+//   PENDING-7  ABIERTO (fiscal). Tasa de ICBPER vigente y forma del resumen diario (RC). Único
+//              pendiente que no se resuelve escribiendo código; dueño: Fiscal, TukiFact.
+//   PENDING-8  Resuelto. `Reference` acepta `document_id` o la clave de negocio
+//              `document_type` + `full_number`.
+
+syntax = "proto3";
+
+package tukifact.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "TukiFact.Contracts.V1";
+
+// ---------------------------------------------------------------------------
+// Servicio
+// ---------------------------------------------------------------------------
+
+service CpeService {
+  // Firma, numera y encola el envío a SUNAT de un comprobante (01, 03, 07, 08) en una sola
+  // transacción. Devuelve `SignedDocument` con serie, correlativo, hash y QR: lo único que la caja
+  // necesita para imprimir el ticket. Objetivo de latencia: < 300 ms.
+  //
+  // Idempotente por metadata `idempotency-key` (= `client_document_id`): la repetición devuelve el
+  // mismo documento con `idempotent_replay = true`; la misma key con un cuerpo distinto responde
+  // ABORTED con `code = Idempotency.PayloadMismatch`. Si algo falla, no se consume correlativo.
+  //
+  // El resultado de SUNAT (accepted | observed | rejected) llega después como `DocumentEvent`
+  // y se reconcilia con `ListResults`.
+  rpc SignAndEnqueue(SignAndEnqueueRequest) returns (SignedDocument);
+
+  // Comunicación de baja (RA). Devuelve el ticket de SUNAT; el resultado llega como
+  // `document.voided` o `document.rejected` sobre el documento afectado. La baja de boletas se
+  // resuelve por resumen diario de bajas, interno a TukiFact.
+  rpc VoidDocument(VoidDocumentRequest) returns (VoidedDocument);
+
+  // Consulta puntual. Devuelve el modelo de lectura completo, incluida la línea de tiempo durable.
+  rpc GetDocument(GetDocumentRequest) returns (Document);
+
+  // Listado con filtros y paginación por offset.
+  rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
+
+  // Reconciliación por cursor. Obligatoria: es lo que garantiza que un CDR no se pierda si el
+  // consumidor estuvo caído o si una entrega por webhook agotó sus reintentos (72 h) y quedó
+  // marcada como `failed`. Es la vía de recuperación del contrato: llamar al arrancar y
+  // periódicamente (recomendado cada 5 minutos) con el último cursor confirmado.
+  rpc ListResults(ListResultsRequest) returns (ListResultsResponse);
+}
+
+// ---------------------------------------------------------------------------
+// Emisión
+// ---------------------------------------------------------------------------
+
+message SignAndEnqueueRequest {
+  // Identificador de la operación en el partner. Es la identidad del comprobante en el partner y
+  // la idempotency key de toda la operación: debe viajar TAMBIÉN en la metadata `idempotency-key`.
+  string client_document_id = 1;
+
+  // "01" factura, "03" boleta, "07" nota de crédito, "08" nota de débito.
+  string document_type = 2;
+
+  // Punto de emisión (caja o sede) del que sale la serie. TukiFact mantiene una serie por punto de
+  // emisión y tipo de documento, y asigna serie y correlativo: el partner nunca los propone.
+  string emission_point = 3;
+
+  string currency = 4;                 // "PEN" | "USD"
+  string exchange_rate = 5;            // decimal; obligatorio si currency != "PEN"
+  string issue_date = 6;               // YYYY-MM-DD
+  string due_date = 7;                 // YYYY-MM-DD, opcional
+
+  Customer customer = 8;
+  repeated DocumentItem items = 9;
+
+  string purchase_order = 10;          // opcional
+  string notes = 11;                   // opcional
+  Detraction detraction = 12;          // opcional
+
+  // Solo para notas (07 y 08). Regla: `reference` y `note_reason` son obligatorios si y solo si
+  // `document_type` es "07" u "08"; en "01" y "03" deben venir vacíos (INVALID_ARGUMENT si no).
+  // TukiFact valida que el documento afectado pertenezca al mismo tenant y esté aceptado.
+  Reference reference = 13;            // documento afectado
+  string note_reason = 14;             // catálogo 09 para "07", catálogo 10 para "08"
+}
+
+message VoidDocumentRequest {
+  string client_document_id = 1;
+  string document_id = 2;              // id del comprobante a dar de baja
+  string reason = 3;
+  string void_date = 4;                // YYYY-MM-DD
+}
+
+// ---------------------------------------------------------------------------
+// Consultas
+// ---------------------------------------------------------------------------
+
+message GetDocumentRequest {
+  string document_id = 1;
+}
+
+message ListDocumentsRequest {
+  string document_type = 1;            // opcional
+  string status = 2;                    // opcional: "signed" | "accepted" | "observed" | "rejected" | "voided"
+  string date_from = 3;                 // YYYY-MM-DD, opcional
+  string date_to = 4;                   // YYYY-MM-DD, opcional
+  int32 page = 5;                       // >= 1
+  int32 page_size = 6;                  // 1..100
+}
+
+message ListDocumentsResponse {
+  repeated Document data = 1;
+  Pagination pagination = 2;
+}
+
+// Devuelve los eventos posteriores a `since_cursor`, en orden estable, para que un consumidor que
+// estuvo caído pueda ponerse al día sin depender de la entrega por webhook. El cursor es un entero
+// monotónico por tenant asignado por el outbox de TukiFact: no hay huecos ni reordenamientos.
+message ListResultsRequest {
+  string since_cursor = 1;              // vacío = desde el inicio de la retención
+  int32 page_size = 2;                  // 1..100
+}
+
+message ListResultsResponse {
+  repeated DocumentEvent results = 1;   // mismo esquema que el evento entregado por webhook
+  string next_cursor = 2;               // último cursor de esta página; se persiste tras procesarla
+  bool has_more = 3;                    // true = volver a llamar con since_cursor = next_cursor
+}
+
+// ---------------------------------------------------------------------------
+// Tipos compartidos
+// ---------------------------------------------------------------------------
+
+message Customer {
+  string doc_type = 1;                  // "6" RUC, "1" DNI, "4" CE, "7" pasaporte, "0" sin documento
+  string doc_number = 2;
+  string name = 3;
+  string address = 4;                   // opcional
+  string email = 5;                     // opcional
+}
+
+message DocumentItem {
+  string description = 1;
+  string quantity = 2;                  // decimal
+  string unit_measure = 3;              // "NIU" | "ZZ" | "KGM" | "MTR" | "LTR"
+  string unit_price = 4;                // decimal, sin IGV
+  string igv_type = 5;                  // "10" gravado, "20" exonerado, "30" inafecto, "21" gratuito
+  string discount = 6;                  // decimal, opcional
+  string product_code = 7;              // opcional
+  bool has_icbper = 8;                  // bolsas plásticas (tasa vigente: PENDING-7)
+  string icbper_quantity = 9;           // decimal, opcional
+}
+
+message Detraction {
+  string code = 1;
+  string percent = 2;                   // decimal
+  string amount = 3;                    // decimal
+  string bank_account = 4;
+}
+
+// Documento afectado por una nota de crédito o débito. Se acepta cualquiera de las dos formas:
+//   - `document_id` (id asignado por TukiFact), o
+//   - clave de negocio `document_type` + `full_number`, que el partner conoce sin haber guardado
+//     el id.
+// Si vienen ambas, deben apuntar al mismo documento.
+message Reference {
+  string document_id = 1;
+  string document_type = 2;             // "01" | "03"
+  string full_number = 3;               // "{serie}-{correlativo:D8}"
+}
+
+message Totals {
+  string operacion_gravada = 1;
+  string operacion_exonerada = 2;
+  string operacion_inafecta = 3;
+  string operacion_gratuita = 4;
+  string igv = 5;
+  string icbper_total = 6;
+  string total_descuento = 7;
+  string total = 8;
+}
+
+// Respuesta de `SignAndEnqueue`: el documento ya firmado y numerado, pendiente de envío a SUNAT.
+message SignedDocument {
+  string document_id = 1;
+  string client_document_id = 2;
+  string document_type = 3;
+  string serie = 4;
+  int64 correlative = 5;
+  string full_number = 6;               // "{serie}-{correlativo:D8}"
+  string issue_date = 7;
+  string currency = 8;
+  Totals totals = 9;
+
+  // Siempre "signed" en una respuesta exitosa. Los estados siguientes llegan por `DocumentEvent`.
+  string status = 10;
+
+  // Representación impresa: lo único que la caja necesita para imprimir el ticket.
+  string hash_code = 11;
+  string qr_data = 12;
+
+  google.protobuf.Timestamp signed_at = 13;
+
+  // true cuando la respuesta es la repetición de una firma previa con la misma `idempotency-key`.
+  bool idempotent_replay = 14;
+}
+
+// Modelo de lectura completo, devuelto por `GetDocument` y `ListDocuments`.
+message Document {
+  string document_id = 1;
+  string client_document_id = 2;
+  string document_type = 3;
+  string serie = 4;
+  int64 correlative = 5;
+  string full_number = 6;               // "{serie}-{correlativo:D8}"
+  string issue_date = 7;
+  string due_date = 8;
+  string currency = 9;
+  string exchange_rate = 10;
+
+  Customer customer = 11;
+  repeated DocumentItem items = 12;
+  Totals totals = 13;
+
+  // "signed" | "accepted" | "observed" | "rejected" | "voided". `rejected` es terminal: corregir
+  // exige un documento nuevo. Los estados internos de TukiFact no forman parte del contrato.
+  string status = 14;
+
+  // Representación impresa.
+  string hash_code = 15;
+  string qr_data = 16;
+
+  string xml_url = 17;
+  string pdf_url = 18;
+  string cdr_url = 19;
+  string sunat_response_code = 20;
+  string sunat_response_description = 21;
+
+  google.protobuf.Timestamp created_at = 22;
+  google.protobuf.Timestamp updated_at = 23;
+
+  // 24 era `idempotent_replay` en el borrador; ahora vive en `SignedDocument`.
+  reserved 24;
+
+  // Línea de tiempo durable del documento (recibido, firmado, enviado, resultado SUNAT, evento
+  // publicado y entregas por webhook). Las trazas se muestrean y caducan; la línea de tiempo no.
+  repeated TimelineEntry timeline = 25;
+}
+
+message TimelineEntry {
+  string step = 1;                      // "received" | "signed" | "submitted" | "sunat_result" | "event_published"
+  google.protobuf.Timestamp at = 2;
+  string detail = 3;                    // texto libre; no ramificar por su contenido
+}
+
+message VoidedDocument {
+  string voided_document_id = 1;
+  string client_document_id = 2;
+  string document_id = 3;
+  string ticket_number = 4;             // ticket de SUNAT, "RA-YYYYMMDD-NNN"
+  // Estado de la comunicación de baja al responder: "signed" (firmada y encolada). El resultado
+  // llega como `document.voided` o `document.rejected` sobre el documento afectado.
+  string status = 5;
+  string reason = 6;
+  string void_date = 7;
+  string sunat_response_code = 8;
+  string sunat_response_description = 9;
+  google.protobuf.Timestamp created_at = 10;
+  bool idempotent_replay = 11;
+}
+
+message Pagination {
+  int32 page = 1;
+  int32 page_size = 2;
+  int64 total_count = 3;
+  int32 total_pages = 4;
+}
+
+// ---------------------------------------------------------------------------
+// Evento de resultado (payload asincrónico)
+// ---------------------------------------------------------------------------
+// Esquema del evento que TukiFact entrega cuando cambia el estado de un comprobante. Se serializa
+// como JSON canónico de protobuf (camelCase), sin envelope de ninguna librería, para que un
+// consumidor NestJS lo lea sin generar código si no quiere. El mismo mensaje es el que devuelve
+// `ListResults`.
+//
+// Transporte: webhook HTTPS firmado, una URL y un secreto por PARTNER (no por tenant).
+//   Registro   La URL y el secreto se registran al aprovisionar el partner (backoffice o API de
+//              aprovisionamiento). El secreto se muestra una sola vez y se rota con ventana de
+//              solapamiento: durante la rotación hay dos secretos válidos.
+//   Request    POST <url>  Content-Type: application/json  body = DocumentEvent (JSON canónico)
+//   Ack        Cualquier 2xx dentro de 10 segundos. El receptor encola y responde; nunca procesa
+//              lógica SUNAT en línea.
+//   Reintentos Desde la tabla durable de entregas del outbox, con backoff exponencial:
+//              1 min, 5 min, 30 min, 2 h, 6 h y luego cada 12 h hasta 72 h. Agotados, la entrega
+//              queda `failed` (visible en el backoffice de TukiFact) y el evento sigue
+//              recuperable con `ListResults`.
+//   Garantía   Al menos una vez; el orden NO está garantizado bajo reintentos. La garantía de
+//              dedupe es el inbox del consumidor con `event_id` único.
+//   Seguridad  Solo HTTPS con TLS 1.2+; allowlist opcional de IPs de egreso de TukiFact en el
+//              partner; el secreto nunca vive en el repositorio. NATS no forma parte del contrato.
+//
+// Headers obligatorios del request (además del payload):
+//   X-Event-Id             = event_id (UUID; clave de dedupe en el inbox del receptor)
+//   X-Event-Type           = mismo valor que el campo event_type
+//   X-Schema-Version       = "1"
+//   X-Tenant-Id            = tenant emisor (también viaja en el payload)
+//   X-Correlation-Id       = el mismo que viajó en SignAndEnqueue
+//   X-Delivery-Attempt     = número de intento, 1..n
+//   traceparent            = contexto W3C para la traza distribuida
+//   X-TukiFact-Signature   = t=<unix seconds>,v1=<hex HMAC-SHA256(secret, "<t>.<raw body>")>
+//
+// Verificación en el receptor: rechazar si |now - t| > 5 minutos o si la firma no coincide
+// (protección contra replay). Durante una rotación se acepta la firma con cualquiera de los dos
+// secretos vigentes. Este formato con marca de tiempo reemplaza al `sha256=<hmac(body)>` de los
+// webhooks legados de TukiFact; v1 del contrato partner usa solo la forma con `t=`.
+//
+// Obligaciones del receptor: verificar la firma, insertar `X-Event-Id` en una tabla inbox con
+// constraint único (duplicado → 200 y descartar), aplicar una máquina de estados donde los estados
+// terminales ganan (accepted/observed/rejected/voided sobre signed), persistir `cursor` y ejecutar
+// `ListResults` al arrancar y periódicamente desde el último cursor procesado.
+message DocumentEvent {
+  string event_id = 1;
+  // "document.signed" | "document.accepted" | "document.observed" | "document.rejected" | "document.voided"
+  string event_type = 2;
+  string tenant_id = 3;
+  string document_id = 4;
+  string client_document_id = 5;
+  string document_type = 6;
+  string serie = 7;
+  int64 correlative = 8;
+  string full_number = 9;
+  string status = 10;                   // "signed" | "accepted" | "observed" | "rejected" | "voided"
+  string total = 11;                    // decimal
+  string currency = 12;
+  string customer_name = 13;
+  string sunat_response_code = 14;
+  string sunat_response_description = 15;
+  string cdr_url = 16;
+  google.protobuf.Timestamp occurred_at = 17;
+  string cursor = 18;                   // posición monotónica por tenant; continuar con ListResults desde acá
+}
+
+// ---------------------------------------------------------------------------
+// Errores
+// ---------------------------------------------------------------------------
+// Se devuelven como `google.rpc.Status` con un `ErrorDetail` en `details`.
+// Mapeo con el contrato único de errores del proyecto y ejemplos de `code`:
+//   VALIDATION   -> INVALID_ARGUMENT   SignAndEnqueue.Validation (con field_errors)
+//   UNAUTHORIZED -> UNAUTHENTICATED    ApiKey.Invalid, ApiKey.Revoked
+//   FORBIDDEN    -> PERMISSION_DENIED  Tenant.PlanFeatureDisabled, Tenant.Suspended
+//   NOT_FOUND    -> NOT_FOUND          Document.NotFound, Reference.NotFound
+//   CONFLICT     -> ABORTED            Idempotency.PayloadMismatch, Series.Exhausted
+//   FAILURE      -> INTERNAL           Tenant.CertificateMissing, Tenant.CertificateExpired
+// El cliente ramifica por `code`, nunca por el texto.
+message ErrorDetail {
+  string code = 1;                      // "<Ámbito>.<Motivo>", p. ej. "Series.Exhausted"
+  string type = 2;                      // VALIDATION | UNAUTHORIZED | FORBIDDEN | NOT_FOUND | CONFLICT | FAILURE
+  string description = 3;
+  repeated FieldError field_errors = 4; // solo en VALIDATION
+  string correlation_id = 5;
+}
+
+message FieldError {
+  string field = 1;                     // ruta camelCase del request, p. ej. "items[0].quantity"
+  string code = 2;
+  string description = 3;
+}
