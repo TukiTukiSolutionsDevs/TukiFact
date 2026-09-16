@@ -53,6 +53,14 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
     <!-- Concrete DI container, needed only by TukiFact.Common.UnitTests to build a ServiceProvider in tests. -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
+
+    <!-- Common.Infrastructure: persistence (EF Core + Dapper) and the RLS tenant hook. -->
+    <PackageVersion Include="Dapper" Version="2.1.86" />
+    <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
+    <!-- Must equal the transitive version Npgsql.EntityFrameworkCore.PostgreSQL 10.0.3 resolves to (verified via dotnet list package). -->
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <!-- Test-only: TukiFact.TestSupport needs xUnit v3 fixture/collection types without the full runner. -->
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.1" />
   </ItemGroup>
 
 </Project>

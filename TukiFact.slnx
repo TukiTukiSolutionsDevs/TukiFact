@@ -8,6 +8,7 @@
   <Folder Name="/src/Common/">
     <Project Path="src/Common/TukiFact.Common.Domain/TukiFact.Common.Domain.csproj" />
     <Project Path="src/Common/TukiFact.Common.Application/TukiFact.Common.Application.csproj" />
+    <Project Path="src/Common/TukiFact.Common.Infrastructure/TukiFact.Common.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/BuildingBlocks/">
     <Project Path="src/BuildingBlocks/TukiFact.BuildingBlocks.Contracts/TukiFact.BuildingBlocks.Contracts.csproj" />
@@ -18,5 +19,7 @@
     <Project Path="tests/TukiFact.Domain.Tests/TukiFact.Domain.Tests.csproj" />
     <Project Path="tests/TukiFact.Infrastructure.Tests/TukiFact.Infrastructure.Tests.csproj" />
     <Project Path="tests/TukiFact.Common.UnitTests/TukiFact.Common.UnitTests.csproj" />
+    <Project Path="tests/TukiFact.TestSupport/TukiFact.TestSupport.csproj" />
+    <Project Path="tests/TukiFact.Common.IntegrationTests/TukiFact.Common.IntegrationTests.csproj" />
   </Folder>
 </Solution>

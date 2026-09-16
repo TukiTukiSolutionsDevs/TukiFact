@@ -8,12 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Common\TukiFact.Common.Domain\TukiFact.Common.Domain.csproj" />
-    <ProjectReference Include="..\..\src\Common\TukiFact.Common.Application\TukiFact.Common.Application.csproj" />
     <ProjectReference Include="..\..\src\Common\TukiFact.Common.Infrastructure\TukiFact.Common.Infrastructure.csproj" />
+    <ProjectReference Include="..\TukiFact.TestSupport\TukiFact.TestSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>
 
