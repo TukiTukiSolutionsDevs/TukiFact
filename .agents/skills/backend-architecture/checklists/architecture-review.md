@@ -1,0 +1,22 @@
+# Checklist: revisión arquitectónica
+
+- [ ] Cada archivo está en la capa y carpeta vertical correctas.
+- [ ] Namespace coincide con la ruta.
+- [ ] Domain no referencia paquetes (solo BCL y `Common.Domain`).
+- [ ] Application no referencia Infrastructure, Presentation, EF Core, Npgsql, Wolverine ni ASP.NET Core.
+- [ ] Handlers `internal sealed`, junto a su request; no reciben `DbContext` ni llaman `SaveChanges`.
+- [ ] Presentation no tiene lógica de negocio, acceso a datos ni puertos de datos.
+- [ ] Query usa Dapper, toca solo el schema propio y no usa repositorios ni `ITransactionManager`.
+- [ ] Repositorio por agregado, solo escritura, ≤ 5 métodos, sin `IQueryable`; no hay `IRepository<T>` ni `IUnitOfWork`.
+- [ ] Reglas de negocio están en el agregado o domain service, no en endpoint/validator/handler/consumer.
+- [ ] Validator solo valida formato y presencia.
+- [ ] Sin carpetas `Handlers/`, `Services/`, `Managers/`, `Helpers/`, `Dtos/`, `Repositories/`; `Shared/` solo por submódulo con uso real en ≥2 casos de uso.
+- [ ] Evento clasificado: dominio (`IDomainEventHandler<T>`) vs integración (`IIntegrationEventPublisher` + consumer `public sealed` en `Infrastructure/Messaging`).
+- [ ] Errores usan `Result` + `<Agregado>Errors` estáticos con `code` `<Ámbito>.<Motivo>`; el endpoint usa `ToHttpResult()`.
+- [ ] `code` estable: ninguno existente renombrado ni reutilizado con otro significado.
+- [ ] 400 de validación con `errors` (`field`, `code`); `Failure` no expone la descripción (`references/api-error-contract.md`).
+- [ ] Endpoint `sealed` en su carpeta de caso de uso, con `WithName`; contrato OpenAPI commiteado.
+- [ ] Patrón nuevo justificado (2–3 variaciones reales) y ubicado según `references/design-patterns.md`.
+- [ ] Telemetría y correlation id intactos (`checklists/telemetry.md`).
+- [ ] Un módulo no referencia otro.
+- [ ] `Marketjoya.ArchitectureTests` pasa.

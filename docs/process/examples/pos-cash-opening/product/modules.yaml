@@ -1,0 +1,22 @@
+# EJEMPLO ILUSTRATIVO (docs/process/examples/pos-cash-opening). No es el mapa de módulos real de Market Real:
+# el registro real vive en docs/product/modules.yaml y sigue pendiente de decisión.
+#
+# Contrato: docs/process/traceability-schema.md §4.1. Dueño: arquitecto.
+# Correspondencia con el backend (un schema Postgres por módulo):
+#   AUTH   → módulo backend Identity     (schema identity)
+#   CASH   → módulo backend CashRegister (schema cash_register)
+#   REPORT → módulo backend Reports      (schema reports)
+
+modules:
+  - code: AUTH
+    slug: auth
+    name: Autenticación
+    repos: [backend, mobile]
+  - code: CASH
+    slug: cash-register
+    name: Caja
+    repos: [backend, mobile, front]
+  - code: REPORT
+    slug: reports
+    name: Reportes
+    repos: [backend, front]

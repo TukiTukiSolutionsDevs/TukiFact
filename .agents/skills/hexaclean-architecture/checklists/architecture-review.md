@@ -1,0 +1,22 @@
+# Checklist: revisión arquitectónica
+
+- [ ] Cada archivo vive en una capa de `src/` (no hay `src/app/`); `npm run lint` sin errores.
+- [ ] No se desactivaron reglas de `eslint.config.js`; cambios de matriz con fixtures.
+- [ ] `core` no importa framework UI, infrastructure ni DTOs.
+- [ ] UI no importa adapters ni tokens `out`.
+- [ ] Data no contiene lógica de negocio.
+- [ ] Adapter no navega ni muestra feedback.
+- [ ] Endpoint y DTO existen en el OpenAPI.
+- [ ] Facade no muta estado de UI.
+- [ ] Service no accede directamente a IO.
+- [ ] Reglas críticas no dependen solo de template/formulario.
+- [ ] Autorización cubre mutaciones, no solo lectura.
+- [ ] Adapter HTTP único traductor ProblemDetails → `AppError` (`toAppError`); ninguna otra capa lee `HttpErrorResponse`.
+- [ ] Errores no se convierten a un fallback incorrecto (`UNKNOWN` solo si no se clasifica); manda el status: `type` del status (nunca del `type` URI del ProblemDetails) y `code` reservado si falta.
+- [ ] No se ramifica por `description`: primero `type`, luego `code`.
+- [ ] `correlationId` visible en fallos `FAILURE`/`NETWORK`/`UNKNOWN`; logs sin PII (`type`, `code`, `status`, `correlationId`).
+- [ ] Scope DI no comparte estado accidentalmente.
+- [ ] Persistencia no rompe modelos por cambios sin versión.
+- [ ] No hay `any`, promesas flotantes ni catch silencioso.
+- [ ] Visual solo desde `design-system/` (sin HEX ni Tailwind de marca ni valores arbitrarios).
+- [ ] READMEs de capa y código no divergen sin nota.

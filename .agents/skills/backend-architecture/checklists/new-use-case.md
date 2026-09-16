@@ -1,0 +1,24 @@
+# Checklist: nuevo caso de uso
+
+- [ ] Es comando (mutación) o query (lectura); la carpeta vive en `Application/<Submodulo>/<CasoDeUso>/`.
+- [ ] Namespace file-scoped = ruta de carpetas; un tipo por archivo.
+- [ ] Command/Query `public sealed record` con sufijo `Command`/`Query` (o `ICommand`); Response `record` público.
+- [ ] Handler `internal sealed <Request>Handler`, mismo namespace que el request.
+- [ ] Validator (si aplica) `internal sealed <Mensaje>Validator`, mismo namespace; solo formato y presencia; cada regla con `WithErrorCode("<Campo>.<Regla>")` (sin él sale `Validation.<Regla>`).
+- [ ] Command con los mismos nombres de propiedad que el Request (el `field` del 400 apunta al cuerpo HTTP).
+- [ ] Si necesita puerto nuevo: interfaz en `Application/Abstractions/` (o Domain si es lenguaje del dominio) e implementación en Infrastructure registrada en `<Modulo>Module`.
+- [ ] DTO/mapper en la carpeta del caso de uso, salvo reutilización real → `<Submodulo>/Shared/`.
+- [ ] Endpoint `sealed <CasoDeUso>Endpoint` + request en `Presentation/<Submodulo>/<CasoDeUso>/`.
+- [ ] Endpoint solo mapea y llama `ISender.Send`; traduce con `ToHttpResult()`.
+- [ ] Endpoint con `WithName`, `WithSummary`, `Produces`, `WithStandardProblems` y `RequireAuthorization("<permiso>")`.
+- [ ] Comando: orquesta agregado + repositorio; no llama `SaveChanges`; no recibe `DbContext`.
+- [ ] Query: Dapper + SQL contra el schema propio; sin EF, agregados, repositorios ni `ITransactionManager`.
+- [ ] Errores con `Result` + estáticos `<Agregado>Errors` (`UserErrors.NotFound`); `code` `<Ámbito>.<Motivo>`.
+- [ ] `code` estable: no renombrar ni reutilizar uno existente; deprecar = dejar de emitir.
+- [ ] Request inválido → 400 con `code` `<UseCase>.Validation` y `errors` (`field`, `code`) según `references/api-error-contract.md`.
+- [ ] Evento de dominio `*DomainEvent` definido en Domain si el agregado emite uno.
+- [ ] Si otro módulo debe enterarse: `IDomainEventHandler<T>` publica con `IIntegrationEventPublisher`; nunca referencia directa.
+- [ ] Telemetría: `checklists/telemetry.md`.
+- [ ] Contrato `openapi/marketjoya-api-v1.json` regenerado y commiteado.
+- [ ] Tests por capa según `../backend-testing/SKILL.md`: Domain unitario, caso de uso integrado vía `ISender`.
+- [ ] Architecture tests siguen pasando.

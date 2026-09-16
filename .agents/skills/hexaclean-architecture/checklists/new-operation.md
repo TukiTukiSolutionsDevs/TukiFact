@@ -1,0 +1,22 @@
+# Checklist: nueva operación
+
+- [ ] `operationId` del OpenAPI identificado.
+- [ ] Command/query y resultado tipados (`GoResult<T, AppError>`).
+- [ ] Puerto `in` creado.
+- [ ] Puerto `out` ampliado solo si corresponde.
+- [ ] Caso de uso sin framework UI.
+- [ ] Validación de invariantes fuera del formulario.
+- [ ] Token de entrada creado.
+- [ ] Factory registrada con `deps` explícitas.
+- [ ] Adapter implementa contrato; `goErr(toAppError(error))`.
+- [ ] Adapter único traductor ProblemDetails → `AppError`; ningún parseo ad hoc.
+- [ ] Errores conservan `type`, `code`, `fieldErrors` y `correlationId` hasta el service.
+- [ ] No se ramifica por `description`, `detail` ni `title`.
+- [ ] Facade solo expone ejecución.
+- [ ] Service gestiona estado y feedback; narrowing con `error !== null`; ramifica por `type`/`code`.
+- [ ] `correlationId` visible en fallos `FAILURE`/`NETWORK`/`UNKNOWN`; `fieldErrors` en su campo.
+- [ ] Operación protegida: `UNAUTHORIZED` pasa por refresh single-flight.
+- [ ] Store se actualiza solo tras éxito.
+- [ ] Ruta, permiso y visibilidad revisados.
+- [ ] Concurrencia y loading revisados.
+- [ ] Spec de core y adapter al lado de cada archivo (`../../frontend-testing/SKILL.md`).

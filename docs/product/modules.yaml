@@ -1,0 +1,14 @@
+# Registro de módulos de Market Real (contrato: docs/process/traceability-schema.md §4.1).
+#
+# El mapa de módulos es una DECISIÓN PENDIENTE: no agregues módulos hasta que el arquitecto
+# los decida junto con el PRD. Deben coincidir con los módulos del backend (un schema Postgres por módulo).
+#
+# Formato de cada entrada:
+#   - code: PAY                        # ^[A-Z]{2,8}$, prefijo de los IDs (PAY-FEAT-001, US-PAY-001-01…)
+#     slug: payments                   # kebab-case ASCII; carpeta docs/features/<slug>/
+#     name: Pagos                      # nombre legible
+#     repos: [backend, front, mobile]  # subconjunto de backend|front|mobile
+#
+# Un código de módulo no se renombra ni se reutiliza: los IDs ya emitidos dependen de él.
+
+modules: []
